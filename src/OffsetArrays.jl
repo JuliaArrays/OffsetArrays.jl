@@ -1,8 +1,9 @@
 module OffsetArrays
 
-import Base: Array
+#import Base: Array
+importall Base
 
-export OffsetArray
+export OffsetArray, ..
 
 type OffsetArray{T<:Number, N, A<:AbstractArray} <: AbstractArray
 
@@ -65,7 +66,7 @@ getindex{T<:Number}(FA::OffsetArray{T,3}, i1::Int, i2::Int, i3::Int) = FA.array[
 getindex{T<:Number}(FA::OffsetArray{T,4}, i1::Int, i2::Int, i3::Int, i4::Int) = FA.array[i1+FA.o1, i2+FA.o2, i3+FA.o3, i4+FA.o4]
 getindex{T<:Number}(FA::OffsetArray{T,5}, i1::Int, i2::Int, i3::Int, i4::Int, i5::Int) = FA.array[i1+FA.o1, i2+FA.o2, i3+FA.o3, i4+FA.o4, i5+FA.o5]
 
-# a generic not very efficient case    
+# a generic but not very efficient case    
 getindex{T<:Number,N}(FA::OffsetArray{T,N}, I::Int...) = let ind = [I[i] + FA.offsets[i] for i = 1:length(I)]; return FA.array[ind...] end
 
 setindex!{T<:Number}(FA::OffsetArray{T,1}, x, i1::Int) = arrayset(FA.array, convert(T,x), i1+FA.o1)
@@ -82,5 +83,46 @@ Base.display(a::OffsetArray) = Base.display(a.array)
 
 Base.size(a::OffsetArray) = arraysize(a.array)
 Base.size(a::OffsetArray, d) = arraysize(a.array, d)
+
+
+# as the parser changes colons into ranges.
+# for avoiding to write a[Colon()] a whole range .. is introduced
+# it is possible to write say a[..] = b[..] 
+
+const (..) = Colon()
+
+getindex{T<:Number}(FA::OffsetArray{T,1}, r1::Union(Range1{Int},Colon)) =
+    isa(r1, Colon) ? FA.array[:] : FA.array[r1+FA.o1]
+
+getindex{T<:Number}(FA::OffsetArray{T,2}, r1::Union(Range1{Int},Colon), i2::Int) =
+    isa(r1, Colon) ? FA.array[:, i2+FA.o2] : FA.array[r1+FA.o1, i2+FA.o2]
+
+getindex{T<:Number}(FA::OffsetArray{T,3}, r1::Union(Range1{Int},Colon), i2::Int, i3::Int) =
+    isa(r1, Colon) ? FA.array[:, i2+FA.o2, i3+FA.o3] : FA.array[r1+FA.o1, i2+FA.o2, i3+FA.o3]
+
+setindex!{T<:Number}(FA::OffsetArray{T,1}, x, r1::Union(Range1{Int},Colon)) = let
+    if isa(r1, Colon)
+        FA.array[:] = x[:]
+    else
+        FA.array[r1+FA.o1] = x[r1+FA.o1]
+    end
+end
+
+setindex!{T<:Number}(FA::OffsetArray{T,2}, x, r1::Union(Range1{Int},Colon), i2::Int) = let
+    if isa(r1, Colon)
+        FA.array[:,        i2+FA.o2] = x[:,        i2+FA.o2]
+    else
+        FA.array[r1+FA.o1, i2+FA.o2] = x[r1+FA.o1, i2+FA.o2]
+    end
+end
+
+setindex!{T<:Number}(FA::OffsetArray{T,3}, x, r1::Union(Range1{Int},Colon), i2::Int, i3::Int) = let
+    if isa(r1, Colon)
+        FA.array[:,        i2+FA.o2, i3+FA.o3] = x[:,        i2+FA.o2, i3+FA.o3]
+    else
+        FA.array[r1+FA.o1, i2+FA.o2, i3+FA.o3] = x[r1+FA.o1, i2+FA.o2, i3+FA.o3]
+    end
+end
+
 
 end # module
