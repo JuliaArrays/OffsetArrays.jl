@@ -53,12 +53,12 @@ the book _Numerical Solution of Hyperbolic Partial Differential Equations_ by pr
 
     Timings for baseline:
 ```sh
-   1.250 seconds      (223 k allocations: 9697 KB, 2.41% gc time)
- 823.135 milliseconds (19507 allocations: 540 KB)
+ 822.768 milliseconds (89601 allocations: 4421 KB)
+ 593.164 milliseconds (40 allocations: 236 KB)
 ```
 for `sub` version:
 ```
- 822.768 milliseconds (89601 allocations: 4421 KB)
- 593.164 milliseconds (40 allocations: 236 KB)
+   1.250 seconds      (223 k allocations: 9697 KB, 2.41% gc time)
+ 823.135 milliseconds (19507 allocations: 540 KB)
 ```
 The 2nd timing is after warming up.
