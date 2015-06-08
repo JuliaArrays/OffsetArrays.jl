@@ -125,12 +125,13 @@ function main()
     for ic=0:ncells-1
         xc = (x[ic+1]+x[ic+2])*0.5
         uc = u[ic+3]
-        @printf("%e %e\n",xc,uc)
+        #@printf("%e %e\n",xc,uc)
     end
     toc()
 end # main
 
-main()
+@time main()
+@time main()
 
 # @profile main()
 # Profile.print()
