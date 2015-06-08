@@ -27,7 +27,7 @@ getindex{T,N,P,IV}(V::SubArray{T,N,P,IV}, I::Union(Real, AbstractArray, Colon)..
 setindex!(V::SubArray, v, I::Int64...) = Base.unsafe_setindex!(V, v, I...)
 
 macro shifted_array(T, r)
-    :(sub(Array($T, length($r)), -minimum($r) + 2 : maximum($r)))
+    :(sub(Array($T, length($r)), -minimum($r) + 2 : length($r)))
 end
 
 function do_computation(nsteps, ncells, tmax, ifirst, ilast, statelft, statergt, velocity, dt, fc, lc, flux, x, u)
