@@ -26,6 +26,10 @@ getindex(V::SubArray, I::Union(Range{Int64},Array{Int64,1},Int64,Colon)...) = Ba
 getindex{T,N,P,IV}(V::SubArray{T,N,P,IV}, I::Union(Real, AbstractArray, Colon)...) = Base.unsafe_getindex(V, to_index(I)...)
 setindex!(V::SubArray, v, I::Int64...) = Base.unsafe_setindex!(V, v, I...)
 
+macro shifted_array(T, r)
+    :(sub(Array($T, length($r)), -minimum($r) + 2 : maximum($r)))
+end
+
 function do_computation(nsteps, ncells, tmax, ifirst, ilast, statelft, statergt, velocity, dt, fc, lc, flux, x, u)
     istep=0
     t=0.0
@@ -71,14 +75,9 @@ function main()
     #  &  x(0:ncells),
     #  &  flux(0:ncells)
 
-    u_b    = Array(Float64, ncells+4)
-    x_b    = Array(Float64, ncells+1)
-    flux_b = Array(Float64, ncells+1)
-
-    u    = sub(u_b,     4:ncells+4)
-    x    = sub(x_b,     2:ncells+1)
-    flux = sub(flux_b,  2:ncells+1)
-
+    u    = @shifted_array(Float64, -2:ncells+1)
+    x    = @shifted_array(Float64,  0:ncells)
+    flux = @shifted_array(Float64,  0:ncells)
 
     #   integer fc,lc,ifirst,ilast
     #   integer ic,ie,ijump,istep
