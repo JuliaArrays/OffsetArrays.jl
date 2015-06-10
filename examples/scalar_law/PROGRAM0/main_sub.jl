@@ -21,10 +21,10 @@
 #  Use the software at your own risk.
 #***********************************************************************
 
-getindex(V::SubArray, I::Int64...) = Base.unsafe_getindex(V, I...)
-getindex(V::SubArray, I::Union(Range{Int64},Array{Int64,1},Int64,Colon)...) = Base.unsafe_getindex(V, I...)
-getindex{T,N,P,IV}(V::SubArray{T,N,P,IV}, I::Union(Real, AbstractArray, Colon)...) = Base.unsafe_getindex(V, to_index(I)...)
-setindex!(V::SubArray, v, I::Int64...) = Base.unsafe_setindex!(V, v, I...)
+@inline getindex(V::SubArray, I::Int64...) = Base.unsafe_getindex(V, I...)
+@inline getindex(V::SubArray, I::Union(Range{Int64},Array{Int64,1},Int64,Colon)...) = Base.unsafe_getindex(V, I...)
+@inline getindex{T,N,P,IV}(V::SubArray{T,N,P,IV}, I::Union(Real, AbstractArray, Colon)...) = Base.unsafe_getindex(V, to_index(I)...)
+@inline setindex!(V::SubArray, v, I::Int64...) = Base.unsafe_setindex!(V, v, I...)
 
 macro shifted_array(T, r)
     :(sub(Array($T, length($r)), -minimum($r) + 2 : length($r)))
