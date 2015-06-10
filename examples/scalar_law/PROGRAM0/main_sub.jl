@@ -23,12 +23,21 @@
 
 @inline getindex(V::SubArray, I::Int64...) = Base.unsafe_getindex(V, I...)
 @inline getindex(V::SubArray, I::Union(Range{Int64},Array{Int64,1},Int64,Colon)...) = Base.unsafe_getindex(V, I...)
-@inline getindex{T,N,P,IV}(V::SubArray{T,N,P,IV}, I::Union(Real, AbstractArray, Colon)...) = Base.unsafe_getindex(V, to_index(I)...)
+@inline getindex{T,N,P,IV}(V::SubArray{T,N,P,IV}, I::Union(Real, AbstractVector, Colon)...) = Base.unsafe_getindex(V, to_index(I)...)
 @inline setindex!(V::SubArray, v, I::Int64...) = Base.unsafe_setindex!(V, v, I...)
 
 macro shifted_array(T, r)
     :(sub(Array($T, length($r)), -minimum($r) + 2 : length($r)))
 end
+
+macro shifted_array2(T, r1, r2)
+    :(sub(Array($T, length($r1), length($r2)), -minimum($r1) + 2 : length($r1), -minimum($r2) + 2 : length($r2)))
+end
+
+macro shifted_array3(T, r1, r2, r3)
+    :(sub(Array($T, length($r1), length($r2), length($r3)), -minimum($r1) + 2 : length($r1), -minimum($r2) + 2 : length($r2), -minimum($r3) + 2 : length($r3)))
+end
+
 
 function do_computation(nsteps, ncells, tmax, ifirst, ilast, statelft, statergt, velocity, dt, fc, lc, flux, x, u)
     istep=0

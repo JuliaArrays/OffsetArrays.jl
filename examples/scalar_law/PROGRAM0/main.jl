@@ -20,6 +20,11 @@
 #  is completely correct, or that it will work for your purposes.  
 #  Use the software at your own risk.
 #***********************************************************************
+
+#import Base: getindex, setindex!
+#const getindex = Base.unsafe_getindex
+#const setindex! = Base.unsafe_setindex!
+
 function main()
 
     const ncells=10000
