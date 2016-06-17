@@ -1,97 +1,128 @@
 module OffsetArrays
 
-Base.@deprecate_binding (..) Colon()
+#import Base: Array
+importall Base
 
-using Base: SimIdx, Indices, LinearSlow, LinearFast
+export OffsetArray, ..
 
-export OffsetArray
+type OffsetArray{T<:Number, N, A<:AbstractArray} <: AbstractArray
 
-immutable OffsetArray{T,N,AA<:AbstractArray} <: AbstractArray{T,N}
-    parent::AA
     offsets::NTuple{N,Int}
-end
-typealias OffsetVector{T,AA<:AbstractArray} OffsetArray{T,1,AA}
+    array::A
+    o1::Int
+    o2::Int
+    o3::Int
+    o4::Int
+    o5::Int
 
-OffsetArray{T,N}(A::AbstractArray{T,N}, offsets::NTuple{N,Int}) = OffsetArray{T,N,typeof(A)}(A, offsets)
-OffsetArray{T,N}(A::AbstractArray{T,N}, offsets::Vararg{Int,N}) = OffsetArray(A, offsets)
+    function OffsetArray(r::Range1{Int})
+        array = Array(T, length(r))
+        offs = (1 - minimum(r),)
+        new(offs, array, offs[1])
+    end
 
-(::Type{OffsetArray{T,N}}){T,N}(inds::Indices{N}) = OffsetArray{T,N,Array{T,N}}(Array{T,N}(map(Base.dimlength, inds)), map(indsoffset, inds))
-(::Type{OffsetArray{T}}){T,N}(inds::Indices{N}) = OffsetArray{T,N}(inds)
-OffsetArray{T,N}(::Type{T}, inds::Vararg{UnitRange{Int},N}) = OffsetArray{T,N}(inds)
+    function OffsetArray(r1::Range1{Int}, r2::Range1{Int})
+        dims = (length(r1), length(r2))
+        array = Array(T, dims)
+        offs = (1 - minimum(r1), 1 - minimum(r2))
+        new(offs, array, offs[1], offs[2])
+    end
 
-Base.linearindexing{T<:OffsetArray}(::Type{T}) = Base.linearindexing(parenttype(T))
-Base.indicesbehavior{T<:OffsetArray}(::Type{T}) = Base.IndicesUnitRange()
-parenttype{T,N,AA}(::Type{OffsetArray{T,N,AA}}) = AA
-parenttype(A::OffsetArray) = parenttype(typeof(A))
+    function OffsetArray(r1::Range1{Int}, r2::Range1{Int}, r3::Range1{Int})
+        dims = (length(r1), length(r2), length(r3))
+        array = Array(T, dims)
+        offs = (1 - minimum(r1), 1 - minimum(r2), 1 - minimum(r3))
+        new(offs, array, offs[1], offs[2], offs[3])
+    end
 
-Base.parent(A::OffsetArray) = A.parent
-Base.size(A::OffsetArray) = size(parent(A))
-Base.eachindex(::LinearSlow, A::OffsetArray) = CartesianRange(indices(A))
-Base.eachindex(::LinearFast, A::OffsetVector) = indices(A, 1)
-Base.summary(A::OffsetArray) = string(typeof(A))*" with indices "*string(indices(A))
+    function OffsetArray(r1::Range1{Int}, r2::Range1{Int}, r3::Range1{Int}, r4::Range1{Int})
+        dims = (length(r1), length(r2), length(r3), length(r4))
+        array = Array(T, dims)
+        offs = (1 - minimum(r1), 1 - minimum(r2), 1 - minimum(r3), 1 - minimum(r4))
+        new(offs, array, offs[1], offs[2], offs[3], offs[4])
+    end
 
-# Implementations of indices and indices1. Since bounds-checking is
-# performance-critical and relies on indices, these are usually worth
-# optimizing thoroughly.
-@inline Base.indices(A::OffsetArray, d) = 1 <= d <= length(A.offsets) ? (o = A.offsets[d]; (1+o:size(parent(A),d)+o)) : (1:1)
-@inline Base.indices(A::OffsetArray) = _indices((), A)  # would rather use ntuple, but see #15276
-@inline _indices{T,N}(out::NTuple{N}, A::OffsetArray{T,N}) = out
-@inline _indices(out, A::OffsetArray) = (d = length(out)+1; o = A.offsets[d]; _indices((out..., (1+o:size(parent(A),d)+o)), A))
-# By optimizing indices1 we can avoid a branch on the dim-check
-Base.indices1{T}(A::OffsetArray{T,0}) = 1:1
-@inline Base.indices1(A::OffsetArray) = (o = A.offsets[1]; 1+o:size(parent(A),1)+o)
+    function OffsetArray(r1::Range1{Int}, r2::Range1{Int}, r3::Range1{Int}, r4::Range1{Int}, r5::Range1{Int})
+        dims = (length(r1), length(r2), length(r3), length(r4), length(r5))
+        array = Array(T, dims)
+        offs = (1 - minimum(r1), 1 - minimum(r2), 1 - minimum(r3), 1 - minimum(r4), 1 - minimum(r5))
+        new(offs, array, offs[1], offs[2], offs[3], offs[4], offs[5])
+    end
 
-function Base.similar(A::OffsetArray, T::Type, dims::Dims)
-    B = similar(parent(A), T, dims)
-end
-function Base.similar(A::AbstractArray, T::Type, inds::Tuple{Vararg{SimIdx}})
-    B = similar(A, T, map(Base.dimlength, inds))
-    OffsetArray(B, map(indsoffset, inds))
-end
+    function OffsetArray(r::Range1{Int}...)
+        dims = map((x) -> length(x), r)
+        array = Array(T, dims)
+        offs = map((x) -> 1 - minimum(x), r)
+        new(offs, array)
+    end
 
-Base.allocate_for(f, A::OffsetArray, shape::SimIdx) = OffsetArray(f(Base.dimlength(shape)), (indsoffset(shape),))
-Base.allocate_for(f, A::OffsetArray, shape::Tuple{Vararg{SimIdx}}) = OffsetArray(f(map(Base.dimlength, shape)), map(indsoffset, shape))
-Base.promote_indices(a::OffsetArray, b::OffsetArray) = a
-
-Base.reshape(A::AbstractArray, inds::Indices) = OffsetArray(reshape(A, map(Base.dimlength, inds)), map(indsoffset, inds))
-
-@inline function Base.getindex{T,N}(A::OffsetArray{T,N}, I::Vararg{Int,N})
-    @boundscheck checkbounds(A, I...)
-    @inbounds ret = parent(A)[offset(A.offsets, I)...]
-    ret
-end
-@inline function Base._getindex(::LinearFast, A::OffsetVector, i::Int)
-    @boundscheck checkbounds(A, i)
-    @inbounds ret = parent(A)[offset(A.offsets, (i,))[1]]
-    ret
-end
-@inline function Base._getindex(::LinearFast, A::OffsetArray, i::Int)
-    @boundscheck checkbounds(A, i)
-    @inbounds ret = parent(A)[i]
-    ret
-end
-@inline function Base.setindex!{T,N}(A::OffsetArray{T,N}, val, I::Vararg{Int,N})
-    @boundscheck checkbounds(A, I...)
-    @inbounds parent(A)[offset(A.offsets, I)...] = val
-    val
-end
-@inline function Base._setindex!(::LinearFast, A::OffsetVector, val, i::Int)
-    @boundscheck checkbounds(A, i)
-    @inbounds parent(A)[offset(A.offsets, (i,))[1]] = val
-    val
-end
-@inline function Base._setindex!(::LinearFast, A::OffsetArray, val, i::Int)
-    @boundscheck checkbounds(A, i)
-    @inbounds parent(A)[i] = val
-    val
 end
 
-# Computing a shifted index (subtracting the offset)
-offset{N}(offsets::NTuple{N,Int}, inds::NTuple{N,Int}) = _offset((), offsets, inds)
-_offset(out, ::Tuple{}, ::Tuple{}) = out
-@inline _offset(out, offsets, inds) = _offset((out..., inds[1]-offsets[1]), Base.tail(offsets), Base.tail(inds))
+OffsetArray(T, r::Range1{Int}...) = OffsetArray{T, length(r,), Array{T, length(r,)}}(r...)
 
-indsoffset(r::Range) = first(r) - 1
-indsoffset(i::Integer) = 0
+getindex{T<:Number}(FA::OffsetArray{T,1}, i1::Int) = FA.array[i1+FA.o1]
+getindex{T<:Number}(FA::OffsetArray{T,2}, i1::Int, i2::Int) = FA.array[i1+FA.o1, i2+FA.o2]
+getindex{T<:Number}(FA::OffsetArray{T,3}, i1::Int, i2::Int, i3::Int) = FA.array[i1+FA.o1, i2+FA.o2, i3+FA.o3]
+getindex{T<:Number}(FA::OffsetArray{T,4}, i1::Int, i2::Int, i3::Int, i4::Int) = FA.array[i1+FA.o1, i2+FA.o2, i3+FA.o3, i4+FA.o4]
+getindex{T<:Number}(FA::OffsetArray{T,5}, i1::Int, i2::Int, i3::Int, i4::Int, i5::Int) = FA.array[i1+FA.o1, i2+FA.o2, i3+FA.o3, i4+FA.o4, i5+FA.o5]
+
+# a generic but not very efficient case    
+getindex{T<:Number,N}(FA::OffsetArray{T,N}, I::Int...) = let ind = [I[i] + FA.offsets[i] for i = 1:length(I)]; return FA.array[ind...] end
+
+setindex!{T<:Number}(FA::OffsetArray{T,1}, x, i1::Int) = arrayset(FA.array, convert(T,x), i1+FA.o1)
+setindex!{T<:Number}(FA::OffsetArray{T,2}, x, i1::Int, i2::Int) = arrayset(FA.array, convert(T,x), i1+FA.o1, i2+FA.o2)
+setindex!{T<:Number}(FA::OffsetArray{T,3}, x, i1::Int, i2::Int, i3::Int) = arrayset(FA.array, convert(T,x), i1+FA.o1, i2+FA.o2, i3+FA.o3)
+setindex!{T<:Number}(FA::OffsetArray{T,4}, x, i1::Int, i2::Int, i3::Int, i4::Int) = arrayset(FA.array, convert(T,x), i1+FA.o1, i2+FA.o2, i3+FA.o3, i4+FA.o4)
+setindex!{T<:Number}(FA::OffsetArray{T,5}, x, i1::Int, i2::Int, i3::Int, i4::Int, i5::Int) = arrayset(FA.array, convert(T,x), i1+FA.o1, i2+FA.o2, i3+FA.o3, i4+FA.o4, i5+FA.o5)
+
+# a generic not very efficient case    
+setindex!{T<:Number,N}(FA::OffsetArray{T,N}, x, I::Int...) = let ind = [I[i] + FA.offsets[i] for i = 1:length(I)]; arrayset(FA.array, convert(T,x), ind...) end
+
+Base.print(a::OffsetArray) = Base.print(a.array)
+Base.display(a::OffsetArray) = Base.display(a.array)
+
+Base.size(a::OffsetArray) = arraysize(a.array)
+Base.size(a::OffsetArray, d) = arraysize(a.array, d)
+
+
+# as the parser changes colons into ranges.
+# for avoiding to write a[Colon()] a whole range .. is introduced
+# it is possible to write say a[..] = b[..] 
+
+const (..) = Colon()
+
+getindex{T<:Number}(FA::OffsetArray{T,1}, r1::Union(Range1{Int},Colon)) =
+    isa(r1, Colon) ? FA.array[:] : FA.array[r1+FA.o1]
+
+getindex{T<:Number}(FA::OffsetArray{T,2}, r1::Union(Range1{Int},Colon), i2::Int) =
+    isa(r1, Colon) ? FA.array[:, i2+FA.o2] : FA.array[r1+FA.o1, i2+FA.o2]
+
+getindex{T<:Number}(FA::OffsetArray{T,3}, r1::Union(Range1{Int},Colon), i2::Int, i3::Int) =
+    isa(r1, Colon) ? FA.array[:, i2+FA.o2, i3+FA.o3] : FA.array[r1+FA.o1, i2+FA.o2, i3+FA.o3]
+
+setindex!{T<:Number}(FA::OffsetArray{T,1}, x, r1::Union(Range1{Int},Colon)) = let
+    if isa(r1, Colon)
+        FA.array[:] = x[:]
+    else
+        FA.array[r1+FA.o1] = x[r1+FA.o1]
+    end
+end
+
+setindex!{T<:Number}(FA::OffsetArray{T,2}, x, r1::Union(Range1{Int},Colon), i2::Int) = let
+    if isa(r1, Colon)
+        FA.array[:,        i2+FA.o2] = x[:,        i2+FA.o2]
+    else
+        FA.array[r1+FA.o1, i2+FA.o2] = x[r1+FA.o1, i2+FA.o2]
+    end
+end
+
+setindex!{T<:Number}(FA::OffsetArray{T,3}, x, r1::Union(Range1{Int},Colon), i2::Int, i3::Int) = let
+    if isa(r1, Colon)
+        FA.array[:,        i2+FA.o2, i3+FA.o3] = x[:,        i2+FA.o2, i3+FA.o3]
+    else
+        FA.array[r1+FA.o1, i2+FA.o2, i3+FA.o3] = x[r1+FA.o1, i2+FA.o2, i3+FA.o3]
+    end
+end
+
 
 end # module
