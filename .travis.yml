@@ -1,8 +1,13 @@
-language: cpp
-compiler:
-  - clang
+language: julia
+os:
+    - linux
+    - osx
+julia:
+    - 0.3
+    - 0.4
+    - nightly
 notifications:
-  email: false
+    email: false
 env:
   matrix: 
     - JULIAVERSION="juliareleases" 
