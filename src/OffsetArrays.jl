@@ -91,16 +91,16 @@ Base.size(a::OffsetArray, d) = arraysize(a.array, d)
 
 const (..) = Colon()
 
-getindex{T<:Number}(FA::OffsetArray{T,1}, r1::Union{UnitRange{Int},Colon}) =
+getindex{T<:Number}(FA::OffsetArray{T,1}, r1::Union(UnitRange{Int},Colon)) =
     isa(r1, Colon) ? FA.array[:] : FA.array[r1+FA.o1]
 
-getindex{T<:Number}(FA::OffsetArray{T,2}, r1::Union{UnitRange{Int},Colon}, i2::Int) =
+getindex{T<:Number}(FA::OffsetArray{T,2}, r1::Union(UnitRange{Int},Colon), i2::Int) =
     isa(r1, Colon) ? FA.array[:, i2+FA.o2] : FA.array[r1+FA.o1, i2+FA.o2]
 
-getindex{T<:Number}(FA::OffsetArray{T,3}, r1::Union{UnitRange{Int},Colon}, i2::Int, i3::Int) =
+getindex{T<:Number}(FA::OffsetArray{T,3}, r1::Union(UnitRange{Int},Colon), i2::Int, i3::Int) =
     isa(r1, Colon) ? FA.array[:, i2+FA.o2, i3+FA.o3] : FA.array[r1+FA.o1, i2+FA.o2, i3+FA.o3]
 
-setindex!{T<:Number}(FA::OffsetArray{T,1}, x, r1::Union{UnitRange{Int},Colon}) = let
+setindex!{T<:Number}(FA::OffsetArray{T,1}, x, r1::Union(UnitRange{Int},Colon)) = let
     if isa(r1, Colon)
         FA.array[:] = x[:]
     else
@@ -108,7 +108,7 @@ setindex!{T<:Number}(FA::OffsetArray{T,1}, x, r1::Union{UnitRange{Int},Colon}) =
     end
 end
 
-setindex!{T<:Number}(FA::OffsetArray{T,2}, x, r1::Union{UnitRange{Int},Colon}, i2::Int) = let
+setindex!{T<:Number}(FA::OffsetArray{T,2}, x, r1::Union(UnitRange{Int},Colon), i2::Int) = let
     if isa(r1, Colon)
         FA.array[:,        i2+FA.o2] = x[:,        i2+FA.o2]
     else
@@ -116,7 +116,7 @@ setindex!{T<:Number}(FA::OffsetArray{T,2}, x, r1::Union{UnitRange{Int},Colon}, i
     end
 end
 
-setindex!{T<:Number}(FA::OffsetArray{T,3}, x, r1::Union{UnitRange{Int},Colon}, i2::Int, i3::Int) = let
+setindex!{T<:Number}(FA::OffsetArray{T,3}, x, r1::Union(UnitRange{Int},Colon), i2::Int, i3::Int) = let
     if isa(r1, Colon)
         FA.array[:,        i2+FA.o2, i3+FA.o3] = x[:,        i2+FA.o2, i3+FA.o3]
     else
