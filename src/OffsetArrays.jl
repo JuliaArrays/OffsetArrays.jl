@@ -2,6 +2,9 @@ module OffsetArrays
 
 Base.@deprecate_binding (..) Colon()
 
+# FIXME there is no SimIdx anymore
+# TODO look into https://github.com/JuliaLang/julia/commit/c318a9f437b9a0c1cf3c12d9c3caac2cd954cbf9#diff-2264bb51acec4e7e2219a3cb1c733651 and fix the code
+
 using Base: SimIdx, Indices, LinearSlow, LinearFast
 
 export OffsetArray
