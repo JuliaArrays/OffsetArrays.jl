@@ -4,8 +4,9 @@ Base.@deprecate_binding (..) Colon()
 
 # FIXME there is no SimIdx anymore
 # TODO look into https://github.com/JuliaLang/julia/commit/c318a9f437b9a0c1cf3c12d9c3caac2cd954cbf9#diff-2264bb51acec4e7e2219a3cb1c733651 and fix the code
+# see also [Support for 0-indexed and arbitrary-indexed arrays](https://github.com/JuliaLang/julia/pull/16260)
 
-using Base: SimIdx, Indices, LinearSlow, LinearFast
+using Base: DimOrInd, Indices, LinearSlow, LinearFast
 
 export OffsetArray
 
@@ -18,12 +19,12 @@ typealias OffsetVector{T,AA<:AbstractArray} OffsetArray{T,1,AA}
 OffsetArray{T,N}(A::AbstractArray{T,N}, offsets::NTuple{N,Int}) = OffsetArray{T,N,typeof(A)}(A, offsets)
 OffsetArray{T,N}(A::AbstractArray{T,N}, offsets::Vararg{Int,N}) = OffsetArray(A, offsets)
 
-(::Type{OffsetArray{T,N}}){T,N}(inds::Indices{N}) = OffsetArray{T,N,Array{T,N}}(Array{T,N}(map(Base.dimlength, inds)), map(indsoffset, inds))
+(::Type{OffsetArray{T,N}}){T,N}(inds::Indices{N}) = OffsetArray{T,N,Array{T,N}}(Array{T,N}(map(Base.dimlength, inds)), map(indexoffset, inds))
 (::Type{OffsetArray{T}}){T,N}(inds::Indices{N}) = OffsetArray{T,N}(inds)
 OffsetArray{T,N}(::Type{T}, inds::Vararg{UnitRange{Int},N}) = OffsetArray{T,N}(inds)
 
 Base.linearindexing{T<:OffsetArray}(::Type{T}) = Base.linearindexing(parenttype(T))
-Base.indicesbehavior{T<:OffsetArray}(::Type{T}) = Base.IndicesUnitRange()
+#Base.indicesbehavior{T<:OffsetArray}(::Type{T}) = Base.IndicesUnitRange()
 parenttype{T,N,AA}(::Type{OffsetArray{T,N,AA}}) = AA
 parenttype(A::OffsetArray) = parenttype(typeof(A))
 
@@ -47,16 +48,18 @@ Base.indices1{T}(A::OffsetArray{T,0}) = 1:1
 function Base.similar(A::OffsetArray, T::Type, dims::Dims)
     B = similar(parent(A), T, dims)
 end
-function Base.similar(A::AbstractArray, T::Type, inds::Tuple{Vararg{SimIdx}})
+function Base.similar(A::AbstractArray, T::Type, inds::Tuple{Vararg{DimOrInd}})
     B = similar(A, T, map(Base.dimlength, inds))
-    OffsetArray(B, map(indsoffset, inds))
+    OffsetArray(B, map(indexoffset, inds))
 end
 
-Base.allocate_for(f, A::OffsetArray, shape::SimIdx) = OffsetArray(f(Base.dimlength(shape)), (indsoffset(shape),))
-Base.allocate_for(f, A::OffsetArray, shape::Tuple{Vararg{SimIdx}}) = OffsetArray(f(map(Base.dimlength, shape)), map(indsoffset, shape))
-Base.promote_indices(a::OffsetArray, b::OffsetArray) = a
+#Base.allocate_for(f, A::OffsetArray, shape::DimOrInd) = OffsetArray(f(Base.dimlength(shape)), (indexoffset(shape),))
+#Base.allocate_for(f, A::OffsetArray, shape::Tuple{Vararg{DimOrInd}}) = OffsetArray(f(map(Base.dimlength, shape)), map(indexoffset, shape))
+Base.similar(f, A::OffsetArray, shape::DimOrInd) = OffsetArray(f(Base.dimlength(shape)), (indexoffset(shape),))
+Base.similar(f, A::OffsetArray, shape::Tuple{Vararg{DimOrInd}}) = OffsetArray(f(map(Base.dimlength, shape)), map(indexoffset, shape))
+#Base.promote_indices(a::OffsetArray, b::OffsetArray) = a
 
-Base.reshape(A::AbstractArray, inds::Indices) = OffsetArray(reshape(A, map(Base.dimlength, inds)), map(indsoffset, inds))
+Base.reshape(A::AbstractArray, inds::Indices) = OffsetArray(reshape(A, map(Base.dimlength, inds)), map(indexoffset, inds))
 
 @inline function Base.getindex{T,N}(A::OffsetArray{T,N}, I::Vararg{Int,N})
     @boundscheck checkbounds(A, I...)
@@ -94,7 +97,7 @@ offset{N}(offsets::NTuple{N,Int}, inds::NTuple{N,Int}) = _offset((), offsets, in
 _offset(out, ::Tuple{}, ::Tuple{}) = out
 @inline _offset(out, offsets, inds) = _offset((out..., inds[1]-offsets[1]), Base.tail(offsets), Base.tail(inds))
 
-indsoffset(r::Range) = first(r) - 1
-indsoffset(i::Integer) = 0
+indexoffset(r::Range) = first(r) - 1
+indexoffset(i::Integer) = 0
 
 end # module
