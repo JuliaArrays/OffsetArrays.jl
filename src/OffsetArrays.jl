@@ -97,6 +97,17 @@ end
     val
 end
 
+### Convenience functions ###
+
+Base.zeros(T::Type, inds::UnitRange...) = fill!(OffsetArray{T}(inds), zero(T))
+Base.zeros(inds::UnitRange...) = zeros(Float64, inds...)
+Base.ones(T::Type, inds::UnitRange...) = fill!(OffsetArray{T}(inds), one(T))
+Base.ones(inds::UnitRange...) = ones(Float64, inds...)
+Base.fill(x, inds::Tuple{UnitRange,Vararg{UnitRange}}) = fill!(OffsetArray{typeof(x)}(inds), x)
+@inline Base.fill(x, ind1::UnitRange, inds::UnitRange...) = fill(x, (ind1, inds...))
+
+### Low-level utilities ###
+
 # Computing a shifted index (subtracting the offset)
 offset{N}(offsets::NTuple{N,Int}, inds::NTuple{N,Int}) = _offset((), offsets, inds)
 _offset(out, ::Tuple{}, ::Tuple{}) = out
