@@ -12,12 +12,24 @@ immutable OffsetArray{T,N,AA<:AbstractArray} <: AbstractArray{T,N}
 end
 typealias OffsetVector{T,AA<:AbstractArray} OffsetArray{T,1,AA}
 
-OffsetArray{T,N}(A::AbstractArray{T,N}, offsets::NTuple{N,Int}) = OffsetArray{T,N,typeof(A)}(A, offsets)
-OffsetArray{T,N}(A::AbstractArray{T,N}, offsets::Vararg{Int,N}) = OffsetArray(A, offsets)
+OffsetArray{T,N}(A::AbstractArray{T,N}, offsets::NTuple{N,Int}) =
+    OffsetArray{T,N,typeof(A)}(A, offsets)
+OffsetArray{T,N}(A::AbstractArray{T,N}, offsets::Vararg{Int,N}) =
+    OffsetArray(A, offsets)
 
-(::Type{OffsetArray{T,N}}){T,N}(inds::Indices{N}) = OffsetArray{T,N,Array{T,N}}(Array{T,N}(map(length, inds)), map(indexoffset, inds))
+(::Type{OffsetArray{T,N}}){T,N}(inds::Indices{N}) =
+    OffsetArray{T,N,Array{T,N}}(Array{T,N}(map(length, inds)), map(indexoffset, inds))
 (::Type{OffsetArray{T}}){T,N}(inds::Indices{N}) = OffsetArray{T,N}(inds)
 OffsetArray{T,N}(::Type{T}, inds::Vararg{UnitRange{Int},N}) = OffsetArray{T,N}(inds)
+
+# The next two are necessary for ambiguity resolution. Really, the
+# second method should not be necessary.
+OffsetArray{T}(A::AbstractArray{T,0}, inds::Tuple{}) = OffsetArray(A, ())
+OffsetArray{T,N}(A::AbstractArray{T,N}, inds::Tuple{}) = error("this should never be called")
+OffsetArray{T,N}(A::AbstractArray{T,N}, inds::NTuple{N,AbstractUnitRange}) =
+    OffsetArray(A, map(indexoffset, inds))
+OffsetArray{T,N}(A::AbstractArray{T,N}, inds::Vararg{AbstractUnitRange,N}) =
+    OffsetArray(A, inds)
 
 Base.linearindexing{T<:OffsetArray}(::Type{T}) = Base.linearindexing(parenttype(T))
 parenttype{T,N,AA}(::Type{OffsetArray{T,N,AA}}) = AA
@@ -84,6 +96,17 @@ end
     @inbounds parent(A)[i] = val
     val
 end
+
+### Convenience functions ###
+
+Base.zeros(T::Type, inds::UnitRange...) = fill!(OffsetArray{T}(inds), zero(T))
+Base.zeros(inds::UnitRange...) = zeros(Float64, inds...)
+Base.ones(T::Type, inds::UnitRange...) = fill!(OffsetArray{T}(inds), one(T))
+Base.ones(inds::UnitRange...) = ones(Float64, inds...)
+Base.fill(x, inds::Tuple{UnitRange,Vararg{UnitRange}}) = fill!(OffsetArray{typeof(x)}(inds), x)
+@inline Base.fill(x, ind1::UnitRange, inds::UnitRange...) = fill(x, (ind1, inds...))
+
+### Low-level utilities ###
 
 # Computing a shifted index (subtracting the offset)
 offset{N}(offsets::NTuple{N,Int}, inds::NTuple{N,Int}) = _offset((), offsets, inds)

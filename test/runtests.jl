@@ -1,12 +1,20 @@
 using Base.Test
 using OffsetArrays
 
+@test isempty(detect_ambiguities(OffsetArrays, Base, Core))
+
 # Basics
 y = OffsetArray(Float64, -1:1, -7:7, -128:512, -5:5, -1:1, -3:3, -2:2, -1:1)
 @test indices(y) == (-1:1, -7:7, -128:512, -5:5, -1:1, -3:3, -2:2, -1:1)
 y[-1,-7,-128,-5,-1,-3,-2,-1] = 14
 y[-1,-7,-128,-5,-1,-3,-2,-1] += 5
 @test y[-1,-7,-128,-5,-1,-3,-2,-1] == 19
+
+r = -2:5
+y = OffsetArray(r, r)
+@test indices(y) == (r,)
+y = OffsetArray(r, (r,))
+@test indices(y) == (r,)
 
 A0 = [1 3; 2 4]
 A = OffsetArray(A0, (-1,2))                   # LinearFast
@@ -274,3 +282,13 @@ v = OffsetArray(rand(8), (-2,))
 @test 2*A == OffsetArray(2*parent(A), A.offsets)
 @test A+A == OffsetArray(parent(A)+parent(A), A.offsets)
 @test A.*A == OffsetArray(parent(A).*parent(A), A.offsets)
+
+B = zeros(1:3, -1:1)
+@test indices(B) == (1:3,-1:1)
+@test all(B .== 0)
+B = ones(1:3, -1:1)
+@test indices(B) == (1:3,-1:1)
+@test all(B .== 1)
+B = fill(5, 1:3, -1:1)
+@test indices(B) == (1:3,-1:1)
+@test all(B.==5)
