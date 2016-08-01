@@ -12,10 +12,13 @@ immutable OffsetArray{T,N,AA<:AbstractArray} <: AbstractArray{T,N}
 end
 typealias OffsetVector{T,AA<:AbstractArray} OffsetArray{T,1,AA}
 
-OffsetArray{T,N}(A::AbstractArray{T,N}, offsets::NTuple{N,Int}) = OffsetArray{T,N,typeof(A)}(A, offsets)
-OffsetArray{T,N}(A::AbstractArray{T,N}, offsets::Vararg{Int,N}) = OffsetArray(A, offsets)
+OffsetArray{T,N}(A::AbstractArray{T,N}, offsets::NTuple{N,Int}) =
+    OffsetArray{T,N,typeof(A)}(A, offsets)
+OffsetArray{T,N}(A::AbstractArray{T,N}, offsets::Vararg{Int,N}) =
+    OffsetArray(A, offsets)
 
-(::Type{OffsetArray{T,N}}){T,N}(inds::Indices{N}) = OffsetArray{T,N,Array{T,N}}(Array{T,N}(map(length, inds)), map(indexoffset, inds))
+(::Type{OffsetArray{T,N}}){T,N}(inds::Indices{N}) =
+    OffsetArray{T,N,Array{T,N}}(Array{T,N}(map(length, inds)), map(indexoffset, inds))
 (::Type{OffsetArray{T}}){T,N}(inds::Indices{N}) = OffsetArray{T,N}(inds)
 OffsetArray{T,N}(::Type{T}, inds::Vararg{UnitRange{Int},N}) = OffsetArray{T,N}(inds)
 
