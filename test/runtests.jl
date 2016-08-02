@@ -4,6 +4,13 @@ using OffsetArrays
 @test isempty(detect_ambiguities(OffsetArrays, Base, Core))
 
 # Basics
+for n = 0:5
+    a = OffsetArray(ones(Int,ntuple(d->1,n)), ntuple(x->x-1,n))
+    @test length(linearindices(a)) == 1
+    @test indices(a) == ntuple(x->x:x,n)
+    @test a[1] == 1
+end
+
 y = OffsetArray(Float64, -1:1, -7:7, -128:512, -5:5, -1:1, -3:3, -2:2, -1:1)
 @test indices(y) == (-1:1, -7:7, -128:512, -5:5, -1:1, -3:3, -2:2, -1:1)
 y[-1,-7,-128,-5,-1,-3,-2,-1] = 14
