@@ -1,10 +1,5 @@
 language: julia
 
-sudo: required
-
-services:
-    - docker
-
 os:
     - linux
 
