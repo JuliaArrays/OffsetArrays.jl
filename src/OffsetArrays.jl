@@ -42,7 +42,6 @@ Base.size(A::OffsetArray) = errmsg(A)
 Base.size(A::OffsetArray, d) = errmsg(A)
 Base.eachindex(::LinearSlow, A::OffsetArray) = CartesianRange(indices(A))
 Base.eachindex(::LinearFast, A::OffsetVector) = indices(A, 1)
-Base.summary(A::OffsetArray) = string(typeof(A))*" with indices "*string(indices(A))
 
 # Implementations of indices and indices1. Since bounds-checking is
 # performance-critical and relies on indices, these are usually worth
