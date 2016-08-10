@@ -1,9 +1,9 @@
 OffsetArrays.jl
 ===============
 
-provides the ability to use arbitrary starting indices for arrays in Julia programming language.
+Fortran-like arrays with arbitrary, that is zero or negative starting indices.
 
-```jlcon
+```julia
 julia> using OffsetArrays
 
 julia> y = OffsetArray(Float64, -1:1, -7:7, -128:512, -5:5, -1:1, -3:3, -2:2, -1:1);
@@ -15,8 +15,7 @@ julia> y[-1,-7,-128,-5,-1,-3,-2,-1] += 5
 19.0
 ```
 
-The main purpose of this package is to simplify translation from Fortran codes intensively using Fortran arrays with negative and zero starting indices,
-such as
+The main purpose of the package is to simplify translation of Fortran codes, say
 * the codes accompanying the book _Numerical Solution of Hyperbolic Partial Differential Equations_ by prof. John A. Trangenstein
   Please refer [here](http://www.math.duke.edu/~johnt/) and [here](http://www.cambridge.org/us/academic/subjects/mathematics/differential-and-integral-equations-dynamical-systems-and-co/numerical-solution-hyperbolic-partial-differential-equations)
 * Clawpack (stands for *Conservation Laws Package*) by prof. Randall J. LeVeque

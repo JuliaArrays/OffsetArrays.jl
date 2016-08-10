@@ -130,7 +130,7 @@ function main()
     for ic=0:ncells-1
         xc = (x[ic]+x[ic+1])*0.5
         uc = u[ic]
-        @printf("%e %e\n",xc,uc)
+        #@printf("%e %e\n",xc,uc)
     end
     # toc()
 end # main
@@ -138,6 +138,7 @@ end # main
 # jit compile main
 #main()
 
+@time main()
 @time main()
 
 #@profile main()
