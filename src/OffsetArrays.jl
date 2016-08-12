@@ -107,6 +107,10 @@ Base.fill(x, inds::Tuple{UnitRange,Vararg{UnitRange}}) = fill!(OffsetArray{typeo
 
 ### Low-level utilities ###
 
+_length(A) = Base.unsafe_length(linearindices(A))
+_size(A) = map(Base.unsafe_length, indices(A))
+_size(A, d::Integer) = Base.unsafe_length(indices(A, d))
+
 # Computing a shifted index (subtracting the offset)
 offset{N}(offsets::NTuple{N,Int}, inds::NTuple{N,Int}) = _offset((), offsets, inds)
 _offset(out, ::Tuple{}, ::Tuple{}) = out
