@@ -24,7 +24,7 @@ OffsetArray{T,N}(::Type{T}, inds::Vararg{UnitRange{Int},N}) = OffsetArray{T,N}(i
 
 # The next two are necessary for ambiguity resolution. Really, the
 # second method should not be necessary.
-OffsetArray{T}(A::AbstractArray{T,0}, inds::Tuple{}) = OffsetArray(A, ())
+OffsetArray{T}(A::AbstractArray{T,0}, inds::Tuple{}) = OffsetArray{T,0,typeof(A)}(A, ())
 OffsetArray{T,N}(A::AbstractArray{T,N}, inds::Tuple{}) = error("this should never be called")
 OffsetArray{T,N}(A::AbstractArray{T,N}, inds::NTuple{N,AbstractUnitRange}) =
     OffsetArray(A, map(indexoffset, inds))
@@ -42,7 +42,6 @@ Base.size(A::OffsetArray) = errmsg(A)
 Base.size(A::OffsetArray, d) = errmsg(A)
 Base.eachindex(::LinearSlow, A::OffsetArray) = CartesianRange(indices(A))
 Base.eachindex(::LinearFast, A::OffsetVector) = indices(A, 1)
-Base.summary(A::OffsetArray) = string(typeof(A))*" with indices "*string(indices(A))
 
 # Implementations of indices and indices1. Since bounds-checking is
 # performance-critical and relies on indices, these are usually worth
@@ -107,6 +106,10 @@ Base.fill(x, inds::Tuple{UnitRange,Vararg{UnitRange}}) = fill!(OffsetArray{typeo
 @inline Base.fill(x, ind1::UnitRange, inds::UnitRange...) = fill(x, (ind1, inds...))
 
 ### Low-level utilities ###
+
+_length(A) = Base.unsafe_length(linearindices(A))
+_size(A) = map(Base.unsafe_length, indices(A))
+_size(A, d::Integer) = Base.unsafe_length(indices(A, d))
 
 # Computing a shifted index (subtracting the offset)
 offset{N}(offsets::NTuple{N,Int}, inds::NTuple{N,Int}) = _offset((), offsets, inds)
