@@ -64,6 +64,7 @@ Base.similar(f::Union{Function,DataType}, shape::Tuple{UnitRange,Vararg{UnitRang
 
 Base.reshape(A::AbstractArray, inds::Tuple{UnitRange,Vararg{UnitRange}}) = OffsetArray(reshape(A, map(length, inds)), map(indexoffset, inds))
 
+Base.reshape(A::OffsetArray, inds::Tuple{UnitRange,Vararg{UnitRange}}) = OffsetArray(reshape(parent(A), map(length, inds)), map(indexoffset, inds))
 # Don't allow bounds-checks to be removed during Julia 0.5
 @inline function Base.getindex{T,N}(A::OffsetArray{T,N}, I::Vararg{Int,N})
     checkbounds(A, I...)
