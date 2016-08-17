@@ -98,7 +98,6 @@ for (a,d) in zip(A, A0)
     @test a == d
 end
 
-
 # show
 io = IOBuffer()
 show(io, A)
@@ -143,6 +142,20 @@ B = similar(A, (-3:3,1:4))
 B = similar(parent(A), (-3:3,1:4))
 @test isa(B, OffsetArray{Int,2})
 @test indices(B) === (-3:3, 1:4)
+
+# Reshape
+B = reshape(A0, -10:-9, 9:10)
+@test isa(B, OffsetArray{Int,2})
+@test parent(B) === A0
+@test indices(B) == (-10:-9, 9:10)
+B = reshape(A, -10:-9, 9:10)
+@test isa(B, OffsetArray{Int,2})
+@test parent(B) === A0
+@test indices(B) == (-10:-9, 9:10)
+b = reshape(A, -7:-4)
+@test indices(b) == (-7:-4,)
+@test isa(parent(b), Vector{Int})
+@test parent(b) == A0[:]
 
 # Indexing with OffsetArray indices
 i1 = OffsetArray([2,1], (-5,))
