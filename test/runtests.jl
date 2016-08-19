@@ -10,6 +10,11 @@ for n = 0:5
     @test indices(a) == ntuple(x->x:x,n)
     @test a[1] == 1
 end
+a0 = reshape([3])
+a = OffsetArray(a0)
+@test indices(a) == ()
+@test ndims(a) == 0
+@test a[] == 3
 
 y = OffsetArray(Float64, -1:1, -7:7, -128:512, -5:5, -1:1, -3:3, -2:2, -1:1)
 @test indices(y) == (-1:1, -7:7, -128:512, -5:5, -1:1, -3:3, -2:2, -1:1)
