@@ -1,3 +1,5 @@
+__precompile__()
+
 module OffsetArrays
 
 Base.@deprecate_binding (..) Colon()
