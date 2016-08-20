@@ -34,6 +34,9 @@ S = OffsetArray(view(A0, 1:2, 1:2), (-1,2))   # LinearSlow
 @test indices(A) == indices(S) == (0:1, 3:4)
 @test_throws ErrorException size(A)
 @test_throws ErrorException size(A, 1)
+@test A == OffsetArray(A0, 0:1, 3:4)
+@test_throws DimensionMismatch OffsetArray(A0, 0:2, 3:4)
+@test_throws DimensionMismatch OffsetArray(A0, 0:1, 2:4)
 
 # Scalar indexing
 @test A[0,3] == A[1] == S[0,3] == S[1] == 1
