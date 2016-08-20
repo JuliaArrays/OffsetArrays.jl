@@ -164,6 +164,9 @@ b = reshape(A, -7:-4)
 @test indices(b) == (-7:-4,)
 @test isa(parent(b), Vector{Int})
 @test parent(b) == A0[:]
+a = OffsetArray(rand(3,3,3), -1:1, 0:2, 3:5)
+@test_throws ArgumentError reshape(a, Val{2})
+@test_throws ArgumentError reshape(a, Val{4})
 
 # Indexing with OffsetArray indices
 i1 = OffsetArray([2,1], (-5,))
