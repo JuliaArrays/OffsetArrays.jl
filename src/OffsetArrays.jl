@@ -1,3 +1,5 @@
+__precompile__()
+
 module OffsetArrays
 
 Base.@deprecate_binding (..) Colon()
@@ -27,8 +29,12 @@ OffsetArray{T,N}(::Type{T}, inds::Vararg{UnitRange{Int},N}) = OffsetArray{T,N}(i
 # second method should not be necessary.
 OffsetArray{T}(A::AbstractArray{T,0}, inds::Tuple{}) = OffsetArray{T,0,typeof(A)}(A, ())
 OffsetArray{T,N}(A::AbstractArray{T,N}, inds::Tuple{}) = error("this should never be called")
-OffsetArray{T,N}(A::AbstractArray{T,N}, inds::NTuple{N,AbstractUnitRange}) =
+function OffsetArray{T,N}(A::AbstractArray{T,N}, inds::NTuple{N,AbstractUnitRange})
+    lA = map(length, indices(A))
+    lI = map(length, inds)
+    lA == lI || throw(DimensionMismatch("supplied indices do not agree with the size of the array (got size $lA for the array and $lI for the indices"))
     OffsetArray(A, map(indexoffset, inds))
+end
 OffsetArray{T,N}(A::AbstractArray{T,N}, inds::Vararg{AbstractUnitRange,N}) =
     OffsetArray(A, inds)
 
@@ -66,6 +72,11 @@ Base.similar(f::Union{Function,DataType}, shape::Tuple{UnitRange,Vararg{UnitRang
 Base.reshape(A::AbstractArray, inds::Tuple{UnitRange,Vararg{UnitRange}}) = OffsetArray(reshape(A, map(length, inds)), map(indexoffset, inds))
 
 Base.reshape(A::OffsetArray, inds::Tuple{UnitRange,Vararg{UnitRange}}) = OffsetArray(reshape(parent(A), map(length, inds)), map(indexoffset, inds))
+
+function Base.reshape(A::OffsetArray, inds::Tuple{UnitRange,Vararg{Union{UnitRange,Int,Base.OneTo}}})
+    throw(ArgumentError("reshape must supply UnitRange indices, got $(typeof(inds)).\n       Note that reshape(A, Val{N}) is not supported for OffsetArrays."))
+end
+
 # Don't allow bounds-checks to be removed during Julia 0.5
 @inline function Base.getindex{T,N}(A::OffsetArray{T,N}, I::Vararg{Int,N})
     checkbounds(A, I...)
