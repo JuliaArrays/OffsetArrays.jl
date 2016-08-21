@@ -59,10 +59,10 @@ Base.eachindex(::LinearFast, A::OffsetVector) = indices(A, 1)
 _indices(::Tuple{}, ::Tuple{}) = ()
 Base.indices1{T}(A::OffsetArray{T,0}) = 1:1  # we only need to specialize this one
 
-function Base.similar(A::OffsetArray, T::Type, dims::Dims)
+function Base.similar{T}(A::OffsetArray, ::Type{T}, dims::Dims)
     B = similar(parent(A), T, dims)
 end
-function Base.similar(A::AbstractArray, T::Type, inds::Tuple{UnitRange,Vararg{UnitRange}})
+function Base.similar{T}(A::AbstractArray, ::Type{T}, inds::Tuple{UnitRange,Vararg{UnitRange}})
     B = similar(A, T, map(length, inds))
     OffsetArray(B, map(indexoffset, inds))
 end
