@@ -6,7 +6,7 @@ Base.@deprecate_binding (..) Colon()
 
 using Base: Indices, LinearSlow, LinearFast, tail
 
-export OffsetArray
+export OffsetArray, @unsafe
 
 immutable OffsetArray{T,N,AA<:AbstractArray} <: AbstractArray{T,N}
     parent::AA
@@ -127,5 +127,38 @@ _offset(out, ::Tuple{}, ::Tuple{}) = out
 
 indexoffset(r::Range) = first(r) - 1
 indexoffset(i::Integer) = 0
+
+macro unsafe(ex)
+    esc(unsafe(ex))
+end
+unsafe(ex) = ex
+function unsafe(ex::Expr)
+    if ex.head ∈ (:+=, :-=, :*=, :/=)
+        ex = Expr(:(=), ex.args[1], Expr(:call, Symbol(string(ex.head)[1]), ex.args...))
+    end
+    if ex.head == :(=)
+        a = ex.args[1]
+        if isa(a, Expr) && (a::Expr).head == :ref
+            # setindex!
+            newargs = map(unsafe, ex.args[2:end])
+            @assert length(newargs) == 1
+            return Expr(:call, :(OffsetArrays.unsafe_setindex!), (a::Expr).args[1], newargs[1], (a::Expr).args[2:end]...)
+        end
+    end
+    newargs = map(unsafe, ex.args)
+    if ex.head == :ref
+        # getindex
+        return Expr(:call, :(OffsetArrays.unsafe_getindex), newargs...)
+    end
+    Expr(ex.head, newargs...)
+end
+
+@inline unsafe_getindex(a::AbstractArray, I...) = (@inbounds ret = a[I...]; ret)
+@inline unsafe_setindex!(a::AbstractArray, val, I...) = (@inbounds a[I...] = val; val)
+
+@inline unsafe_getindex(a::OffsetArray, I::Int...) = (@inbounds ret = parent(a)[offset(a.offsets, I)...]; ret)
+@inline unsafe_setindex!(a::OffsetArray, val, I::Int...) = (@inbounds parent(a)[offset(a.offsets, I)...] = val; val)
+@inline unsafe_getindex(a::OffsetArray, I...) = unsafe_getindex(a, Base.IteratorsMD.flatten(I)...)
+@inline unsafe_setindex!(a::OffsetArray, val, I...) = unsafe_setindex!(a, val, Base.IteratorsMD.flatten(I)...)
 
 end # module

@@ -323,3 +323,19 @@ B = ones(1:3, -1:1)
 B = fill(5, 1:3, -1:1)
 @test indices(B) == (1:3,-1:1)
 @test all(B.==5)
+
+# @unsafe
+a = OffsetArray(zeros(7), -3:3)
+unsafe_fill!(x) = @unsafe(for i in indices(x,1); x[i] = i; end)
+function unsafe_sum(x)
+    s = zero(eltype(x))
+    @unsafe for i in indices(x,1)
+        s += x[i]
+    end
+    s
+end
+unsafe_fill!(a)
+for i = -3:3
+    @test a[i] == i
+end
+@test unsafe_sum(a) == 0
