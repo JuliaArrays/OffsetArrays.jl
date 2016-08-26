@@ -111,10 +111,6 @@ end
 
 ### Convenience functions ###
 
-Base.zeros(T::Type, inds::UnitRange...) = fill!(OffsetArray{T}(inds), zero(T))
-Base.zeros(inds::UnitRange...) = zeros(Float64, inds...)
-Base.ones(T::Type, inds::UnitRange...) = fill!(OffsetArray{T}(inds), one(T))
-Base.ones(inds::UnitRange...) = ones(Float64, inds...)
 Base.fill(x, inds::Tuple{UnitRange,Vararg{UnitRange}}) = fill!(OffsetArray{typeof(x)}(inds), x)
 @inline Base.fill(x, ind1::UnitRange, inds::UnitRange...) = fill(x, (ind1, inds...))
 
@@ -160,5 +156,12 @@ end
 @inline unsafe_setindex!(a::OffsetArray, val, I::Int...) = (@inbounds parent(a)[offset(a.offsets, I)...] = val; val)
 @inline unsafe_getindex(a::OffsetArray, I...) = unsafe_getindex(a, Base.IteratorsMD.flatten(I)...)
 @inline unsafe_setindex!(a::OffsetArray, val, I...) = unsafe_setindex!(a, val, Base.IteratorsMD.flatten(I)...)
+
+# Deprecations
+import Base: zeros, ones
+@deprecate zeros(T::Type, inds::UnitRange...) fill!(OffsetArray{T}(inds), zero(T))
+@deprecate  ones(T::Type, inds::UnitRange...) fill!(OffsetArray{T}(inds), one(T))
+@deprecate zeros(inds::UnitRange...) fill!(OffsetArray{Float64}(inds), 0)
+@deprecate  ones(inds::UnitRange...) fill!(OffsetArray{Float64}(inds), 1)
 
 end # module
