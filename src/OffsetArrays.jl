@@ -152,10 +152,23 @@ end
 @inline unsafe_getindex(a::AbstractArray, I...) = (@inbounds ret = a[I...]; ret)
 @inline unsafe_setindex!(a::AbstractArray, val, I...) = (@inbounds a[I...] = val; val)
 
-@inline unsafe_getindex(a::OffsetArray, I::Int...) = (@inbounds ret = parent(a)[offset(a.offsets, I)...]; ret)
-@inline unsafe_setindex!(a::OffsetArray, val, I::Int...) = (@inbounds parent(a)[offset(a.offsets, I)...] = val; val)
+@inline unsafe_getindex(a::OffsetArray, I::Int...) = unsafe_getindex(parent(a), offset(a.offsets, I)...)
+@inline unsafe_setindex!(a::OffsetArray, val, I::Int...) = unsafe_setindex!(parent(a), val, offset(a.offsets, I)...)
 @inline unsafe_getindex(a::OffsetArray, I...) = unsafe_getindex(a, Base.IteratorsMD.flatten(I)...)
 @inline unsafe_setindex!(a::OffsetArray, val, I...) = unsafe_setindex!(a, val, Base.IteratorsMD.flatten(I)...)
+
+# Indexing a SubArray which has OffsetArray indices
+typealias OffsetSubArray{T,N,P,I<:Tuple{OffsetArray,Vararg{OffsetArray}}} SubArray{T,N,P,I,false}
+@inline function unsafe_getindex{T,N}(a::OffsetSubArray{T,N}, I::Vararg{Int,N})
+    J = map(unsafe_getindex, a.indexes, I)
+    unsafe_getindex(parent(a), J...)
+end
+@inline function unsafe_setindex!{T,N}(a::OffsetSubArray{T,N}, val, I::Vararg{Int,N})
+    J = map(unsafe_getindex, a.indexes, I)
+    unsafe_setindex!(parent(a), val, J...)
+end
+@inline unsafe_getindex(a::OffsetSubArray, I::Union{Integer,CartesianIndex}...) = unsafe_getindex(a, Base.IteratorsMD.flatten(I)...)
+@inline unsafe_setindex!(a::OffsetSubArray, val, I::Union{Integer,CartesianIndex}...) = unsafe_setindex!(a, val, Base.IteratorsMD.flatten(I)...)
 
 # Deprecations
 import Base: zeros, ones
