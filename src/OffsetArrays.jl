@@ -159,9 +159,9 @@ end
 
 # Deprecations
 import Base: zeros, ones
-@deprecate zeros(T::Type, inds::UnitRange...) fill!(OffsetArray{T}(inds), zero(T))
-@deprecate  ones(T::Type, inds::UnitRange...) fill!(OffsetArray{T}(inds), one(T))
-@deprecate zeros(inds::UnitRange...) fill!(OffsetArray{Float64}(inds), 0)
-@deprecate  ones(inds::UnitRange...) fill!(OffsetArray{Float64}(inds), 1)
+@deprecate zeros(T::Type, ind1::UnitRange, ind2::UnitRange, inds::UnitRange...) fill!(OffsetArray{T}((ind1, ind2, inds...)), zero(T))
+@deprecate  ones(T::Type, ind1::UnitRange, inds2::UnitRange, inds::UnitRange...) fill!(OffsetArray{T}((ind1, ind2, inds...)), one(T))
+@deprecate zeros(ind1::UnitRange, ind2::UnitRange, inds::UnitRange...) fill!(OffsetArray{Float64}((ind1, ind2, inds...)), 0)
+@deprecate  ones(ind1::UnitRange, ind2::UnitRange, inds::UnitRange...) fill!(OffsetArray{Float64}((ind1, ind2, inds...)), 1)
 
 end # module
