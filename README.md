@@ -102,18 +102,18 @@ the book _Numerical Solution of Hyperbolic Partial Differential Equations_ by pr
     see more details here
     + [room for performance improvement for SubArray #5117](https://github.com/JuliaLang/julia/issues/5117)
 
-    Timing for baseline with `@unsafe` macro annotation:
++ Timing for baseline with `@unsafe` annotation:
 ```sh
   0.103402 seconds (21 allocations: 235.531 KB)
 ```
 
-    Timing for `OffsetArray` version with `@unsafe` macro annotation:
++ Timing for `OffsetArray` version with `@unsafe` annotation:
 ```sh
   0.103987 seconds (16 allocations: 235.094 KB)
 ```
 
-for `sub` macro version with `@unsafe` macro annotation (doesn't work without `@unsafe`):
-```
++ Timing for `sub` macro version with `@unsafe` annotation (doesn't work without `@unsafe`):
+```sh
   0.105967 seconds (217 allocations: 268.094 KB)
 ```
 Only the 2nd timing after warming up is given.
