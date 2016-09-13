@@ -21,9 +21,7 @@
 #  Use the software at your own risk.
 #***********************************************************************
 
-#import Base: getindex, setindex!
-#const getindex = Base.unsafe_getindex
-#const setindex! = Base.unsafe_setindex!
+using OffsetArrays # for @unsafe
 
 function main()
 
@@ -66,7 +64,7 @@ function main()
 
     # uniform mesh:
     dx=(x_right-x_left)/ncells
-    for ie in ifirst:ilast+1
+    @unsafe for ie in ifirst:ilast+1
         x[ie+1]=x_left+ie*dx
     end
 
@@ -74,7 +72,7 @@ function main()
     ijump=max(ifirst-1,min(convert(Int,round(ncells*(jump-x_left)/(x_right-x_left))),ilast+1))
 
     # left state to left of jump
-    for ic=ifirst:ijump-1
+    @unsafe for ic=ifirst:ijump-1
         u[ic+3]=statelft
     end
 
@@ -83,13 +81,13 @@ function main()
     u[ijump+3]=statelft*frac+statergt*(1.0-frac)
 
     # right state to right of jump
-    for ic=ijump+1:ilast
+    @unsafe for ic=ijump+1:ilast
         u[ic+3]=statergt
     end
 
     # stable timestep (independent of time for linear advection):
     mindx=1.0e300
-    for ic=ifirst:ilast
+    @unsafe for ic=ifirst:ilast
         mindx=min(mindx,x[ic+2]-x[ic+1])
     end
     dt=cfl*mindx/abs(velocity)
@@ -100,24 +98,24 @@ function main()
     # loop over timesteps
     while istep < nsteps && t < tmax
         # right boundary condition: outgoing wave
-        for ic=ncells:lc
+        @unsafe for ic=ncells:lc
             u[ic+3]=u[ncells+2]
         end
 
         # left boundary condition: specified value
-        for ic=fc:-1
+        @unsafe for ic=fc:-1
           u[ic+3]=statelft
         end
 
         # upwind fluxes times dt (ie, flux time integral over cell side)
         # assumes velocity > 0
         vdt=velocity*dt
-        for ie=ifirst:ilast+1
+        @unsafe for ie=ifirst:ilast+1
           flux[ie+1]=vdt*u[ie+2]
         end
 
         # conservative difference
-        for ic=ifirst:ilast
+        @unsafe for ic=ifirst:ilast
           u[ic+3] -= (flux[ic+2]-flux[ic+1]) / (x[ic+2]-x[ic+1])
         end
 
@@ -127,7 +125,7 @@ function main()
     end
 
     # write final results (plot later)
-    for ic=0:ncells-1
+    @unsafe for ic=0:ncells-1
         xc = (x[ic+1]+x[ic+2])*0.5
         uc = u[ic+3]
         #@printf("%e %e\n",xc,uc)
