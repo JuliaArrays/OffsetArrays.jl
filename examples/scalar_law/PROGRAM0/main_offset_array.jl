@@ -29,23 +29,23 @@ function do_computation(nsteps, ncells, tmax, ifirst, ilast, statelft, statergt,
     # loop over timesteps
     while istep < nsteps && t < tmax
         # right boundary condition: outgoing wave
-        for ic=ncells:lc
+        @unsafe for ic=ncells:lc
             u[ic]=u[ncells-1]
         end
         # left boundary condition: specified value
-        for ic=fc:-1
+        @unsafe for ic=fc:-1
             u[ic]=statelft
         end
 
         # upwind fluxes times dt (ie, flux time integral over cell side)
         # assumes velocity > 0
         vdt=velocity*dt
-        for ie=ifirst:ilast+1
+        @unsafe for ie=ifirst:ilast+1
             flux[ie]=vdt*u[ie-1]
         end
 
         # conservative difference
-        for ic=ifirst:ilast
+        @unsafe for ic=ifirst:ilast
             u[ic] -= (flux[ic+1]-flux[ic]) / (x[ic+1]-x[ic])
         end
 
@@ -98,27 +98,27 @@ function main()
 
     #  uniform mesh:
     dx=(x_right-x_left)/ncells
-    for ie in ifirst:ilast+1
+    @unsafe for ie in ifirst:ilast+1
         x[ie]=x_left+ie*dx
     end
 
     # initial values for diffential equation:
     ijump=max(ifirst-1,min(convert(Int,round(ncells*(jump-x_left)/(x_right-x_left))),ilast+1))
     # left state to left of jump
-    for ic=ifirst:ijump-1
+    @unsafe for ic=ifirst:ijump-1
         u[ic]=statelft
     end
     # volume-weighted average in cell containing jump
     frac=(jump-x_left-ijump*dx)/(x_right-x_left)
     u[ijump]=statelft*frac+statergt*(1.0-frac)
     # right state to right of jump
-    for ic=ijump+1:ilast
+    @unsafe for ic=ijump+1:ilast
         u[ic]=statergt
     end
 
     # stable timestep (independent of time for linear advection):
     mindx=1.0e300
-    for ic=ifirst:ilast
+    @unsafe for ic=ifirst:ilast
         mindx=min(mindx,x[ic+1]-x[ic])
     end
 
@@ -127,7 +127,7 @@ function main()
     u = do_computation(nsteps, ncells, tmax, ifirst, ilast, statelft, statergt, velocity, dt, fc, lc, flux, x, u)
 
     # write final results (plot later)
-    for ic=0:ncells-1
+    @unsafe for ic=0:ncells-1
         xc = (x[ic]+x[ic+1])*0.5
         uc = u[ic]
         #@printf("%e %e\n",xc,uc)
