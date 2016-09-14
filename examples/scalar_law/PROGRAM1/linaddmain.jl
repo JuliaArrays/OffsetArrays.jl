@@ -44,6 +44,7 @@ include("consdiff.jl")
 include("upwind.jl")
 
 function main()
+    #const ncells = 100
     const ncells = 10000
 
     u    = OffsetArray(Float64, -2:ncells+1)
@@ -51,8 +52,7 @@ function main()
     flux = OffsetArray(Float64,  0:ncells)
     dfdu = OffsetArray(Float64, -2:ncells+1)
 
-    const nsteps   =  100
-    #const nsteps   =  10000
+    const nsteps   =  10000
     const tmax     =  0.8
     const cfl      =  0.9
 
@@ -87,16 +87,17 @@ function main()
     end
 
     # write final results (plot later)
-    #@unsafe for ic=0:ncells-1
-    for ic=0:ncells-1
+    @unsafe for ic=0:ncells-1
+    #for ic=0:ncells-1
         xc = (x[ic]+x[ic+1])*0.5
         uc = u[ic]
-        @printf("%e %e\n",xc,uc)
+        #@printf("%e %e\n",xc,uc)
     end
 
 
 end # main
 
-main()
+@time main()
+@time main()
 
 

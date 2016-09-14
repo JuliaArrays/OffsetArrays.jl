@@ -23,7 +23,8 @@
 
 function consdiff(fic::Int,lac::Int,fif::Int,laf::Int,fix::Int,lax::Int,
                   ifirst::Int,ilast::Int,
-                  x::OffsetArray{Float64,1},flux::OffsetArray{Float64,1},
+                  x::OffsetArray{Float64,1},
+                  flux::OffsetArray{Float64,1},
                   conservd::OffsetArray{Float64,1})
 #   ******************************************************************
 #   update conservd to new time

@@ -22,7 +22,8 @@
 #***********************************************************************
 
 function initsl(ncells::Int, fc::Int, lc::Int, fx::Int, lx::Int, ifirst::Int, ilast::Int,
-                conservd::OffsetArray{Float64,1}, x::OffsetArray{Float64,1})
+                conservd::OffsetArray{Float64,1},
+                x::OffsetArray{Float64,1})
 #   ******************************************************************
 #   interior values only; others defined by boundary conditions
 #   ******************************************************************
@@ -64,9 +65,9 @@ function bcmesh(fim::Int,lam::Int,ncells::Int, x::OffsetArray{Float64,1})
 end
 
 function bccells(fic::Int,lac::Int,ncells::Int, conservd::OffsetArray{Float64,1})
-#     ******************************************************************
-#     right side 
-#     ******************************************************************
+#   ******************************************************************
+#   right side 
+#   ******************************************************************
     if lac >= ncells
         # println("treating right side")
         @unsafe for ic=ncells:lac
