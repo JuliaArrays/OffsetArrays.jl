@@ -124,3 +124,13 @@ Only the 2nd timing after warming up is given.
   7.177485 seconds (18 allocations: 3.053 MB)
   7.248687 seconds (18 allocations: 3.053 MB)
 ```
+
+    Fortran timing for `100000` number of cells
+```sh
+real    0m4.781s
+user    0m4.760s
+sys     0m0.000s
+
+```
+
+    That is 7.2s for Julia script vs. 4.8s for Fortran.
