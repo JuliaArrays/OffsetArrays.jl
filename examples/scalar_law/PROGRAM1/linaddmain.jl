@@ -23,20 +23,9 @@
 
 using OffsetArrays
 
-const roundoff  =  1.0-14
-const small     =  1.0-20
-const huge      =  1.0e300
-const undefind  =  1.0e300
-const lnrndoff  =  14.0e0
-const lnsmall   =  20.0e0
+include("consts.jl")
 
-# problem-specific parameters:
-const jump      =  0.0
-const x_left    = -0.2
-const x_right   =  1.0
-const statelft  =  2.0
-const statergt  =  0.0
-const velocity  =  1.0
+using consts
 
 include("riemprob.jl")
 include("linearad.jl")
