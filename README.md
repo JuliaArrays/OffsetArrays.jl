@@ -95,14 +95,7 @@ the book _Numerical Solution of Hyperbolic Partial Differential Equations_ by pr
     flux = OffsetArray(Float64,  0:ncells)
 ```
 
-+ UPDATE:
-    Added
-    + examples/scalar_law/PROGRAM0/main_sub.jl
-
-    see more details here
-    + [room for performance improvement for SubArray #5117](https://github.com/JuliaLang/julia/issues/5117)
-
-+ Timing for baseline with `@unsafe` annotation:
++ Timings for baseline with `@unsafe` annotation:
 ```sh
   0.103402 seconds (21 allocations: 235.531 KB)
 ```
@@ -117,3 +110,17 @@ the book _Numerical Solution of Hyperbolic Partial Differential Equations_ by pr
   0.105967 seconds (217 allocations: 268.094 KB)
 ```
 Only the 2nd timing after warming up is given.
+
++ UPDATE:
+    Added
+    + examples/scalar_law/PROGRAM1/...
+```sh
+[~/w/m/O/e/s/PROGRAM1] $ julia linaddmain.jl --cells=10000 --runs=3                                                                           ms  master|✚ 1…  
+  0.672295 seconds (42.90 k allocations: 1.990 MB)
+  0.509693 seconds (18 allocations: 313.281 KB)
+  0.512243 seconds (18 allocations: 313.281 KB)
+[~/w/m/O/e/s/PROGRAM1] $ julia linaddmain.jl --cells=100000 --runs=3                                                                      6134ms  master|✚ 1…  
+  7.270463 seconds (42.90 k allocations: 4.736 MB)
+  7.177485 seconds (18 allocations: 3.053 MB)
+  7.248687 seconds (18 allocations: 3.053 MB)
+```

@@ -20,8 +20,9 @@
 #  is completely correct, or that it will work for your purposes.  
 #  Use the software at your own risk.
 #***********************************************************************
-
+__precompile__()
 using OffsetArrays
+using DocOpt
 
 include("consts.jl")
 
@@ -32,16 +33,13 @@ include("linearad.jl")
 include("consdiff.jl")
 include("upwind.jl")
 
-function main()
-    #const ncells = 100
-    const ncells = 10000
+function do_computation(ncells, nsteps, verbose, print_solution)
 
     u    = OffsetArray(Float64, -2:ncells+1)
     x    = OffsetArray(Float64,  0:ncells)
     flux = OffsetArray(Float64,  0:ncells)
     dfdu = OffsetArray(Float64, -2:ncells+1)
 
-    const nsteps   =  10000
     const tmax     =  0.8
     const cfl      =  0.9
 
@@ -57,7 +55,10 @@ function main()
 
     initsl(ncells,fc,lc,fm,lm,ifirst,ilast, u,x)
 
-    #println("x : $x u : $u")
+    if verbose
+        println("x : $x u : $u")
+    end
+
     bcmesh(fm,lm,ncells, x)
     bccells(fc,lc,ncells, u)
     fluxderv(fc,lc,fc,lc, u, dfdu)
@@ -76,17 +77,53 @@ function main()
     end
 
     # write final results (plot later)
-    @unsafe for ic=0:ncells-1
-    #for ic=0:ncells-1
-        xc = (x[ic]+x[ic+1])*0.5
-        uc = u[ic]
-        #@printf("%e %e\n",xc,uc)
+    if print_solution
+        @unsafe for ic=0:ncells-1
+            xc = (x[ic]+x[ic+1])*0.5
+            uc = u[ic]
+            @printf("%e %e\n",xc,uc)
+        end
     end
 
+end
+
+function main()
+    const script_name = basename(Base.source_path())
+    const doc = """$script_name
+
+Usage:
+  $script_name -h | --help
+  $script_name [-v | --verbose] [-p | --print] [--cells=<cells>] [--steps=<steps>] [--runs=<runs>]
+
+Options:
+  -h --help                  Show this screen.
+  -v --verbose               Adds verbosity.
+  -p --print                 Print solution.
+  --cells=<cells>            Specify a number of cells [default: 100].
+  --steps=<steps>            Specify a number of steps [default: 10000].
+  --runs=<runs>              Specify a number of runs  [default: 2].
+"""
+
+    arguments = docopt(doc)
+
+    verbose   = arguments["--verbose"]
+    print_sol = arguments["--print"]
+    ncells    = parse(Int, arguments["--cells"])
+    nsteps    = parse(Int, arguments["--steps"])
+    nruns     = parse(Int, arguments["--runs"])
+
+    if verbose
+        println("ncells: $ncells")
+        println("nsteps: $nsteps")
+    end
+
+    for r = 1:nruns
+        @time do_computation(ncells, nsteps, verbose, print_sol)
+    end
 
 end # main
 
-@time main()
-@time main()
+main()
+
 
 
