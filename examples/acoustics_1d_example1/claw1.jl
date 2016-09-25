@@ -470,16 +470,11 @@ function claw1(parms::CParam,meqn::Int, mwaves::Int, maux::Int, mbc::Int, mx::In
         if method[1] == 1
             # save old q in case we need to retake step with smaller dt:
             #copyq1(meqn,mbc,mx,q,work(i0qwork))
-            #q_save[:] = q[:]
             q_save = q
         end
 
     #           
     @label l40
-
-
-        println("BEFORE endless loop n = $n maxn = $maxn t = $t dt = $dt")
-        #println("TOP INSIDE endless loop n = $n")
 
         dt2 = dt / 2.0
         #println("dt2: $dt2")
@@ -558,7 +553,6 @@ function claw1(parms::CParam,meqn::Int, mwaves::Int, maux::Int, mbc::Int, mx::In
             # reject this step
             t = told
             #copyq1(meqn,mbc,mx,work(i0qwork),q)
-            #q[:] = q_save[:]
             q = q_save
 
             if method[4] == 1
@@ -568,11 +562,9 @@ function claw1(parms::CParam,meqn::Int, mwaves::Int, maux::Int, mbc::Int, mx::In
 
             if method[1] == 1
                 # if variable dt, go back and take a smaller step
-                println("CONTINUE INSIDE endless loop n = $n")
                 @goto l40
             else # if fixed dt, give up and return
                 cflmax = max(cfl,cflmax)
-                println("BREAK INSIDE endless loop n = $n")
                 break
             end
 

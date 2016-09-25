@@ -35,92 +35,84 @@ function bc1(meqn::Int, mbc::Int, mx::Int, xlower::Float64, dx::Float64,
 #-------------------------------------------------------
 #     # left boundary:
 #-------------------------------------------------------
-#      go to (100,110,120,130) mthbc(1)+1
 #
     if mthbc[1] == 0
-#  100 continue
 
         # user-specified boundary conditions go here in place of error output
         println("*** ERROR *** mthbc(1)=0 and no BCs specified in bc1")
+        exit(-1)
 
     elseif mthbc[1] == 1
 
-#  110 continue
         # zero-order extrapolation:
         for ibc=1:mbc
             for m=1:meqn
                 q[m,1-ibc] = q[m,1]
             end
         end
-#      go to 199
+        @goto l199
 
     elseif mthbc[1] == 2 
-#  120 continue
         # periodic:
         for ibc=1:mbc
             for m=1:meqn
                 q[m,1-ibc] = q[m,mx+1-ibc]
             end
         end
-#      go to 199
+        @goto l199
 
     elseif mthbc[1] == 3 
-#  130 continue
-#     # solid wall (assumes 2'nd component is velocity or momentum in x):
-      for ibc=1:mbc
-         for m=1:meqn
-            q[m,1-ibc] = q[m,ibc]
-         end
-         q[2,1-ibc] = -q[2,ibc]
-      end
-#     # negate the normal velocity:
-#      go to 199
+        # solid wall (assumes 2'nd component is velocity or momentum in x):
+        for ibc=1:mbc
+            for m=1:meqn
+                q[m,1-ibc] = q[m,ibc]
+            end
+            q[2,1-ibc] = -q[2,ibc]
+        end
+        # negate the normal velocity:
+        @goto l199
 
-#  199 continue
     end # if mthbc[1] == ...
+
+@label l199
 
 #
 #-------------------------------------------------------
 #     # right boundary:
 #-------------------------------------------------------
-#      go to (200,210,220,230) mthbc(2)+1
-#
+
     if mthbc[2] == 0
-#  200 continue
         # user-specified boundary conditions go here in place of error output
         println("*** ERROR *** mthbc(2)=0 and no BCs specified in bc2")
-        # go to 299
+        exit(-1)
 
     elseif mthbc[2] == 1
-#  210 continue
         # zero-order extrapolation:
         for ibc=1:mbc
             for m=1:meqn
                 q[m,mx+ibc] = q[m,mx]
             end
         end
-#      go to 299
+        return
 
     elseif mthbc[2] == 2 
-#  220 continue
-#     # periodic:  
+        # periodic:  
         for ibc=1:mbc
             for m=1:meqn
                 q[m,mx+ibc] = q[m,ibc]
             end
         end
-#      go to 299
+        return
 
     elseif mthbc[2] == 3 
-#  230 continue
-#     # solid wall (assumes 2'nd component is velocity or momentum in x):
-      for ibc=1:mbc
-         for m=1:meqn
-            q[m,mx+ibc] = q[m,mx+1-ibc]
-         end
-         q[2,mx+ibc] = -q[2,mx+1-ibc]
-      end
-#      go to 299
+        # solid wall (assumes 2'nd component is velocity or momentum in x):
+        for ibc=1:mbc
+            for m=1:meqn
+                q[m,mx+ibc] = q[m,mx+1-ibc]
+            end
+            q[2,mx+ibc] = -q[2,mx+1-ibc]
+        end
+        return
 
     end # if mthbc[2] == ...
 #  299 continue
