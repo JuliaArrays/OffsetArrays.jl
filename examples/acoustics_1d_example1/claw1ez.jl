@@ -286,24 +286,11 @@ function claw1ez()    # No arguments
     # call user's routine setprob to set any specific parameters
     # or other initialization required.
     #
-###       call setprob
     prob_data = CParam()
     read_prob_data(prob_data)
 
  
     # Allocate aux
-###       if (maux > 0) then
-###          allocate(aux(maux, 1-mbc:mx+mbc), stat=allocate_status)
-###       else
-###          ! Allocate dummy array to prevent segfaults if it's
-###          ! dereferenced.  May be unnecessary.
-###          allocate(aux(1,1), stat=allocate_status)
-###       end if
-###       if (allocate_status .ne. 0) then
-###          print *, '*** Error allocating aux array; exiting claw1ez'
-###          go to 900
-###       end if
-### 
 
     aux = (maux > 0) ? OffsetArray(Float64, 1:maux, 1-mbc:mx+mbc) : OffsetArray(Float64, 1:1,1:1)
 
@@ -395,28 +382,29 @@ function claw1ez()    # No arguments
 
         end
 
-### #
-###          dtv(1) = dtv(5)  !# use final dt as starting value on next call
-### #
-### #        # output solution at this time
-### #        ------------------------------
-### #
-### #        # if outstyle=1 or 2, then nstepout=1 and we output every time
-### #        # we reach this point, since claw1 was called for the entire time
-### #        # increment between outputs.
-### #
-### #        # if outstyle=3 then we only output if we have taken nstepout
-### #        # time steps since the last output.
-### 
-### #        # iframe is the frame number used to form file names in out1
-###          iframe = n/nstepout
-### 	 if (iframe*nstepout .eq. n) then
-###             call out1(meqn,mbc,mx,xlower,dx,q,tend,iframe,
-###      &                aux,maux,outaux_always)
+
+        dtv[1] = dtv[5]  # use final dt as starting value on next call
+
+        # output solution at this time
+        # ------------------------------
+
+        # if outstyle=1 or 2, then nstepout=1 and we output every time
+        # we reach this point, since claw1 was called for the entire time
+        # increment between outputs.
+
+        # if outstyle=3 then we only output if we have taken nstepout
+        # time steps since the last output.
+
+        # iframe is the frame number used to form file names in out1
+        iframe::Int = convert(Int, n/nstepout)
+        if iframe*nstepout == n
+            out1(meqn,mbc,mx,xlower,dx,q,tend,iframe,
+                 aux,maux,outaux_always)
+
 ###             write(6,601) iframe,tend
 ###             write(10,1010) tend,info,dtv(3),dtv(4),dtv(5),
 ###      &           cflv(3),cflv(4),nv(2)
-### 	    endif
+        end
 ### #
 ### #        # formats for writing out information about this call to claw:
 ### #
