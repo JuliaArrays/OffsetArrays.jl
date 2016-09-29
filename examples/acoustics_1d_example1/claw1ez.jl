@@ -264,14 +264,6 @@ function claw1ez()    # No arguments
           error("*** ERROR ***  periodic boundary conditions require mthbc(1) and mthbc(2) BOTH be set to 2")
     end
 
-###       ! Figure out size of work array needed
-###       mwork = (mx + 2*mbc) * (2 + 4*meqn + mwaves + meqn*mwaves)
-### 
-### #
-### #
-###       write(6,*) 'running...'
-###       write(6,*) ' '
-### #
     println("running...")
     println(" ")
 
@@ -294,47 +286,15 @@ function claw1ez()    # No arguments
 
     aux = (maux > 0) ? OffsetArray(Float64, 1:maux, 1-mbc:mx+mbc) : OffsetArray(Float64, 1:1,1:1)
 
-### #        
-### #     # set aux array:
-### #
-###       if (maux .gt. 0)  then
-###          call setaux(mbc,mx,xlower,dx,maux,aux)
-###       endif
-### 
-###       ! Allocate q
-###       allocate(q(meqn, 1-mbc:mx+mbc), stat=allocate_status)
-###       if (allocate_status .ne. 0) then
-###          print *, '*** Error allocating q array; exiting claw1ez'
-###          go to 900
-###       end if
-
     q = OffsetArray(Float64, 1:meqn, 1-mbc:mx+mbc)
 
-### #     # set initial conditions:
-### #
-###       call qinit(meqn,mbc,mx,xlower,dx,q,maux,aux)
-### #
-
-    #println("q before qinit call: $q")
+    # set initial conditions:
 
     qinit(prob_data, meqn, mbc, mx, xlower, dx, q, maux, aux)
-
-    #println("q after qinit call:")
-    #Base.print(q)
 
     # output initial data
     out1(meqn,mbc,mx,xlower,dx,q,t0,0,aux,maux,
          (outaux_init_only || outaux_always) )
-
-### 
-###       ! Allocate work array
-###       allocate(work(mwork), stat=allocate_status)
-###       if (allocate_status .ne. 0) then
-###          print *, '*** Error allocating work array; exiting claw1ez'
-###          go to 900
-###       end if
-
-
 #
 #     ----------
 #     Main loop:
@@ -355,7 +315,6 @@ function claw1ez()    # No arguments
         claw1(prob_data,meqn,mwaves,maux,mbc,mx,
               q,aux,xlower,dx,tstart,tend,dtv,cflv,nv,method,mthlim,
               mthbc,
-              #work, mwork, # ???
               use_fwaves,
               bc1,rp1,src1,b4step1)
 
@@ -382,7 +341,6 @@ function claw1ez()    # No arguments
 
         end
 
-
         dtv[1] = dtv[5]  # use final dt as starting value on next call
 
         # output solution at this time
@@ -401,33 +359,10 @@ function claw1ez()    # No arguments
             out1(meqn,mbc,mx,xlower,dx,q,tend,iframe,
                  aux,maux,outaux_always)
 
-###             write(6,601) iframe,tend
-###             write(10,1010) tend,info,dtv(3),dtv(4),dtv(5),
-###      &           cflv(3),cflv(4),nv(2)
+            @printf("CLAW1EZ: Frame %4d output files done at time t = %12.4e\n", iframe,tend)
+            @printf("tend = %15.4e \ninfo =%5d\nsmallest dt =%15.4e\nlargest dt =%15.4e\nlast dt =%15.4e\nlargest cfl =%15.4e\nlast cfl =%15.4e\nsteps taken =%4d\n",
+                    tend,info,dtv[3],dtv[4],dtv[5],cflv[3],cflv[4],nv[2])
+
         end
-### #
-### #        # formats for writing out information about this call to claw:
-### #
-###   601    format('CLAW1EZ: Frame ',i4,
-###      &           ' output files done at time t =',
-###      &           d12.4,/)
-### #
-###  1010    format('tend =',d15.4,/,
-###      &       'info =',i5,/,'smallest dt =',d15.4,/,'largest dt =',
-###      &       d15.4,/,'last dt =',d15.4,/,'largest cfl =',
-###      &         d15.4,/,'last cfl =',d15.4,/,'steps taken =',i4,/)
-### #
-
     end
-
-
-###   900 continue
-###       if (allocated(q))        deallocate(q)
-###       if (allocated(aux))      deallocate(aux)
-###       if (allocated(work))     deallocate(work)
-###       if (allocated(mthlim))   deallocate(mthlim)
-###       if (allocated(tout))     deallocate(tout)
-###       if (allocated(iout_q))   deallocate(iout_q)
-###       if (allocated(iout_aux)) deallocate(iout_aux)
-
 end # claw1ez
