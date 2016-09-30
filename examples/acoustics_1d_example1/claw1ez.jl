@@ -54,6 +54,8 @@ function claw1ez()    # No arguments
 ###       character*12 fname
 ### #
 ###       open(10,file='fort.info',status='unknown',form='formatted')
+
+    unit10 = open("fort.info", "w")
 ### 
 ### #
 ### #     # Read the input in standard form from claw.data:
@@ -69,16 +71,6 @@ function claw1ez()    # No arguments
 ### #     # Read the input in standard form from claw.data:
 ### #
 ### 
-###       read(55,*) ndim
-### 
-###       read(55,*) xlower
-###       read(55,*) xupper
-###       read(55,*) mx
-###       read(55,*) meqn
-###       read(55,*) mwaves
-###       read(55,*) maux
-###       read(55,*) t0
-### 
     r = Reader("claw.data")
 
     ndim     = readint(r)
@@ -92,16 +84,8 @@ function claw1ez()    # No arguments
 
     println("read from claw.data : ndim: $ndim xlower: $xlower xupper: $xupper mx: $mx meqn: $meqn mwaves: $mwaves maux: $maux t0: $t0")
 
-###       read(55,*) outstyle
-
     outstyle = readint(r)
  
-###       if (outstyle == 1) then
-###          read(55,*) nout
-###          read(55,*) tfinal
-###          read(55,*) output_t0    ! Not currently used
-###          nstepout = 1
-
     tout = Array(Float64, 1)
     if     outstyle == 1
         nout      = readint(r)
@@ -118,65 +102,24 @@ function claw1ez()    # No arguments
         println("tout: $tout")
         nstepout  = 1
 
-
-###       else if (outstyle == 3) then
-###          read(55,*) nstepout
-###          read(55,*) nstop
-###          read(55,*) output_t0
-###          nout = nstop
-###       else
-###          print *, '*** Unrecognized output style ', outstyle
-###          print *, '*** Exiting claw1ez'
-###          go to 900
-###       end if
-### 
-
     elseif outstyle == 3
+        nstepout  = readint(r)
+        nstop     = readint(r)
+        output_t0 = readbool(r)       # Not currently used
+        nout      = nstop
 
     else
+        println("nout: $nout tfinal: $tfinal output_t0: $output_t0")
         println("*** Unrecognized output style $outstyle")
         error("*** Exiting claw1ez")
     end
 
-###       read(55,*) output_format    ! Not used yet
     output_format = readint(r)    # Not used yet
 
-###       ! These iout variables are not currently used, but hang onto them
-###       ! anyway in case somebody wants to use them at a future date.  The
-###       ! same goes for outaux_init_only.
-###       allocate(iout_q(meqn), stat=allocate_status)
-###       if (allocate_status .ne. 0) then
-###          print *, '*** Error allocating iout_q array; exiting claw1ez'
-###          go to 900    ! Exception handling, old school style
-###       end if
-###       read(55,*) (iout_q(i), i = 1, meqn)
-    inout_q = readfltarray(r, meqn)
-    println("inout_q: $inout_q")
-
-#    if maux > 0
-###          allocate(iout_aux(maux), stat=allocate_status)
-###          if (allocate_status .ne. 0) then
-###             print *, '*** Error allocating iout_aux array;',
-###      &               ' exiting claw1ez'
-###             go to 900
-###          end if
+    iout_q = readfltarray(r, meqn)
+    println("iout_q: $iout_q")
 
 #        iout_aux
-
-###          read(55,*) (iout_aux(i), i = 1, maux)
-###          read(55,*) outaux_init_only
-###          ! Not implementing selective output of aux fields yet
-###          if (any(iout_aux .ne. 0)) then
-###             outaux_always = .not. outaux_init_only
-###          else
-###             outaux_always = .false.
-###             outaux_init_only = .false.
-###          end if
-###       else
-###          outaux_always = .false.
-###          outaux_init_only = .false.    ! Just to initialize
-#    end
-
 
     iout_aux = Array(Int, 1)
     if maux > 0
@@ -197,26 +140,13 @@ function claw1ez()    # No arguments
 
     println("dtv: $dtv cflv: $cflv nv: $nv")
 
-###       read(55,*) dt_variable    ! Variable or fixed dt
-###       if (dt_variable) then
-###          method(1) = 1
-###       else
-###          method(1) = 0
-###       end if
-
     dt_variable::Bool = readbool(r)
     method[1] = dt_variable ? 1 : 0
 
     method[2] = readint(r) # Order
 
-###       ! method(3) (transverse order) not used in 1D
-###       ! No dimensional splitting in 1D
-###       read(55,*) method(4)    ! Verbosity
-###       read(55,*) method(5)    ! Source term splitting style
-###       read(55,*) method(6)    ! Index into aux of capacity function
-###       method(7) = maux        ! Number of aux variables
-### 
-
+    # method(3) (transverse order) not used in 1D
+    # No dimensional splitting in 1D
 
     method[4] = readint(r) # Verbosity
     method[5] = readint(r) # Source term splitting style
@@ -225,16 +155,7 @@ function claw1ez()    # No arguments
 
     println("method: $method")
 
-###       read(55,*) use_fwaves
-### 
     use_fwaves::Bool = readbool(r)
-
-###       allocate(mthlim(mwaves), stat=allocate_status)
-###       if (allocate_status .ne. 0) then
-###          print *, '*** Error allocating mthlim array; exiting claw1ez'
-###          go to 900
-###       end if
-###       read(55,*) (mthlim(i), i = 1, mwaves)
 
     mthlim::Array{Int, 1} = readintarray(r, mwaves)
     println("mthlim: $mthlim")
@@ -249,14 +170,6 @@ function claw1ez()    # No arguments
     # No restart in 1D, and there's nothing after the restart info, so
     # just close the file now.
     close_reader(r) 
-
-###       ! Check consistency for periodic BCs
-###       if ((mthbc(1).eq.2 .and. mthbc(2).ne.2) .or.
-###      &    (mthbc(2).eq.2 .and. mthbc(1).ne.2)) then
-###          write(6,*) '*** ERROR ***  periodic boundary conditions'
-###          write(6,*) ' require mthbc(1) and mthbc(2) BOTH be set to 2'
-###          stop 
-###       endif
 
     # Check consistency for periodic BCs
     if (mthbc[1] == 2 && mthbc[2] != 2) ||
@@ -360,9 +273,13 @@ function claw1ez()    # No arguments
                  aux,maux,outaux_always)
 
             @printf("CLAW1EZ: Frame %4d output files done at time t = %12.4e\n", iframe,tend)
-            @printf("tend = %15.4e \ninfo =%5d\nsmallest dt =%15.4e\nlargest dt =%15.4e\nlast dt =%15.4e\nlargest cfl =%15.4e\nlast cfl =%15.4e\nsteps taken =%4d\n",
-                    tend,info,dtv[3],dtv[4],dtv[5],cflv[3],cflv[4],nv[2])
+            @printf(unit10,"tend = %15.4e \ninfo =%5d\nsmallest dt =%15.4e\nlargest dt =%15.4e\n",
+                    tend,info,dtv[3],dtv[4])
+            @printf(unit10,"last dt =%15.4e\nlargest cfl =%15.4e\nlast cfl =%15.4e\nsteps taken =%4d\n",
+                    dtv[5],cflv[3],cflv[4],nv[2])
 
         end
     end
+    Base.close(unit10)
+
 end # claw1ez
