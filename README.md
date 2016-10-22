@@ -76,6 +76,8 @@ The original purpose of the package was to simplify translation of Fortran codes
 
   + [ClawPack 5.0](http://clawpack.github.io/index.html)
 
+see also [translation to Julia of Fortran codes from ClawPack](https://github.com/alsam/Claw.jl)
+
 The directory _examples_ of [hyperbolic_PDE](https://github.com/alsam/hyperbolic_PDE.jl) contains at the moment a translation of explicit upwind finite difference scheme for scalar law advection equation from
 the book _Numerical Solution of Hyperbolic Partial Differential Equations_ by prof. John A. Trangenstein.
 
