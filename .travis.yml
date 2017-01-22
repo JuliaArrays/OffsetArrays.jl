@@ -4,6 +4,7 @@ os:
     - linux
 
 julia:
+    - 0.5
     - nightly
 
 notifications:
