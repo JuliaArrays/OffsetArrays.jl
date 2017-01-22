@@ -1,7 +1,8 @@
 using Base.Test
 using OffsetArrays
 
-@test isempty(detect_ambiguities(OffsetArrays, Base, Core))
+ambs = detect_ambiguities(Base, Core)  # in case these have ambiguities of their own
+@test isempty(setdiff(detect_ambiguities(OffsetArrays, Base, Core), ambs))
 
 # Basics
 for n = 0:5
