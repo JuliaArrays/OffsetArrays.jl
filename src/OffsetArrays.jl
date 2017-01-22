@@ -121,6 +121,11 @@ offset{N}(offsets::NTuple{N,Int}, inds::NTuple{N,Int}) = _offset((), offsets, in
 _offset(out, ::Tuple{}, ::Tuple{}) = out
 @inline _offset(out, offsets, inds) = _offset((out..., inds[1]-offsets[1]), Base.tail(offsets), Base.tail(inds))
 
+# Support trailing 1s
+@inline offset(offsets::Tuple{Vararg{Int}}, inds::Tuple{Vararg{Int}}) = (offset(offsets, Base.front(inds))..., inds[end])
+offset(offsets::Tuple{}, inds::Tuple{}) = ()
+offset(offsets::Tuple{Vararg{Int}}, inds::Tuple{}) = error("inds cannot be shorter than offsets")
+
 indexoffset(r::Range) = first(r) - 1
 indexoffset(i::Integer) = 0
 
@@ -151,6 +156,34 @@ end
 
 @inline unsafe_getindex(a::AbstractArray, I...) = (@inbounds ret = a[I...]; ret)
 @inline unsafe_setindex!(a::AbstractArray, val, I...) = (@inbounds a[I...] = val; val)
+
+# Linear indexing
+@inline unsafe_getindex(a::OffsetArray, i::Int) = _unsafe_getindex(Base.linearindexing(a), a, i)
+@inline unsafe_setindex!(a::OffsetArray, val, i::Int) = _unsafe_setindex!(Base.linearindexing(a), a, val, i)
+for T in (LinearFast, LinearSlow)  # ambiguity-resolution requires specificity for both
+    @eval begin
+        @inline function _unsafe_getindex(::$T, a::OffsetVector, i::Int)
+            @inbounds ret = parent(a)[offset(a.offsets, (i,))[1]]
+            ret
+        end
+        @inline function _unsafe_setindex!(::$T, a::OffsetVector, val, i::Int)
+            @inbounds parent(a)[offset(a.offsets, (i,))[1]] = val
+            val
+        end
+    end
+end
+@inline function _unsafe_getindex(::LinearFast, a::OffsetArray, i::Int)
+    @inbounds ret = parent(a)[i]
+    ret
+end
+@inline _unsafe_getindex(::LinearSlow, a::OffsetArray, i::Int) =
+    unsafe_getindex(a, ind2sub(indices(a), i)...)
+@inline function _unsafe_setindex!(::LinearFast, a::OffsetArray, val, i::Int)
+    @inbounds parent(a)[i] = val
+    val
+end
+@inline _unsafe_setindex!(::LinearSlow, a::OffsetArray, val, i::Int) =
+    unsafe_setindex!(a, val, ind2sub(indices(a), i)...)
 
 @inline unsafe_getindex(a::OffsetArray, I::Int...) = unsafe_getindex(parent(a), offset(a.offsets, I)...)
 @inline unsafe_setindex!(a::OffsetArray, val, I::Int...) = unsafe_setindex!(parent(a), val, offset(a.offsets, I)...)
