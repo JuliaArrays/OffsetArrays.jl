@@ -83,12 +83,12 @@ end
     @inbounds ret = parent(A)[offset(A.offsets, I)...]
     ret
 end
-@inline function Base._getindex(::LinearFast, A::OffsetVector, i::Int)
+@inline function Base.getindex(A::OffsetVector, i::Int)
     checkbounds(A, i)
     @inbounds ret = parent(A)[offset(A.offsets, (i,))[1]]
     ret
 end
-@inline function Base._getindex(::LinearFast, A::OffsetArray, i::Int)
+@inline function Base.getindex(A::OffsetArray, i::Int)
     checkbounds(A, i)
     @inbounds ret = parent(A)[i]
     ret
@@ -98,12 +98,12 @@ end
     @inbounds parent(A)[offset(A.offsets, I)...] = val
     val
 end
-@inline function Base._setindex!(::LinearFast, A::OffsetVector, val, i::Int)
+@inline function Base.setindex!(A::OffsetVector, val, i::Int)
     checkbounds(A, i)
     @inbounds parent(A)[offset(A.offsets, (i,))[1]] = val
     val
 end
-@inline function Base._setindex!(::LinearFast, A::OffsetArray, val, i::Int)
+@inline function Base.setindex!(A::OffsetArray, val, i::Int)
     checkbounds(A, i)
     @inbounds parent(A)[i] = val
     val
