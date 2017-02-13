@@ -53,9 +53,12 @@ Base.eachindex(::LinearFast, A::OffsetVector) = indices(A, 1)
 # Implementations of indices and indices1. Since bounds-checking is
 # performance-critical and relies on indices, these are usually worth
 # optimizing thoroughly.
-@inline Base.indices(A::OffsetArray, d) = 1 <= d <= length(A.offsets) ? indices(parent(A))[d] + A.offsets[d] : (1:1)
-@inline Base.indices(A::OffsetArray) = _indices(indices(parent(A)), A.offsets)  # would rather use ntuple, but see #15276
-@inline _indices(inds, offsets) = (inds[1]+offsets[1], _indices(tail(inds), tail(offsets))...)
+@inline Base.indices(A::OffsetArray, d) =
+    1 <= d <= length(A.offsets) ? indices(parent(A))[d] + A.offsets[d] : (1:1)
+@inline Base.indices(A::OffsetArray) =
+    _indices(indices(parent(A)), A.offsets)  # would rather use ntuple, but see #15276
+@inline _indices(inds, offsets) =
+    (inds[1]+offsets[1], _indices(tail(inds), tail(offsets))...)
 _indices(::Tuple{}, ::Tuple{}) = ()
 Base.indices1{T}(A::OffsetArray{T,0}) = 1:1  # we only need to specialize this one
 
@@ -67,11 +70,14 @@ function Base.similar{T}(A::AbstractArray, ::Type{T}, inds::Tuple{UnitRange,Vara
     OffsetArray(B, map(indexoffset, inds))
 end
 
-Base.similar(f::Union{Function,Type}, shape::Tuple{UnitRange,Vararg{UnitRange}}) = OffsetArray(f(map(length, shape)), map(indexoffset, shape))
+Base.similar(f::Union{Function,Type}, shape::Tuple{UnitRange,Vararg{UnitRange}}) =
+    OffsetArray(f(map(length, shape)), map(indexoffset, shape))
 
-Base.reshape(A::AbstractArray, inds::Tuple{UnitRange,Vararg{UnitRange}}) = OffsetArray(reshape(A, map(length, inds)), map(indexoffset, inds))
+Base.reshape(A::AbstractArray, inds::Tuple{UnitRange,Vararg{UnitRange}}) =
+    OffsetArray(reshape(A, map(length, inds)), map(indexoffset, inds))
 
-Base.reshape(A::OffsetArray, inds::Tuple{UnitRange,Vararg{UnitRange}}) = OffsetArray(reshape(parent(A), map(length, inds)), map(indexoffset, inds))
+Base.reshape(A::OffsetArray, inds::Tuple{UnitRange,Vararg{UnitRange}}) =
+    OffsetArray(reshape(parent(A), map(length, inds)), map(indexoffset, inds))
 
 function Base.reshape(A::OffsetArray, inds::Tuple{UnitRange,Vararg{Union{UnitRange,Int,Base.OneTo}}})
     throw(ArgumentError("reshape must supply UnitRange indices, got $(typeof(inds)).\n       Note that reshape(A, Val{N}) is not supported for OffsetArrays."))
@@ -83,12 +89,12 @@ end
     @inbounds ret = parent(A)[offset(A.offsets, I)...]
     ret
 end
-@inline function Base._getindex(::LinearFast, A::OffsetVector, i::Int)
+@inline function Base.getindex(A::OffsetVector, i::Int)
     checkbounds(A, i)
     @inbounds ret = parent(A)[offset(A.offsets, (i,))[1]]
     ret
 end
-@inline function Base._getindex(::LinearFast, A::OffsetArray, i::Int)
+@inline function Base.getindex(A::OffsetArray, i::Int)
     checkbounds(A, i)
     @inbounds ret = parent(A)[i]
     ret
@@ -98,12 +104,12 @@ end
     @inbounds parent(A)[offset(A.offsets, I)...] = val
     val
 end
-@inline function Base._setindex!(::LinearFast, A::OffsetVector, val, i::Int)
+@inline function Base.setindex!(A::OffsetVector, val, i::Int)
     checkbounds(A, i)
     @inbounds parent(A)[offset(A.offsets, (i,))[1]] = val
     val
 end
-@inline function Base._setindex!(::LinearFast, A::OffsetArray, val, i::Int)
+@inline function Base.setindex!(A::OffsetArray, val, i::Int)
     checkbounds(A, i)
     @inbounds parent(A)[i] = val
     val
@@ -111,7 +117,8 @@ end
 
 ### Convenience functions ###
 
-Base.fill(x, inds::Tuple{UnitRange,Vararg{UnitRange}}) = fill!(OffsetArray{typeof(x)}(inds), x)
+Base.fill(x, inds::Tuple{UnitRange,Vararg{UnitRange}}) =
+    fill!(OffsetArray{typeof(x)}(inds), x)
 @inline Base.fill(x, ind1::UnitRange, inds::UnitRange...) = fill(x, (ind1, inds...))
 
 ### Low-level utilities ###
@@ -119,10 +126,12 @@ Base.fill(x, inds::Tuple{UnitRange,Vararg{UnitRange}}) = fill!(OffsetArray{typeo
 # Computing a shifted index (subtracting the offset)
 offset{N}(offsets::NTuple{N,Int}, inds::NTuple{N,Int}) = _offset((), offsets, inds)
 _offset(out, ::Tuple{}, ::Tuple{}) = out
-@inline _offset(out, offsets, inds) = _offset((out..., inds[1]-offsets[1]), Base.tail(offsets), Base.tail(inds))
+@inline _offset(out, offsets, inds) =
+    _offset((out..., inds[1]-offsets[1]), Base.tail(offsets), Base.tail(inds))
 
 # Support trailing 1s
-@inline offset(offsets::Tuple{Vararg{Int}}, inds::Tuple{Vararg{Int}}) = (offset(offsets, Base.front(inds))..., inds[end])
+@inline offset(offsets::Tuple{Vararg{Int}}, inds::Tuple{Vararg{Int}}) =
+    (offset(offsets, Base.front(inds))..., inds[end])
 offset(offsets::Tuple{}, inds::Tuple{}) = ()
 offset(offsets::Tuple{Vararg{Int}}, inds::Tuple{}) = error("inds cannot be shorter than offsets")
 
