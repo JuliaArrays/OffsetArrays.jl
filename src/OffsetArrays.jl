@@ -5,6 +5,7 @@ module OffsetArrays
 Base.@deprecate_binding (..) Colon()
 
 using Base: Indices, LinearSlow, LinearFast, tail
+using Compat
 
 export OffsetArray, @unsafe
 
@@ -12,7 +13,7 @@ immutable OffsetArray{T,N,AA<:AbstractArray} <: AbstractArray{T,N}
     parent::AA
     offsets::NTuple{N,Int}
 end
-typealias OffsetVector{T,AA<:AbstractArray} OffsetArray{T,1,AA}
+@compat OffsetVector{T,AA<:AbstractArray} = OffsetArray{T,1,AA}
 
 OffsetArray{T,N}(A::AbstractArray{T,N}, offsets::NTuple{N,Int}) =
     OffsetArray{T,N,typeof(A)}(A, offsets)
@@ -200,7 +201,7 @@ end
 @inline unsafe_setindex!(a::OffsetArray, val, I...) = unsafe_setindex!(a, val, Base.IteratorsMD.flatten(I)...)
 
 # Indexing a SubArray which has OffsetArray indices
-typealias OffsetSubArray{T,N,P,I<:Tuple{OffsetArray,Vararg{OffsetArray}}} SubArray{T,N,P,I,false}
+@compat OffsetSubArray{T,N,P,I<:Tuple{OffsetArray,Vararg{OffsetArray}}} = SubArray{T,N,P,I,false}
 @inline function unsafe_getindex{T,N}(a::OffsetSubArray{T,N}, I::Vararg{Int,N})
     J = map(unsafe_getindex, a.indexes, I)
     unsafe_getindex(parent(a), J...)

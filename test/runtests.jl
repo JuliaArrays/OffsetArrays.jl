@@ -1,5 +1,6 @@
 using Base.Test
 using OffsetArrays
+using Compat
 
 ambs = detect_ambiguities(Base, Core)  # in case these have ambiguities of their own
 @test isempty(setdiff(detect_ambiguities(OffsetArrays, Base, Core), ambs))
@@ -128,28 +129,20 @@ for (a,d) in zip(A, A0)
 end
 
 # show
-io = IOBuffer()
-show(io, A)
-str = takebuf_string(io)
-@test str == "[1 3; 2 4]"
-show(io, S)
-str = takebuf_string(io)
-@test str == "[1 3; 2 4]"
-show(io, MIME("text/plain"), A)
-strs = split(strip(takebuf_string(io)), '\n')
+@test sprint(show, A) == "[1 3; 2 4]"
+@test sprint(show, S) == "[1 3; 2 4]"
+strs = split(strip(sprint(show, MIME("text/plain"), A)), '\n')
 @test strs[2] == " 1  3"
 @test strs[3] == " 2  4"
 v = OffsetArray(rand(3), (-2,))
-show(io, v)
-str = takebuf_string(io)
-show(io, parent(v))
-@test str == takebuf_string(io)
+@test sprint(show, v) == sprint(show, parent(v))
+io = IOBuffer()
 function cmp_showf(printfunc, io, A)
     ioc = IOContext(io, limit=true, compact=true)
     printfunc(ioc, A)
-    str1 = takebuf_string(io)
+    str1 = String(take!(io))
     printfunc(ioc, parent(A))
-    str2 = takebuf_string(io)
+    str2 = String(take!(io))
     @test str1 == str2
 end
 cmp_showf(Base.print_matrix, io, OffsetArray(rand(5,5), (10,-9)))       # rows&cols fit
