@@ -4,7 +4,7 @@ module OffsetArrays
 
 Base.@deprecate_binding (..) Colon()
 
-using Base: Indices, LinearSlow, LinearFast, tail
+using Base: Indices, tail
 using Compat
 
 export OffsetArray, @unsafe
@@ -39,7 +39,7 @@ end
 OffsetArray{T,N}(A::AbstractArray{T,N}, inds::Vararg{AbstractUnitRange,N}) =
     OffsetArray(A, inds)
 
-Base.linearindexing{T<:OffsetArray}(::Type{T}) = Base.linearindexing(parenttype(T))
+@compat Compat.IndexStyle{OA<:OffsetArray}(::Type{OA}) = IndexStyle(parenttype(OA))
 parenttype{T,N,AA}(::Type{OffsetArray{T,N,AA}}) = AA
 parenttype(A::OffsetArray) = parenttype(typeof(A))
 
@@ -48,8 +48,8 @@ Base.parent(A::OffsetArray) = A.parent
 errmsg(A) = error("size not supported for arrays with indices $(indices(A)); see http://docs.julialang.org/en/latest/devdocs/offset-arrays/")
 Base.size(A::OffsetArray) = errmsg(A)
 Base.size(A::OffsetArray, d) = errmsg(A)
-Base.eachindex(::LinearSlow, A::OffsetArray) = CartesianRange(indices(A))
-Base.eachindex(::LinearFast, A::OffsetVector) = indices(A, 1)
+Base.eachindex(::IndexCartesian, A::OffsetArray) = CartesianRange(indices(A))
+Base.eachindex(::IndexLinear, A::OffsetVector)   = indices(A, 1)
 
 # Implementations of indices and indices1. Since bounds-checking is
 # performance-critical and relies on indices, these are usually worth
@@ -168,9 +168,9 @@ end
 @inline unsafe_setindex!(a::AbstractArray, val, I...) = (@inbounds a[I...] = val; val)
 
 # Linear indexing
-@inline unsafe_getindex(a::OffsetArray, i::Int) = _unsafe_getindex(Base.linearindexing(a), a, i)
-@inline unsafe_setindex!(a::OffsetArray, val, i::Int) = _unsafe_setindex!(Base.linearindexing(a), a, val, i)
-for T in (LinearFast, LinearSlow)  # ambiguity-resolution requires specificity for both
+@inline unsafe_getindex(a::OffsetArray, i::Int) = _unsafe_getindex(IndexStyle(a), a, i)
+@inline unsafe_setindex!(a::OffsetArray, val, i::Int) = _unsafe_setindex!(IndexStyle(a), a, val, i)
+for T in (IndexLinear, IndexCartesian)  # ambiguity-resolution requires specificity for both
     @eval begin
         @inline function _unsafe_getindex(::$T, a::OffsetVector, i::Int)
             @inbounds ret = parent(a)[offset(a.offsets, (i,))[1]]
@@ -182,17 +182,17 @@ for T in (LinearFast, LinearSlow)  # ambiguity-resolution requires specificity f
         end
     end
 end
-@inline function _unsafe_getindex(::LinearFast, a::OffsetArray, i::Int)
+@inline function _unsafe_getindex(::IndexLinear, a::OffsetArray, i::Int)
     @inbounds ret = parent(a)[i]
     ret
 end
-@inline _unsafe_getindex(::LinearSlow, a::OffsetArray, i::Int) =
+@inline _unsafe_getindex(::IndexCartesian, a::OffsetArray, i::Int) =
     unsafe_getindex(a, ind2sub(indices(a), i)...)
-@inline function _unsafe_setindex!(::LinearFast, a::OffsetArray, val, i::Int)
+@inline function _unsafe_setindex!(::IndexLinear, a::OffsetArray, val, i::Int)
     @inbounds parent(a)[i] = val
     val
 end
-@inline _unsafe_setindex!(::LinearSlow, a::OffsetArray, val, i::Int) =
+@inline _unsafe_setindex!(::IndexCartesian, a::OffsetArray, val, i::Int) =
     unsafe_setindex!(a, val, ind2sub(indices(a), i)...)
 
 @inline unsafe_getindex(a::OffsetArray, I::Int...) = unsafe_getindex(parent(a), offset(a.offsets, I)...)
