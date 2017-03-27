@@ -2,8 +2,7 @@ using Base.Test
 using OffsetArrays
 using Compat
 
-ambs = detect_ambiguities(Base, Core)  # in case these have ambiguities of their own
-@test isempty(setdiff(detect_ambiguities(OffsetArrays, Base, Core), ambs))
+@test isempty(detect_ambiguities(OffsetArrays, Base, Core))
 
 # Basics
 for n = 0:5
