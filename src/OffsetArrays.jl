@@ -21,6 +21,8 @@ OffsetArray{T,N}(A::AbstractArray{T,N}, offsets::Vararg{Int,N}) =
 (::Type{OffsetArray{T,N}}){T,N}(inds::Indices{N}) =
     OffsetArray{T,N,Array{T,N}}(Array{T,N}(map(length, inds)), map(indexoffset, inds))
 (::Type{OffsetArray{T}}){T,N}(inds::Indices{N}) = OffsetArray{T,N}(inds)
+(::Type{OffsetArray{T,N}}){T,N}(inds::Vararg{AbstractUnitRange,N}) = OffsetArray{T,N}(inds)
+(::Type{OffsetArray{T}}){T,N}(inds::Vararg{AbstractUnitRange,N}) = OffsetArray{T,N}(inds)
 OffsetArray{T}(A::AbstractArray{T,0}) = OffsetArray{T,0,typeof(A)}(A, ())
 OffsetArray{T,N}(::Type{T}, inds::Vararg{UnitRange{Int},N}) = OffsetArray{T,N}(inds)
 

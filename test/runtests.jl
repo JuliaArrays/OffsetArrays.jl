@@ -7,10 +7,16 @@ ambs = detect_ambiguities(Base, Core)  # in case these have ambiguities of their
 
 # Basics
 for n = 0:5
-    a = OffsetArray(ones(Int,ntuple(d->1,n)), ntuple(x->x-1,n))
-    @test length(linearindices(a)) == 1
-    @test indices(a) == ntuple(x->x:x,n)
-    @test a[1] == 1
+    for a in (OffsetArray(ones(Int,ntuple(d->1,n)), ntuple(x->x-1,n)),
+              fill!(OffsetArray(Float64, ntuple(x->(0:0)+x, n)...), 1),
+              fill!(OffsetArray{Float64}(ntuple(x->(0:0)+x, n)), 1),
+              fill!(OffsetArray{Float64}(ntuple(x->(0:0)+x, n)...), 1),
+              fill!(OffsetArray{Float64,n}(ntuple(x->(0:0)+x, n)), 1),
+              fill!(OffsetArray{Float64,n}(ntuple(x->(0:0)+x, n)...), 1))
+        @test length(linearindices(a)) == 1
+        @test indices(a) == ntuple(x->x:x,n)
+        @test a[1] == 1
+    end
 end
 a0 = reshape([3])
 a = OffsetArray(a0)
