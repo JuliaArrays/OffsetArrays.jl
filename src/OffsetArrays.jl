@@ -125,7 +125,7 @@ Base.fill(x, inds::Tuple{UnitRange,Vararg{UnitRange}}) =
 ### Low-level utilities ###
 
 # Computing a shifted index (subtracting the offset)
-offset{N}(offsets::NTuple{N,Int}, inds::NTuple{N,Int}) = _offset((), offsets, inds)
+@inline offset{N}(offsets::NTuple{N,Int}, inds::NTuple{N,Int}) = _offset((), offsets, inds)
 _offset(out, ::Tuple{}, ::Tuple{}) = out
 @inline _offset(out, offsets, inds) =
     _offset((out..., inds[1]-offsets[1]), Base.tail(offsets), Base.tail(inds))
