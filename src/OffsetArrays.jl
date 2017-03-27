@@ -2,8 +2,6 @@ __precompile__()
 
 module OffsetArrays
 
-Base.@deprecate_binding (..) Colon()
-
 using Base: Indices, tail
 using Compat
 
@@ -212,12 +210,5 @@ end
 end
 @inline unsafe_getindex(a::OffsetSubArray, I::Union{Integer,CartesianIndex}...) = unsafe_getindex(a, Base.IteratorsMD.flatten(I)...)
 @inline unsafe_setindex!(a::OffsetSubArray, val, I::Union{Integer,CartesianIndex}...) = unsafe_setindex!(a, val, Base.IteratorsMD.flatten(I)...)
-
-# Deprecations
-import Base: zeros, ones
-@deprecate zeros(T::Type, ind1::UnitRange, ind2::UnitRange, inds::UnitRange...) fill!(OffsetArray{T}((ind1, ind2, inds...)), zero(T))
-@deprecate  ones(T::Type, ind1::UnitRange, inds2::UnitRange, inds::UnitRange...) fill!(OffsetArray{T}((ind1, ind2, inds...)), one(T))
-@deprecate zeros(ind1::UnitRange, ind2::UnitRange, inds::UnitRange...) fill!(OffsetArray{Float64}((ind1, ind2, inds...)), 0)
-@deprecate  ones(ind1::UnitRange, ind2::UnitRange, inds::UnitRange...) fill!(OffsetArray{Float64}((ind1, ind2, inds...)), 1)
 
 end # module
