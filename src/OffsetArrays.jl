@@ -2,8 +2,6 @@ __precompile__()
 
 module OffsetArrays
 
-Base.@deprecate_binding (..) Colon()
-
 using Base: Indices, tail
 using Compat
 
@@ -23,6 +21,8 @@ OffsetArray{T,N}(A::AbstractArray{T,N}, offsets::Vararg{Int,N}) =
 (::Type{OffsetArray{T,N}}){T,N}(inds::Indices{N}) =
     OffsetArray{T,N,Array{T,N}}(Array{T,N}(map(length, inds)), map(indexoffset, inds))
 (::Type{OffsetArray{T}}){T,N}(inds::Indices{N}) = OffsetArray{T,N}(inds)
+(::Type{OffsetArray{T,N}}){T,N}(inds::Vararg{AbstractUnitRange,N}) = OffsetArray{T,N}(inds)
+(::Type{OffsetArray{T}}){T,N}(inds::Vararg{AbstractUnitRange,N}) = OffsetArray{T,N}(inds)
 OffsetArray{T}(A::AbstractArray{T,0}) = OffsetArray{T,0,typeof(A)}(A, ())
 OffsetArray{T,N}(::Type{T}, inds::Vararg{UnitRange{Int},N}) = OffsetArray{T,N}(inds)
 
@@ -125,7 +125,7 @@ Base.fill(x, inds::Tuple{UnitRange,Vararg{UnitRange}}) =
 ### Low-level utilities ###
 
 # Computing a shifted index (subtracting the offset)
-offset{N}(offsets::NTuple{N,Int}, inds::NTuple{N,Int}) = _offset((), offsets, inds)
+@inline offset{N}(offsets::NTuple{N,Int}, inds::NTuple{N,Int}) = _offset((), offsets, inds)
 _offset(out, ::Tuple{}, ::Tuple{}) = out
 @inline _offset(out, offsets, inds) =
     _offset((out..., inds[1]-offsets[1]), Base.tail(offsets), Base.tail(inds))
@@ -212,12 +212,5 @@ end
 end
 @inline unsafe_getindex(a::OffsetSubArray, I::Union{Integer,CartesianIndex}...) = unsafe_getindex(a, Base.IteratorsMD.flatten(I)...)
 @inline unsafe_setindex!(a::OffsetSubArray, val, I::Union{Integer,CartesianIndex}...) = unsafe_setindex!(a, val, Base.IteratorsMD.flatten(I)...)
-
-# Deprecations
-import Base: zeros, ones
-@deprecate zeros(T::Type, ind1::UnitRange, ind2::UnitRange, inds::UnitRange...) fill!(OffsetArray{T}((ind1, ind2, inds...)), zero(T))
-@deprecate  ones(T::Type, ind1::UnitRange, inds2::UnitRange, inds::UnitRange...) fill!(OffsetArray{T}((ind1, ind2, inds...)), one(T))
-@deprecate zeros(ind1::UnitRange, ind2::UnitRange, inds::UnitRange...) fill!(OffsetArray{Float64}((ind1, ind2, inds...)), 0)
-@deprecate  ones(ind1::UnitRange, ind2::UnitRange, inds::UnitRange...) fill!(OffsetArray{Float64}((ind1, ind2, inds...)), 1)
 
 end # module
