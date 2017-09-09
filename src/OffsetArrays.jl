@@ -7,40 +7,40 @@ using Compat
 
 export OffsetArray, @unsafe
 
-immutable OffsetArray{T,N,AA<:AbstractArray} <: AbstractArray{T,N}
+struct OffsetArray{T,N,AA<:AbstractArray} <: AbstractArray{T,N}
     parent::AA
     offsets::NTuple{N,Int}
 end
-@compat OffsetVector{T,AA<:AbstractArray} = OffsetArray{T,1,AA}
+OffsetVector{T,AA<:AbstractArray} = OffsetArray{T,1,AA}
 
-OffsetArray{T,N}(A::AbstractArray{T,N}, offsets::NTuple{N,Int}) =
+OffsetArray(A::AbstractArray{T,N}, offsets::NTuple{N,Int}) where {T,N} =
     OffsetArray{T,N,typeof(A)}(A, offsets)
-OffsetArray{T,N}(A::AbstractArray{T,N}, offsets::Vararg{Int,N}) =
+OffsetArray(A::AbstractArray{T,N}, offsets::Vararg{Int,N}) where {T,N} =
     OffsetArray(A, offsets)
 
-(::Type{OffsetArray{T,N}}){T,N}(inds::Indices{N}) =
+OffsetArray{T,N}(inds::Indices{N}) where {T,N} =
     OffsetArray{T,N,Array{T,N}}(Array{T,N}(map(length, inds)), map(indexoffset, inds))
-(::Type{OffsetArray{T}}){T,N}(inds::Indices{N}) = OffsetArray{T,N}(inds)
-(::Type{OffsetArray{T,N}}){T,N}(inds::Vararg{AbstractUnitRange,N}) = OffsetArray{T,N}(inds)
-(::Type{OffsetArray{T}}){T,N}(inds::Vararg{AbstractUnitRange,N}) = OffsetArray{T,N}(inds)
-OffsetArray{T}(A::AbstractArray{T,0}) = OffsetArray{T,0,typeof(A)}(A, ())
-OffsetArray{T,N}(::Type{T}, inds::Vararg{UnitRange{Int},N}) = OffsetArray{T,N}(inds)
+OffsetArray{T}(inds::Indices{N}) where {T,N} = OffsetArray{T,N}(inds)
+OffsetArray{T,N}(inds::Vararg{AbstractUnitRange,N}) where {T,N} = OffsetArray{T,N}(inds)
+OffsetArray{T}(inds::Vararg{AbstractUnitRange,N}) where {T,N} = OffsetArray{T,N}(inds)
+OffsetArray(A::AbstractArray{T,0}) where {T} = OffsetArray{T,0,typeof(A)}(A, ())
+OffsetArray(::Type{T}, inds::Vararg{UnitRange{Int},N}) where {T,N} = OffsetArray{T,N}(inds)
 
 # The next two are necessary for ambiguity resolution. Really, the
 # second method should not be necessary.
-OffsetArray{T}(A::AbstractArray{T,0}, inds::Tuple{}) = OffsetArray{T,0,typeof(A)}(A, ())
-OffsetArray{T,N}(A::AbstractArray{T,N}, inds::Tuple{}) = error("this should never be called")
-function OffsetArray{T,N}(A::AbstractArray{T,N}, inds::NTuple{N,AbstractUnitRange})
+OffsetArray(A::AbstractArray{T,0}, inds::Tuple{}) where {T} = OffsetArray{T,0,typeof(A)}(A, ())
+OffsetArray(A::AbstractArray{T,N}, inds::Tuple{}) where {T,N} = error("this should never be called")
+function OffsetArray(A::AbstractArray{T,N}, inds::NTuple{N,AbstractUnitRange}) where {T,N}
     lA = map(length, indices(A))
     lI = map(length, inds)
     lA == lI || throw(DimensionMismatch("supplied indices do not agree with the size of the array (got size $lA for the array and $lI for the indices"))
     OffsetArray(A, map(indexoffset, inds))
 end
-OffsetArray{T,N}(A::AbstractArray{T,N}, inds::Vararg{AbstractUnitRange,N}) =
+OffsetArray(A::AbstractArray{T,N}, inds::Vararg{AbstractUnitRange,N}) where {T,N} =
     OffsetArray(A, inds)
 
-@compat Compat.IndexStyle{OA<:OffsetArray}(::Type{OA}) = IndexStyle(parenttype(OA))
-parenttype{T,N,AA}(::Type{OffsetArray{T,N,AA}}) = AA
+Compat.IndexStyle(::Type{OA}) where {OA<:OffsetArray} = IndexStyle(parenttype(OA))
+parenttype(::Type{OffsetArray{T,N,AA}}) where {T,N,AA} = AA
 parenttype(A::OffsetArray) = parenttype(typeof(A))
 
 Base.parent(A::OffsetArray) = A.parent
@@ -61,12 +61,12 @@ Base.eachindex(::IndexLinear, A::OffsetVector)   = indices(A, 1)
 @inline _indices(inds, offsets) =
     (inds[1]+offsets[1], _indices(tail(inds), tail(offsets))...)
 _indices(::Tuple{}, ::Tuple{}) = ()
-Base.indices1{T}(A::OffsetArray{T,0}) = 1:1  # we only need to specialize this one
+Base.indices1(A::OffsetArray{T,0}) where {T} = 1:1  # we only need to specialize this one
 
-function Base.similar{T}(A::OffsetArray, ::Type{T}, dims::Dims)
+function Base.similar(A::OffsetArray, ::Type{T}, dims::Dims) where T
     B = similar(parent(A), T, dims)
 end
-function Base.similar{T}(A::AbstractArray, ::Type{T}, inds::Tuple{UnitRange,Vararg{UnitRange}})
+function Base.similar(A::AbstractArray, ::Type{T}, inds::Tuple{UnitRange,Vararg{UnitRange}}) where T
     B = similar(A, T, map(length, inds))
     OffsetArray(B, map(indexoffset, inds))
 end
@@ -85,7 +85,7 @@ function Base.reshape(A::OffsetArray, inds::Tuple{UnitRange,Vararg{Union{UnitRan
 end
 
 # Don't allow bounds-checks to be removed during Julia 0.5
-@inline function Base.getindex{T,N}(A::OffsetArray{T,N}, I::Vararg{Int,N})
+@inline function Base.getindex(A::OffsetArray{T,N}, I::Vararg{Int,N}) where {T,N}
     checkbounds(A, I...)
     @inbounds ret = parent(A)[offset(A.offsets, I)...]
     ret
@@ -100,7 +100,7 @@ end
     @inbounds ret = parent(A)[i]
     ret
 end
-@inline function Base.setindex!{T,N}(A::OffsetArray{T,N}, val, I::Vararg{Int,N})
+@inline function Base.setindex!(A::OffsetArray{T,N}, val, I::Vararg{Int,N}) where {T,N}
     checkbounds(A, I...)
     @inbounds parent(A)[offset(A.offsets, I)...] = val
     val
@@ -125,7 +125,7 @@ Base.fill(x, inds::Tuple{UnitRange,Vararg{UnitRange}}) =
 ### Low-level utilities ###
 
 # Computing a shifted index (subtracting the offset)
-@inline offset{N}(offsets::NTuple{N,Int}, inds::NTuple{N,Int}) = _offset((), offsets, inds)
+@inline offset(offsets::NTuple{N,Int}, inds::NTuple{N,Int}) where {N} = _offset((), offsets, inds)
 _offset(out, ::Tuple{}, ::Tuple{}) = out
 @inline _offset(out, offsets, inds) =
     _offset((out..., inds[1]-offsets[1]), Base.tail(offsets), Base.tail(inds))
@@ -201,12 +201,12 @@ end
 @inline unsafe_setindex!(a::OffsetArray, val, I...) = unsafe_setindex!(a, val, Base.IteratorsMD.flatten(I)...)
 
 # Indexing a SubArray which has OffsetArray indices
-@compat OffsetSubArray{T,N,P,I<:Tuple{OffsetArray,Vararg{OffsetArray}}} = SubArray{T,N,P,I,false}
-@inline function unsafe_getindex{T,N}(a::OffsetSubArray{T,N}, I::Vararg{Int,N})
+OffsetSubArray{T,N,P,I<:Tuple{OffsetArray,Vararg{OffsetArray}}} = SubArray{T,N,P,I,false}
+@inline function unsafe_getindex(a::OffsetSubArray{T,N}, I::Vararg{Int,N}) where {T,N}
     J = map(unsafe_getindex, a.indexes, I)
     unsafe_getindex(parent(a), J...)
 end
-@inline function unsafe_setindex!{T,N}(a::OffsetSubArray{T,N}, val, I::Vararg{Int,N})
+@inline function unsafe_setindex!(a::OffsetSubArray{T,N}, val, I::Vararg{Int,N}) where {T,N}
     J = map(unsafe_getindex, a.indexes, I)
     unsafe_setindex!(parent(a), val, J...)
 end
