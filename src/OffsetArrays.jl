@@ -7,6 +7,14 @@ using Compat
 
 export OffsetArray, @unsafe
 
+# TODO: just use .+
+# See https://github.com/JuliaLang/julia/pull/22932#issuecomment-330711997
+if VERSION < v"0.7.0-DEV.1759"
+    plus(r::AbstractUnitRange, i::Integer) = r + i
+else
+    plus(r::AbstractUnitRange, i::Integer) = broadcast(+, r, i)
+end
+
 struct OffsetArray{T,N,AA<:AbstractArray} <: AbstractArray{T,N}
     parent::AA
     offsets::NTuple{N,Int}
@@ -39,7 +47,7 @@ end
 OffsetArray(A::AbstractArray{T,N}, inds::Vararg{AbstractUnitRange,N}) where {T,N} =
     OffsetArray(A, inds)
 
-Compat.IndexStyle(::Type{OA}) where {OA<:OffsetArray} = IndexStyle(parenttype(OA))
+Base.IndexStyle(::Type{OA}) where {OA<:OffsetArray} = IndexStyle(parenttype(OA))
 parenttype(::Type{OffsetArray{T,N,AA}}) where {T,N,AA} = AA
 parenttype(A::OffsetArray) = parenttype(typeof(A))
 
@@ -55,11 +63,11 @@ Base.eachindex(::IndexLinear, A::OffsetVector)   = indices(A, 1)
 # performance-critical and relies on indices, these are usually worth
 # optimizing thoroughly.
 @inline Base.indices(A::OffsetArray, d) =
-    1 <= d <= length(A.offsets) ? indices(parent(A))[d] + A.offsets[d] : (1:1)
+    1 <= d <= length(A.offsets) ? plus(indices(parent(A))[d], A.offsets[d]) : (1:1)
 @inline Base.indices(A::OffsetArray) =
     _indices(indices(parent(A)), A.offsets)  # would rather use ntuple, but see #15276
 @inline _indices(inds, offsets) =
-    (inds[1]+offsets[1], _indices(tail(inds), tail(offsets))...)
+    (plus(inds[1], offsets[1]), _indices(tail(inds), tail(offsets))...)
 _indices(::Tuple{}, ::Tuple{}) = ()
 Base.indices1(A::OffsetArray{T,0}) where {T} = 1:1  # we only need to specialize this one
 
@@ -136,7 +144,7 @@ _offset(out, ::Tuple{}, ::Tuple{}) = out
 offset(offsets::Tuple{}, inds::Tuple{}) = ()
 offset(offsets::Tuple{Vararg{Int}}, inds::Tuple{}) = error("inds cannot be shorter than offsets")
 
-indexoffset(r::Range) = first(r) - 1
+indexoffset(r::AbstractRange) = first(r) - 1
 indexoffset(i::Integer) = 0
 
 macro unsafe(ex)
