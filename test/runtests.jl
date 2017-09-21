@@ -1,19 +1,18 @@
 using Base.Test
 using OffsetArrays
-using Compat
 
 @test isempty(detect_ambiguities(OffsetArrays, Base, Core))
 
 # Basics
 for n = 0:5
     for a in (OffsetArray(ones(Int,ntuple(d->1,n)), ntuple(x->x-1,n)),
-              fill!(OffsetArray(Float64, ntuple(x->(0:0)+x, n)...), 1),
-              fill!(OffsetArray{Float64}(ntuple(x->(0:0)+x, n)), 1),
-              fill!(OffsetArray{Float64}(ntuple(x->(0:0)+x, n)...), 1),
-              fill!(OffsetArray{Float64,n}(ntuple(x->(0:0)+x, n)), 1),
-              fill!(OffsetArray{Float64,n}(ntuple(x->(0:0)+x, n)...), 1))
+              fill!(OffsetArray(Float64, ntuple(x->x:x, n)...), 1),
+              fill!(OffsetArray{Float64}(ntuple(x->x:x, n)), 1),
+              fill!(OffsetArray{Float64}(ntuple(x->x:x, n)...), 1),
+              fill!(OffsetArray{Float64,n}(ntuple(x->x:x, n)), 1),
+              fill!(OffsetArray{Float64,n}(ntuple(x->x:x, n)...), 1))
         @test length(linearindices(a)) == 1
-        @test indices(a) == ntuple(x->x:x,n)
+        @test indices(a) == ntuple(x->x:x, n)
         @test a[1] == 1
     end
 end
@@ -129,8 +128,10 @@ S = view(A, :, :)
 @test indices(S) === (0:1, 3:4)
 
 # iteration
-for (a,d) in zip(A, A0)
-    @test a == d
+let a
+    for (a,d) in zip(A, A0)
+        @test a == d
+    end
 end
 
 # show
@@ -184,8 +185,8 @@ b = reshape(A, -7:-4)
 @test isa(parent(b), Vector{Int})
 @test parent(b) == A0[:]
 a = OffsetArray(rand(3,3,3), -1:1, 0:2, 3:5)
-@test_throws ArgumentError reshape(a, Val{2})
-@test_throws ArgumentError reshape(a, Val{4})
+@test_throws ArgumentError reshape(a, Val(2))
+@test_throws ArgumentError reshape(a, Val(4))
 
 # Indexing with OffsetArray indices
 i1 = OffsetArray([2,1], (-5,))
@@ -328,7 +329,7 @@ v = OffsetArray(rand(8), (-2,))
 @test flipdim(A, 1) == OffsetArray(flipdim(parent(A), 1), A.offsets)
 @test flipdim(A, 2) == OffsetArray(flipdim(parent(A), 2), A.offsets)
 
-@test A+1 == OffsetArray(parent(A)+1, A.offsets)
+@test A.+1 == OffsetArray(parent(A).+1, A.offsets)
 @test 2*A == OffsetArray(2*parent(A), A.offsets)
 @test A+A == OffsetArray(parent(A)+parent(A), A.offsets)
 @test A.*A == OffsetArray(parent(A).*parent(A), A.offsets)
