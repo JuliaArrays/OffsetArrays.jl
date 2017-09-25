@@ -45,7 +45,7 @@ S = OffsetArray(view(A0, 1:2, 1:2), (-1,2))   # IndexCartesian
 @test_throws DimensionMismatch OffsetArray(A0, 0:1, 2:4)
 
 # Scalar indexing
-@test A[0,3] == A[0,3,1] == A[1] == S[0,3] == S[0,3,1] == S[1] == 1
+@test @inferred(A[0,3]) == @inferred(A[0,3,1]) == @inferred(A[1]) == @inferred(S[0,3]) == @inferred(S[0,3,1]) == @inferred(S[1]) == 1
 @test A[1,3] == A[1,3,1] == A[2] == S[1,3] == S[1,3,1] == S[2] == 2
 @test A[0,4] == A[0,4,1] == A[3] == S[0,4] == S[0,4,1] == S[3] == 3
 @test A[1,4] == A[1,4,1] == A[4] == S[1,4] == S[1,4,1] == S[4] == 4

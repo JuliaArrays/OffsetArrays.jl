@@ -133,15 +133,13 @@ Base.fill(x, inds::Tuple{UnitRange,Vararg{UnitRange}}) =
 ### Low-level utilities ###
 
 # Computing a shifted index (subtracting the offset)
-@inline offset(offsets::NTuple{N,Int}, inds::NTuple{N,Int}) where {N} = _offset((), offsets, inds)
-_offset(out, ::Tuple{}, ::Tuple{}) = out
-@inline _offset(out, offsets, inds) =
-    _offset((out..., inds[1]-offsets[1]), Base.tail(offsets), Base.tail(inds))
+@inline offset(offsets::NTuple{N,Int}, inds::NTuple{N,Int}) where {N} =
+    (inds[1]-offsets[1], offset(Base.tail(offsets), Base.tail(inds))...)
+offset(::Tuple{}, ::Tuple{}) = ()
 
 # Support trailing 1s
 @inline offset(offsets::Tuple{Vararg{Int}}, inds::Tuple{Vararg{Int}}) =
     (offset(offsets, Base.front(inds))..., inds[end])
-offset(offsets::Tuple{}, inds::Tuple{}) = ()
 offset(offsets::Tuple{Vararg{Int}}, inds::Tuple{}) = error("inds cannot be shorter than offsets")
 
 indexoffset(r::AbstractRange) = first(r) - 1
