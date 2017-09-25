@@ -219,4 +219,18 @@ end
 @inline unsafe_getindex(a::OffsetSubArray, I::Union{Integer,CartesianIndex}...) = unsafe_getindex(a, Base.IteratorsMD.flatten(I)...)
 @inline unsafe_setindex!(a::OffsetSubArray, val, I::Union{Integer,CartesianIndex}...) = unsafe_setindex!(a, val, Base.IteratorsMD.flatten(I)...)
 
+if VERSION >= v"0.7.0-DEV.1790"
+    function Base.showarg(io::IO, a::OffsetArray, toplevel)
+        print(io, "OffsetArray(")
+        Base.showarg(io, parent(a), false)
+        print(io, ", ")
+        printindices(io, indices(a)...)
+        print(io, ')')
+        toplevel && print(io, " with eltype ", eltype(a))
+    end
+    printindices(io::IO, ind1, inds...) =
+        (print(io, ind1, ", "); printindices(io, inds...))
+    printindices(io::IO, ind1) = print(io, ind1)
+end
+
 end # module

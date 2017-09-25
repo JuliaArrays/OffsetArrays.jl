@@ -353,3 +353,9 @@ for i = -3:3
     @test a[i] == i
 end
 @test unsafe_sum(a) == 0
+
+if VERSION >= v"0.7.0-DEV.1790"
+    a = OffsetArray([1 2; 3 4], -1:0, 5:6)
+    @test summary(a) == "OffsetArray(::Array{$(Int),2}, -1:0, 5:6) with eltype $(Int) with indices -1:0×5:6"
+    @test summary(view(a, :, 5)) == "view(OffsetArray(::Array{Int64,2}, -1:0, 5:6), :, 5) with eltype Int64 with indices -1:0"
+end
