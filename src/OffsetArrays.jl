@@ -133,15 +133,13 @@ Base.fill(x, inds::Tuple{UnitRange,Vararg{UnitRange}}) =
 ### Low-level utilities ###
 
 # Computing a shifted index (subtracting the offset)
-@inline offset(offsets::NTuple{N,Int}, inds::NTuple{N,Int}) where {N} = _offset((), offsets, inds)
-_offset(out, ::Tuple{}, ::Tuple{}) = out
-@inline _offset(out, offsets, inds) =
-    _offset((out..., inds[1]-offsets[1]), Base.tail(offsets), Base.tail(inds))
+@inline offset(offsets::NTuple{N,Int}, inds::NTuple{N,Int}) where {N} =
+    (inds[1]-offsets[1], offset(Base.tail(offsets), Base.tail(inds))...)
+offset(::Tuple{}, ::Tuple{}) = ()
 
 # Support trailing 1s
 @inline offset(offsets::Tuple{Vararg{Int}}, inds::Tuple{Vararg{Int}}) =
     (offset(offsets, Base.front(inds))..., inds[end])
-offset(offsets::Tuple{}, inds::Tuple{}) = ()
 offset(offsets::Tuple{Vararg{Int}}, inds::Tuple{}) = error("inds cannot be shorter than offsets")
 
 indexoffset(r::AbstractRange) = first(r) - 1
@@ -220,5 +218,19 @@ end
 end
 @inline unsafe_getindex(a::OffsetSubArray, I::Union{Integer,CartesianIndex}...) = unsafe_getindex(a, Base.IteratorsMD.flatten(I)...)
 @inline unsafe_setindex!(a::OffsetSubArray, val, I::Union{Integer,CartesianIndex}...) = unsafe_setindex!(a, val, Base.IteratorsMD.flatten(I)...)
+
+if VERSION >= v"0.7.0-DEV.1790"
+    function Base.showarg(io::IO, a::OffsetArray, toplevel)
+        print(io, "OffsetArray(")
+        Base.showarg(io, parent(a), false)
+        print(io, ", ")
+        printindices(io, indices(a)...)
+        print(io, ')')
+        toplevel && print(io, " with eltype ", eltype(a))
+    end
+    printindices(io::IO, ind1, inds...) =
+        (print(io, ind1, ", "); printindices(io, inds...))
+    printindices(io::IO, ind1) = print(io, ind1)
+end
 
 end # module

@@ -45,7 +45,7 @@ S = OffsetArray(view(A0, 1:2, 1:2), (-1,2))   # IndexCartesian
 @test_throws DimensionMismatch OffsetArray(A0, 0:1, 2:4)
 
 # Scalar indexing
-@test A[0,3] == A[0,3,1] == A[1] == S[0,3] == S[0,3,1] == S[1] == 1
+@test @inferred(A[0,3]) == @inferred(A[0,3,1]) == @inferred(A[1]) == @inferred(S[0,3]) == @inferred(S[0,3,1]) == @inferred(S[1]) == 1
 @test A[1,3] == A[1,3,1] == A[2] == S[1,3] == S[1,3,1] == S[2] == 2
 @test A[0,4] == A[0,4,1] == A[3] == S[0,4] == S[0,4,1] == S[3] == 3
 @test A[1,4] == A[1,4,1] == A[4] == S[1,4] == S[1,4,1] == S[4] == 4
@@ -353,3 +353,9 @@ for i = -3:3
     @test a[i] == i
 end
 @test unsafe_sum(a) == 0
+
+if VERSION >= v"0.7.0-DEV.1790"
+    a = OffsetArray([1 2; 3 4], -1:0, 5:6)
+    @test summary(a) == "OffsetArray(::Array{$(Int),2}, -1:0, 5:6) with eltype $(Int) with indices -1:0×5:6"
+    @test summary(view(a, :, 5)) == "view(OffsetArray(::Array{Int64,2}, -1:0, 5:6), :, 5) with eltype Int64 with indices -1:0"
+end
