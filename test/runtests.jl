@@ -359,3 +359,11 @@ if VERSION >= v"0.7.0-DEV.1790"
     @test summary(a) == "OffsetArray(::Array{$(Int),2}, -1:0, 5:6) with eltype $(Int) with indices -1:0×5:6"
     @test summary(view(a, :, 5)) == "view(OffsetArray(::Array{Int64,2}, -1:0, 5:6), :, 5) with eltype Int64 with indices -1:0"
 end
+
+@testset "OffsetVector constructors" begin
+    v = rand(5)
+    @test OffsetVector(v, -2) == OffsetArray(v, -2)
+    @test OffsetVector(v, -2:2) == OffsetArray(v, -2:2)
+    @test typeof(OffsetVector(Float64, -2:2)) == typeof(OffsetArray(Float64, -2:2))
+    @test typeof(OffsetVector{Float64}(-2:2)) == typeof(OffsetArray{Float64}(-2:2))
+end
