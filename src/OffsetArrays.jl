@@ -5,7 +5,7 @@ module OffsetArrays
 using Base: Indices, tail
 using Compat
 
-export OffsetArray, @unsafe
+export OffsetArray, OffsetVector, @unsafe
 
 # TODO: just use .+
 # See https://github.com/JuliaLang/julia/pull/22932#issuecomment-330711997
@@ -33,6 +33,11 @@ OffsetArray{T,N}(inds::Vararg{AbstractUnitRange,N}) where {T,N} = OffsetArray{T,
 OffsetArray{T}(inds::Vararg{AbstractUnitRange,N}) where {T,N} = OffsetArray{T,N}(inds)
 OffsetArray(A::AbstractArray{T,0}) where {T} = OffsetArray{T,0,typeof(A)}(A, ())
 OffsetArray(::Type{T}, inds::Vararg{UnitRange{Int},N}) where {T,N} = OffsetArray{T,N}(inds)
+
+# OffsetVector constructors
+OffsetVector(A::AbstractVector, offset) = OffsetArray(A, offset)
+OffsetVector(::Type{T}, inds::AbstractUnitRange) where {T} = OffsetArray{T,1}(inds)
+OffsetVector{T}(inds::AbstractUnitRange) where {T} = OffsetArray{T}(inds)
 
 # The next two are necessary for ambiguity resolution. Really, the
 # second method should not be necessary.
