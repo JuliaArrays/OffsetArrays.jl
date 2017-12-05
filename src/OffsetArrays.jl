@@ -228,8 +228,10 @@ if VERSION >= v"0.7.0-DEV.1790"
     function Base.showarg(io::IO, a::OffsetArray, toplevel)
         print(io, "OffsetArray(")
         Base.showarg(io, parent(a), false)
-        print(io, ", ")
-        printindices(io, indices(a)...)
+        if ndims(a) > 0
+            print(io, ", ")
+            printindices(io, indices(a)...)
+        end
         print(io, ')')
         toplevel && print(io, " with eltype ", eltype(a))
     end
