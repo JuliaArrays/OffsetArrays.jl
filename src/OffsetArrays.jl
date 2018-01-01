@@ -44,7 +44,7 @@ OffsetVector{T}(inds::AbstractUnitRange) where {T} = OffsetArray{T}(inds)
 OffsetArray(A::AbstractArray{T,0}, inds::Tuple{}) where {T} = OffsetArray{T,0,typeof(A)}(A, ())
 OffsetArray(A::AbstractArray{T,N}, inds::Tuple{}) where {T,N} = error("this should never be called")
 function OffsetArray(A::AbstractArray{T,N}, inds::NTuple{N,AbstractUnitRange}) where {T,N}
-    lA = map(length, indices(A))
+    lA = map(length, axes(A))
     lI = map(length, inds)
     lA == lI || throw(DimensionMismatch("supplied indices do not agree with the size of the array (got size $lA for the array and $lI for the indices"))
     OffsetArray(A, map(indexoffset, inds))
@@ -58,22 +58,22 @@ parenttype(A::OffsetArray) = parenttype(typeof(A))
 
 Base.parent(A::OffsetArray) = A.parent
 
-errmsg(A) = error("size not supported for arrays with indices $(indices(A)); see http://docs.julialang.org/en/latest/devdocs/offset-arrays/")
+errmsg(A) = error("size not supported for arrays with indices $(axes(A)); see http://docs.julialang.org/en/latest/devdocs/offset-arrays/")
 Base.size(A::OffsetArray) = errmsg(A)
 Base.size(A::OffsetArray, d) = errmsg(A)
-Base.eachindex(::IndexCartesian, A::OffsetArray) = CartesianRange(indices(A))
-Base.eachindex(::IndexLinear, A::OffsetVector)   = indices(A, 1)
+Base.eachindex(::IndexCartesian, A::OffsetArray) = CartesianRange(axes(A))
+Base.eachindex(::IndexLinear, A::OffsetVector)   = axes(A, 1)
 
 # Implementations of indices and indices1. Since bounds-checking is
 # performance-critical and relies on indices, these are usually worth
 # optimizing thoroughly.
-@inline Base.indices(A::OffsetArray, d) =
-    1 <= d <= length(A.offsets) ? plus(indices(parent(A))[d], A.offsets[d]) : (1:1)
-@inline Base.indices(A::OffsetArray) =
-    _indices(indices(parent(A)), A.offsets)  # would rather use ntuple, but see #15276
-@inline _indices(inds, offsets) =
-    (plus(inds[1], offsets[1]), _indices(tail(inds), tail(offsets))...)
-_indices(::Tuple{}, ::Tuple{}) = ()
+@inline Base.axes(A::OffsetArray, d) =
+    1 <= d <= length(A.offsets) ? plus(axes(parent(A))[d], A.offsets[d]) : (1:1)
+@inline Base.axes(A::OffsetArray) =
+    _axes(axes(parent(A)), A.offsets)  # would rather use ntuple, but see #15276
+@inline _axes(inds, offsets) =
+    (plus(inds[1], offsets[1]), _axes(tail(inds), tail(offsets))...)
+_axes(::Tuple{}, ::Tuple{}) = ()
 Base.indices1(A::OffsetArray{T,0}) where {T} = 1:1  # we only need to specialize this one
 
 function Base.similar(A::OffsetArray, ::Type{T}, dims::Dims) where T
@@ -198,13 +198,13 @@ end
     ret
 end
 @inline _unsafe_getindex(::IndexCartesian, a::OffsetArray, i::Int) =
-    unsafe_getindex(a, ind2sub(indices(a), i)...)
+    unsafe_getindex(a, ind2sub(axes(a), i)...)
 @inline function _unsafe_setindex!(::IndexLinear, a::OffsetArray, val, i::Int)
     @inbounds parent(a)[i] = val
     val
 end
 @inline _unsafe_setindex!(::IndexCartesian, a::OffsetArray, val, i::Int) =
-    unsafe_setindex!(a, val, ind2sub(indices(a), i)...)
+    unsafe_setindex!(a, val, ind2sub(axes(a), i)...)
 
 @inline unsafe_getindex(a::OffsetArray, I::Int...) = unsafe_getindex(parent(a), offset(a.offsets, I)...)
 @inline unsafe_setindex!(a::OffsetArray, val, I::Int...) = unsafe_setindex!(parent(a), val, offset(a.offsets, I)...)
@@ -230,7 +230,7 @@ if VERSION >= v"0.7.0-DEV.1790"
         Base.showarg(io, parent(a), false)
         if ndims(a) > 0
             print(io, ", ")
-            printindices(io, indices(a)...)
+            printindices(io, axes(a)...)
         end
         print(io, ')')
         toplevel && print(io, " with eltype ", eltype(a))
