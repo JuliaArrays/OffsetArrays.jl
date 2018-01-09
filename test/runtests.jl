@@ -1,5 +1,7 @@
-using Base.Test
+using Compat.Test
 using OffsetArrays
+using Compat: axes, CartesianIndices, copyto!
+using Compat.DelimitedFiles
 
 @test isempty(detect_ambiguities(OffsetArrays, Base, Core))
 
@@ -12,32 +14,32 @@ for n = 0:5
               fill!(OffsetArray{Float64,n}(ntuple(x->x:x, n)), 1),
               fill!(OffsetArray{Float64,n}(ntuple(x->x:x, n)...), 1))
         @test length(linearindices(a)) == 1
-        @test indices(a) == ntuple(x->x:x, n)
+        @test axes(a) == ntuple(x->x:x, n)
         @test a[1] == 1
     end
 end
 a0 = reshape([3])
 a = OffsetArray(a0)
-@test indices(a) == ()
+@test axes(a) == ()
 @test ndims(a) == 0
 @test a[] == 3
 
 y = OffsetArray(Float64, -1:1, -7:7, -128:512, -5:5, -1:1, -3:3, -2:2, -1:1)
-@test indices(y) == (-1:1, -7:7, -128:512, -5:5, -1:1, -3:3, -2:2, -1:1)
+@test axes(y) == (-1:1, -7:7, -128:512, -5:5, -1:1, -3:3, -2:2, -1:1)
 y[-1,-7,-128,-5,-1,-3,-2,-1] = 14
 y[-1,-7,-128,-5,-1,-3,-2,-1] += 5
 @test y[-1,-7,-128,-5,-1,-3,-2,-1] == 19
 
 r = -2:5
 y = OffsetArray(r, r)
-@test indices(y) == (r,)
+@test axes(y) == (r,)
 y = OffsetArray(r, (r,))
-@test indices(y) == (r,)
+@test axes(y) == (r,)
 
 A0 = [1 3; 2 4]
 A = OffsetArray(A0, (-1,2))                   # IndexLinear
 S = OffsetArray(view(A0, 1:2, 1:2), (-1,2))   # IndexCartesian
-@test indices(A) == indices(S) == (0:1, 3:4)
+@test axes(A) == axes(S) == (0:1, 3:4)
 @test_throws ErrorException size(A)
 @test_throws ErrorException size(A, 1)
 @test A == OffsetArray(A0, 0:1, 3:4)
@@ -92,7 +94,7 @@ Ac[0,3,1] = 11
 @test_throws BoundsError S[CartesianIndex(1,1),0]
 @test_throws BoundsError S[CartesianIndex(1,1),2]
 @test eachindex(A) == 1:4
-@test eachindex(S) == CartesianRange((0:1,3:4))
+@test eachindex(S) == CartesianIndices((0:1,3:4))
 
 # view
 S = view(A, :, 3)
@@ -100,24 +102,24 @@ S = view(A, :, 3)
 @test S[0] == 1
 @test S[1] == 2
 @test_throws BoundsError S[2]
-@test indices(S) === (0:1,)
+@test axes(S) === (0:1,)
 S = view(A, 0, :)
 @test S == OffsetArray([1,3], (A.offsets[2],))
 @test S[3] == 1
 @test S[4] == 3
 @test_throws BoundsError S[1]
-@test indices(S) === (3:4,)
+@test axes(S) === (3:4,)
 S = view(A, 0:0, 4)
 @test S == [3]
 @test S[1] == 3
 @test_throws BoundsError S[0]
-@test indices(S) === (Base.OneTo(1),)
+@test axes(S) === (Base.OneTo(1),)
 S = view(A, 1, 3:4)
 @test S == [2,4]
 @test S[1] == 2
 @test S[2] == 4
 @test_throws BoundsError S[3]
-@test indices(S) === (Base.OneTo(2),)
+@test axes(S) === (Base.OneTo(2),)
 S = view(A, :, :)
 @test S == A
 @test S[0,3] == S[1] == 1
@@ -125,7 +127,7 @@ S = view(A, :, :)
 @test S[0,4] == S[3] == 3
 @test S[1,4] == S[4] == 4
 @test_throws BoundsError S[1,1]
-@test indices(S) === (0:1, 3:4)
+@test axes(S) === (0:1, 3:4)
 
 # iteration
 let a
@@ -144,7 +146,7 @@ v = OffsetArray(rand(3), (-2,))
 @test sprint(show, v) == sprint(show, parent(v))
 io = IOBuffer()
 function cmp_showf(printfunc, io, A)
-    ioc = IOContext(io, limit=true, compact=true)
+    ioc = IOContext(io, :limit=>true, :compact=>true)
     printfunc(ioc, A)
     str1 = String(take!(io))
     printfunc(ioc, parent(A))
@@ -159,102 +161,102 @@ cmp_showf(Base.print_matrix, io, OffsetArray(rand(10^3,10^3), (10,-9))) # neithe
 # Similar
 B = similar(A, Float32)
 @test isa(B, OffsetArray{Float32,2})
-@test indices(B) === indices(A)
+@test axes(B) === axes(A)
 B = similar(A, (3,4))
 @test isa(B, Array{Int,2})
 @test size(B) == (3,4)
-@test indices(B) === (Base.OneTo(3), Base.OneTo(4))
+@test axes(B) === (Base.OneTo(3), Base.OneTo(4))
 B = similar(A, (-3:3,1:4))
 @test isa(B, OffsetArray{Int,2})
-@test indices(B) === (-3:3, 1:4)
+@test axes(B) === (-3:3, 1:4)
 B = similar(parent(A), (-3:3,1:4))
 @test isa(B, OffsetArray{Int,2})
-@test indices(B) === (-3:3, 1:4)
+@test axes(B) === (-3:3, 1:4)
 
 # Reshape
 B = reshape(A0, -10:-9, 9:10)
 @test isa(B, OffsetArray{Int,2})
 @test parent(B) === A0
-@test indices(B) == (-10:-9, 9:10)
+@test axes(B) == (-10:-9, 9:10)
 B = reshape(A, -10:-9, 9:10)
 @test isa(B, OffsetArray{Int,2})
 @test parent(B) === A0
-@test indices(B) == (-10:-9, 9:10)
+@test axes(B) == (-10:-9, 9:10)
 b = reshape(A, -7:-4)
-@test indices(b) == (-7:-4,)
+@test axes(b) == (-7:-4,)
 @test isa(parent(b), Vector{Int})
 @test parent(b) == A0[:]
 a = OffsetArray(rand(3,3,3), -1:1, 0:2, 3:5)
 @test_throws ArgumentError reshape(a, Val(2))
 @test_throws ArgumentError reshape(a, Val(4))
 
-# Indexing with OffsetArray indices
+# Indexing with OffsetArray axes
 i1 = OffsetArray([2,1], (-5,))
 i1 = OffsetArray([2,1], -5)
 b = A0[i1, 1]
-@test indices(b) === (-4:-3,)
+@test axes(b) === (-4:-3,)
 @test b[-4] == 2
 @test b[-3] == 1
 b = A0[1,i1]
-@test indices(b) === (-4:-3,)
+@test axes(b) === (-4:-3,)
 @test b[-4] == 3
 @test b[-3] == 1
 v = view(A0, i1, 1)
-@test indices(v) === (-4:-3,)
+@test axes(v) === (-4:-3,)
 v = view(A0, 1:1, i1)
-@test indices(v) === (Base.OneTo(1), -4:-3)
+@test axes(v) === (Base.OneTo(1), -4:-3)
 
 # logical indexing
 @test A[A .> 2] == [3,4]
 
-# copy!
+# copyto!
 a = OffsetArray{Int}((-3:-1,))
 fill!(a, -1)
-copy!(a, (1,2))   # non-array iterables
+copyto!(a, (1,2))   # non-array iterables
 @test a[-3] == 1
 @test a[-2] == 2
 @test a[-1] == -1
 fill!(a, -1)
-copy!(a, -2, (1,2))
+copyto!(a, -2, (1,2))
 @test a[-3] == -1
 @test a[-2] == 1
 @test a[-1] == 2
-@test_throws BoundsError copy!(a, 1, (1,2))
+@test_throws BoundsError copyto!(a, 1, (1,2))
 fill!(a, -1)
-copy!(a, -2, (1,2,3), 2)
+copyto!(a, -2, (1,2,3), 2)
 @test a[-3] == -1
 @test a[-2] == 2
 @test a[-1] == 3
-@test_throws BoundsError copy!(a, -2, (1,2,3), 1)
+@test_throws BoundsError copyto!(a, -2, (1,2,3), 1)
 fill!(a, -1)
-copy!(a, -2, (1,2,3), 1, 2)
+copyto!(a, -2, (1,2,3), 1, 2)
 @test a[-3] == -1
 @test a[-2] == 1
 @test a[-1] == 2
 
 b = 1:2    # copy between AbstractArrays
 bo = OffsetArray(1:2, (-3,))
-@test_throws BoundsError copy!(a, b)
+@test_throws BoundsError copyto!(a, b)
 fill!(a, -1)
-copy!(a, bo)
+copyto!(a, bo)
 @test a[-3] == -1
 @test a[-2] == 1
 @test a[-1] == 2
 fill!(a, -1)
-copy!(a, -2, bo)
+copyto!(a, -2, bo)
 @test a[-3] == -1
 @test a[-2] == 1
 @test a[-1] == 2
-@test_throws BoundsError copy!(a, -4, bo)
-@test_throws BoundsError copy!(a, -1, bo)
+@test_throws BoundsError copyto!(a, -4, bo)
+@test_throws BoundsError copyto!(a, -1, bo)
 fill!(a, -1)
-copy!(a, -3, b, 2)
+copyto!(a, -3, b, 2)
 @test a[-3] == 2
 @test a[-2] == a[-1] == -1
-@test_throws BoundsError copy!(a, -3, b, 1, 4)
+@test_throws BoundsError copyto!(a, -3, b, 1, 4)
 am = OffsetArray{Int}((1:1, 7:9))  # for testing linear indexing
 fill!(am, -1)
-copy!(am, b)
+copyto!(am, b)
 @test am[1] == 1
 @test am[2] == 2
 @test am[3] == -1
@@ -300,9 +302,9 @@ v2 = OffsetArray([1,-1e100,1,1e100], (5,))*1000
 @test isa(v, OffsetArray)
 cv  = OffsetArray([1,1e100,1e100,2], (-3,))*1000
 cv2 = OffsetArray([1,-1e100,-1e100,2], (5,))*1000
-@test isequal(cumsum_kbn(v), cv)
-@test isequal(cumsum_kbn(v2), cv2)
-@test isequal(sum_kbn(v), sum_kbn(parent(v)))
+# @test isequal(cumsum_kbn(v), cv)
+# @test isequal(cumsum_kbn(v2), cv2)
+# @test isequal(sum_kbn(v), sum_kbn(parent(v)))
 
 io = IOBuffer()
 writedlm(io, A)
@@ -310,7 +312,7 @@ seek(io, 0)
 @test readdlm(io, eltype(A)) == parent(A)
 
 amin, amax = extrema(parent(A))
-@test clamp.(A, (amax+amin)/2, amax) == OffsetArray(clamp.(parent(A), (amax+amin)/2, amax), indices(A))
+@test clamp.(A, (amax+amin)/2, amax) == OffsetArray(clamp.(parent(A), (amax+amin)/2, amax), axes(A))
 
 @test unique(A, 1) == parent(A)
 @test unique(A, 2) == parent(A)
@@ -335,15 +337,15 @@ v = OffsetArray(rand(8), (-2,))
 @test A.*A == OffsetArray(parent(A).*parent(A), A.offsets)
 
 B = fill(5, 1:3, -1:1)
-@test indices(B) == (1:3,-1:1)
+@test axes(B) == (1:3,-1:1)
 @test all(B.==5)
 
 # @unsafe
 a = OffsetArray(zeros(7), -3:3)
-unsafe_fill!(x) = @unsafe(for i in indices(x,1); x[i] = i; end)
+unsafe_fill!(x) = @unsafe(for i in axes(x,1); x[i] = i; end)
 function unsafe_sum(x)
     s = zero(eltype(x))
-    @unsafe for i in indices(x,1)
+    @unsafe for i in axes(x,1)
         s += x[i]
     end
     s
@@ -363,7 +365,7 @@ if VERSION >= v"0.7.0-DEV.1790"
 end
 
 @testset "OffsetVector constructors" begin
-    v = rand(5)
+    local v = rand(5)
     @test OffsetVector(v, -2) == OffsetArray(v, -2)
     @test OffsetVector(v, -2:2) == OffsetArray(v, -2:2)
     @test typeof(OffsetVector(Float64, -2:2)) == typeof(OffsetArray(Float64, -2:2))
