@@ -33,12 +33,14 @@ OffsetArray{T}(inds::Indices{N}) where {T,N} = OffsetArray{T,N}(inds)
 OffsetArray{T,N}(inds::Vararg{AbstractUnitRange,N}) where {T,N} = OffsetArray{T,N}(inds)
 OffsetArray{T}(inds::Vararg{AbstractUnitRange,N}) where {T,N} = OffsetArray{T,N}(inds)
 OffsetArray(A::AbstractArray{T,0}) where {T} = OffsetArray{T,0,typeof(A)}(A, ())
-OffsetArray(::Type{T}, inds::Vararg{UnitRange{Int},N}) where {T,N} = OffsetArray{T,N}(inds)
 
 # OffsetVector constructors
 OffsetVector(A::AbstractVector, offset) = OffsetArray(A, offset)
-OffsetVector(::Type{T}, inds::AbstractUnitRange) where {T} = OffsetArray{T,1}(inds)
 OffsetVector{T}(inds::AbstractUnitRange) where {T} = OffsetArray{T}(inds)
+
+# https://github.com/JuliaLang/julia/pull/19989
+Base.@deprecate OffsetArray(::Type{T}, inds::Vararg{UnitRange{Int},N}) where {T,N} OffsetArray{T}(inds)
+Base.@deprecate OffsetVector(::Type{T}, inds::AbstractUnitRange) where {T} OffsetVector{T}(inds)
 
 # The next two are necessary for ambiguity resolution. Really, the
 # second method should not be necessary.
