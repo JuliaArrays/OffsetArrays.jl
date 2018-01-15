@@ -8,7 +8,7 @@ like Fortran.
 ```julia
 julia> using OffsetArrays
 
-julia> y = OffsetArray(Float64, -1:1, -7:7, -128:512, -5:5, -1:1, -3:3, -2:2, -1:1);
+julia> y = OffsetArray{Float64}(-1:1, -7:7, -128:512, -5:5, -1:1, -3:3, -2:2, -1:1);
 
 julia> summary(y)
 "OffsetArrays.OffsetArray{Float64,8,Array{Float64,8}} with indices -1:1×-7:7×-128:512×-5:5×-1:1×-3:3×-2:2×-1:1"
@@ -117,11 +117,11 @@ Only the 2nd timing after warming up is given.
     Added
     + examples/scalar_law/PROGRAM1/...
 ```sh
-[~/w/m/O/e/s/PROGRAM1] $ julia linaddmain.jl --cells=10000 --runs=3                                                                           ms  master|✚ 1…  
+[~/w/m/O/e/s/PROGRAM1] $ julia linaddmain.jl --cells=10000 --runs=3                                                                           ms  master|✚ 1…
   0.672295 seconds (42.90 k allocations: 1.990 MB)
   0.509693 seconds (18 allocations: 313.281 KB)
   0.512243 seconds (18 allocations: 313.281 KB)
-[~/w/m/O/e/s/PROGRAM1] $ julia linaddmain.jl --cells=100000 --runs=3                                                                      6134ms  master|✚ 1…  
+[~/w/m/O/e/s/PROGRAM1] $ julia linaddmain.jl --cells=100000 --runs=3                                                                      6134ms  master|✚ 1…
   7.270463 seconds (42.90 k allocations: 4.736 MB)
   7.177485 seconds (18 allocations: 3.053 MB)
   7.248687 seconds (18 allocations: 3.053 MB)

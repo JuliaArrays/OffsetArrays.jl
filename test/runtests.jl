@@ -8,7 +8,6 @@ using Compat.DelimitedFiles
 # Basics
 for n = 0:5
     for a in (OffsetArray(ones(Int,ntuple(d->1,n)), ntuple(x->x-1,n)),
-              fill!(OffsetArray(Float64, ntuple(x->x:x, n)...), 1),
               fill!(OffsetArray{Float64}(ntuple(x->x:x, n)), 1),
               fill!(OffsetArray{Float64}(ntuple(x->x:x, n)...), 1),
               fill!(OffsetArray{Float64,n}(ntuple(x->x:x, n)), 1),
@@ -24,7 +23,7 @@ a = OffsetArray(a0)
 @test ndims(a) == 0
 @test a[] == 3
 
-y = OffsetArray(Float64, -1:1, -7:7, -128:512, -5:5, -1:1, -3:3, -2:2, -1:1)
+y = OffsetArray{Float64}(-1:1, -7:7, -128:512, -5:5, -1:1, -3:3, -2:2, -1:1)
 @test axes(y) == (-1:1, -7:7, -128:512, -5:5, -1:1, -3:3, -2:2, -1:1)
 y[-1,-7,-128,-5,-1,-3,-2,-1] = 14
 y[-1,-7,-128,-5,-1,-3,-2,-1] += 5
@@ -368,6 +367,5 @@ end
     local v = rand(5)
     @test OffsetVector(v, -2) == OffsetArray(v, -2)
     @test OffsetVector(v, -2:2) == OffsetArray(v, -2:2)
-    @test typeof(OffsetVector(Float64, -2:2)) == typeof(OffsetArray(Float64, -2:2))
     @test typeof(OffsetVector{Float64}(-2:2)) == typeof(OffsetArray{Float64}(-2:2))
 end
