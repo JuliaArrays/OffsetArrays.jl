@@ -8,7 +8,7 @@ like Fortran.
 ```julia
 julia> using OffsetArrays
 
-julia> y = OffsetArray{Float64}(-1:1, -7:7, -128:512, -5:5, -1:1, -3:3, -2:2, -1:1);
+julia> y = OffsetArray{Float64}(uninitialized, -1:1, -7:7, -128:512, -5:5, -1:1, -3:3, -2:2, -1:1);
 
 julia> summary(y)
 "OffsetArrays.OffsetArray{Float64,8,Array{Float64,8}} with indices -1:1×-7:7×-128:512×-5:5×-1:1×-3:3×-2:2×-1:1"
