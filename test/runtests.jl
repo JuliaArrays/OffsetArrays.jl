@@ -1,5 +1,6 @@
 using Compat.Test
 using OffsetArrays
+using Compat
 using Compat: axes, CartesianIndices, copyto!
 using Compat.DelimitedFiles
 
@@ -8,10 +9,10 @@ using Compat.DelimitedFiles
 # Basics
 for n = 0:5
     for a in (OffsetArray(ones(Int,ntuple(d->1,n)), ntuple(x->x-1,n)),
-              fill!(OffsetArray{Float64}(ntuple(x->x:x, n)), 1),
-              fill!(OffsetArray{Float64}(ntuple(x->x:x, n)...), 1),
-              fill!(OffsetArray{Float64,n}(ntuple(x->x:x, n)), 1),
-              fill!(OffsetArray{Float64,n}(ntuple(x->x:x, n)...), 1))
+              fill!(OffsetArray{Float64}(uninitialized, ntuple(x->x:x, n)), 1),
+              fill!(OffsetArray{Float64}(uninitialized, ntuple(x->x:x, n)...), 1),
+              fill!(OffsetArray{Float64,n}(uninitialized, ntuple(x->x:x, n)), 1),
+              fill!(OffsetArray{Float64,n}(uninitialized, ntuple(x->x:x, n)...), 1))
         @test length(linearindices(a)) == 1
         @test axes(a) == ntuple(x->x:x, n)
         @test a[1] == 1
@@ -23,7 +24,7 @@ a = OffsetArray(a0)
 @test ndims(a) == 0
 @test a[] == 3
 
-y = OffsetArray{Float64}(-1:1, -7:7, -128:512, -5:5, -1:1, -3:3, -2:2, -1:1)
+y = OffsetArray{Float64}(uninitialized, -1:1, -7:7, -128:512, -5:5, -1:1, -3:3, -2:2, -1:1)
 @test axes(y) == (-1:1, -7:7, -128:512, -5:5, -1:1, -3:3, -2:2, -1:1)
 y[-1,-7,-128,-5,-1,-3,-2,-1] = 14
 y[-1,-7,-128,-5,-1,-3,-2,-1] += 5
@@ -209,7 +210,7 @@ v = view(A0, 1:1, i1)
 @test A[A .> 2] == [3,4]
 
 # copyto!
-a = OffsetArray{Int}((-3:-1,))
+a = OffsetArray{Int}(uninitialized, (-3:-1,))
 fill!(a, -1)
 copyto!(a, (1,2))   # non-array iterables
 @test a[-3] == 1
@@ -253,7 +254,7 @@ copyto!(a, -3, b, 2)
 @test a[-3] == 2
 @test a[-2] == a[-1] == -1
 @test_throws BoundsError copyto!(a, -3, b, 1, 4)
-am = OffsetArray{Int}((1:1, 7:9))  # for testing linear indexing
+am = OffsetArray{Int}(uninitialized, (1:1, 7:9))  # for testing linear indexing
 fill!(am, -1)
 copyto!(am, b)
 @test am[1] == 1
@@ -367,5 +368,5 @@ end
     local v = rand(5)
     @test OffsetVector(v, -2) == OffsetArray(v, -2)
     @test OffsetVector(v, -2:2) == OffsetArray(v, -2:2)
-    @test typeof(OffsetVector{Float64}(-2:2)) == typeof(OffsetArray{Float64}(-2:2))
+    @test typeof(OffsetVector{Float64}(uninitialized, -2:2)) == typeof(OffsetArray{Float64}(uninitialized, -2:2))
 end

@@ -27,20 +27,47 @@ OffsetArray(A::AbstractArray{T,N}, offsets::NTuple{N,Int}) where {T,N} =
 OffsetArray(A::AbstractArray{T,N}, offsets::Vararg{Int,N}) where {T,N} =
     OffsetArray(A, offsets)
 
-OffsetArray{T,N}(inds::Indices{N}) where {T,N} =
+OffsetArray{T,N}(::Uninitialized, inds::Indices{N}) where {T,N} =
     OffsetArray{T,N,Array{T,N}}(Array{T,N}(uninitialized, map(length, inds)), map(indexoffset, inds))
-OffsetArray{T}(inds::Indices{N}) where {T,N} = OffsetArray{T,N}(inds)
-OffsetArray{T,N}(inds::Vararg{AbstractUnitRange,N}) where {T,N} = OffsetArray{T,N}(inds)
-OffsetArray{T}(inds::Vararg{AbstractUnitRange,N}) where {T,N} = OffsetArray{T,N}(inds)
+OffsetArray{T}(::Uninitialized, inds::Indices{N}) where {T,N} = OffsetArray{T,N}(uninitialized, inds)
+OffsetArray{T,N}(::Uninitialized, inds::Vararg{AbstractUnitRange,N}) where {T,N} = OffsetArray{T,N}(uninitialized, inds)
+OffsetArray{T}(::Uninitialized, inds::Vararg{AbstractUnitRange,N}) where {T,N} = OffsetArray{T,N}(uninitialized, inds)
 OffsetArray(A::AbstractArray{T,0}) where {T} = OffsetArray{T,0,typeof(A)}(A, ())
 
 # OffsetVector constructors
 OffsetVector(A::AbstractVector, offset) = OffsetArray(A, offset)
-OffsetVector{T}(inds::AbstractUnitRange) where {T} = OffsetArray{T}(inds)
+OffsetVector{T}(::Uninitialized, inds::AbstractUnitRange) where {T} = OffsetArray{T}(uninitialized, inds)
+
+# deprecated constructors
+using Base: @deprecate
 
 # https://github.com/JuliaLang/julia/pull/19989
-Base.@deprecate OffsetArray(::Type{T}, inds::Vararg{UnitRange{Int},N}) where {T,N} OffsetArray{T}(inds)
-Base.@deprecate OffsetVector(::Type{T}, inds::AbstractUnitRange) where {T} OffsetVector{T}(inds)
+@static if isdefined(Base, :Uninitialized)
+    @deprecate OffsetArray(::Type{T}, inds::Vararg{UnitRange{Int},N}) where {T,N} OffsetArray{T}(uninitialized, inds)
+    @deprecate OffsetVector(::Type{T}, inds::AbstractUnitRange) where {T} OffsetVector{T}(uninitialized, inds)
+else
+    OffsetArray(::Type{T}, inds::Vararg{UnitRange{Int},N}) where {T,N} = OffsetArray{T}(inds)
+    OffsetVector(::Type{T}, inds::AbstractUnitRange) where {T} = OffsetVector{T}(inds)
+end
+
+# https://github.com/JuliaLang/julia/pull/24652
+# Only activate deprecation if `uninitialized` is available from Base;
+# should not rely on the user having `uninitialized` available from Compat
+# and OffsetArrays.jl should probably not re-export Compat.uninitialized
+@static if isdefined(Base, :Uninitialized)
+    @deprecate OffsetArray{T,N}(inds::Indices{N}) where {T,N} OffsetArray{T,N}(uninitialized, inds)
+    @deprecate OffsetArray{T}(inds::Indices{N}) where {T,N} OffsetArray{T}(uninitialized, inds)
+    @deprecate OffsetArray{T,N}(inds::Vararg{AbstractUnitRange,N}) where {T,N} OffsetArray{T,N}(uninitialized, inds)
+    @deprecate OffsetArray{T}(inds::Vararg{AbstractUnitRange,N}) where {T,N} OffsetArray{T}(uninitialized, inds)
+    @deprecate OffsetVector{T}(inds::AbstractUnitRange) where {T} OffsetVector{T}(uninitialized, inds)
+else
+    OffsetArray{T,N}(inds::Indices{N}) where {T,N} = OffsetArray{T,N}(uninitialized, inds)
+    OffsetArray{T}(inds::Indices{N}) where {T,N} = OffsetArray{T}(uninitialized, inds)
+    OffsetArray{T,N}(inds::Vararg{AbstractUnitRange,N}) where {T,N} = OffsetArray{T,N}(uninitialized, inds)
+    OffsetArray{T}(inds::Vararg{AbstractUnitRange,N}) where {T,N} = OffsetArray{T}(uninitialized, inds)
+    OffsetVector{T}(inds::AbstractUnitRange) where {T} = OffsetVector{T}(uninitialized, inds)
+end
+
 
 # The next two are necessary for ambiguity resolution. Really, the
 # second method should not be necessary.
@@ -141,7 +168,7 @@ end
 ### Convenience functions ###
 
 Base.fill(x, inds::Tuple{UnitRange,Vararg{UnitRange}}) =
-    fill!(OffsetArray{typeof(x)}(inds), x)
+    fill!(OffsetArray{typeof(x)}(uninitialized, inds), x)
 @inline Base.fill(x, ind1::UnitRange, inds::UnitRange...) = fill(x, (ind1, inds...))
 
 ### Low-level utilities ###
