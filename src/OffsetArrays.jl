@@ -27,45 +27,45 @@ OffsetArray(A::AbstractArray{T,N}, offsets::NTuple{N,Int}) where {T,N} =
 OffsetArray(A::AbstractArray{T,N}, offsets::Vararg{Int,N}) where {T,N} =
     OffsetArray(A, offsets)
 
-OffsetArray{T,N}(::Uninitialized, inds::Indices{N}) where {T,N} =
-    OffsetArray{T,N,Array{T,N}}(Array{T,N}(uninitialized, map(length, inds)), map(indexoffset, inds))
-OffsetArray{T}(::Uninitialized, inds::Indices{N}) where {T,N} = OffsetArray{T,N}(uninitialized, inds)
-OffsetArray{T,N}(::Uninitialized, inds::Vararg{AbstractUnitRange,N}) where {T,N} = OffsetArray{T,N}(uninitialized, inds)
-OffsetArray{T}(::Uninitialized, inds::Vararg{AbstractUnitRange,N}) where {T,N} = OffsetArray{T,N}(uninitialized, inds)
+OffsetArray{T,N}(::UndefInitializer, inds::Indices{N}) where {T,N} =
+    OffsetArray{T,N,Array{T,N}}(Array{T,N}(undef, map(length, inds)), map(indexoffset, inds))
+OffsetArray{T}(::UndefInitializer, inds::Indices{N}) where {T,N} = OffsetArray{T,N}(undef, inds)
+OffsetArray{T,N}(::UndefInitializer, inds::Vararg{AbstractUnitRange,N}) where {T,N} = OffsetArray{T,N}(undef, inds)
+OffsetArray{T}(::UndefInitializer, inds::Vararg{AbstractUnitRange,N}) where {T,N} = OffsetArray{T,N}(undef, inds)
 OffsetArray(A::AbstractArray{T,0}) where {T} = OffsetArray{T,0,typeof(A)}(A, ())
 
 # OffsetVector constructors
 OffsetVector(A::AbstractVector, offset) = OffsetArray(A, offset)
-OffsetVector{T}(::Uninitialized, inds::AbstractUnitRange) where {T} = OffsetArray{T}(uninitialized, inds)
+OffsetVector{T}(::UndefInitializer, inds::AbstractUnitRange) where {T} = OffsetArray{T}(undef, inds)
 
 # deprecated constructors
 using Base: @deprecate
 
 # https://github.com/JuliaLang/julia/pull/19989
-@static if isdefined(Base, :Uninitialized)
-    @deprecate OffsetArray(::Type{T}, inds::Vararg{UnitRange{Int},N}) where {T,N} OffsetArray{T}(uninitialized, inds)
-    @deprecate OffsetVector(::Type{T}, inds::AbstractUnitRange) where {T} OffsetVector{T}(uninitialized, inds)
+@static if isdefined(Base, :UndefInitializer)
+    @deprecate OffsetArray(::Type{T}, inds::Vararg{UnitRange{Int},N}) where {T,N} OffsetArray{T}(undef, inds)
+    @deprecate OffsetVector(::Type{T}, inds::AbstractUnitRange) where {T} OffsetVector{T}(undef, inds)
 else
     OffsetArray(::Type{T}, inds::Vararg{UnitRange{Int},N}) where {T,N} = OffsetArray{T}(inds)
     OffsetVector(::Type{T}, inds::AbstractUnitRange) where {T} = OffsetVector{T}(inds)
 end
 
 # https://github.com/JuliaLang/julia/pull/24652
-# Only activate deprecation if `uninitialized` is available from Base;
-# should not rely on the user having `uninitialized` available from Compat
-# and OffsetArrays.jl should probably not re-export Compat.uninitialized
-@static if isdefined(Base, :Uninitialized)
-    @deprecate OffsetArray{T,N}(inds::Indices{N}) where {T,N} OffsetArray{T,N}(uninitialized, inds)
-    @deprecate OffsetArray{T}(inds::Indices{N}) where {T,N} OffsetArray{T}(uninitialized, inds)
-    @deprecate OffsetArray{T,N}(inds::Vararg{AbstractUnitRange,N}) where {T,N} OffsetArray{T,N}(uninitialized, inds)
-    @deprecate OffsetArray{T}(inds::Vararg{AbstractUnitRange,N}) where {T,N} OffsetArray{T}(uninitialized, inds)
-    @deprecate OffsetVector{T}(inds::AbstractUnitRange) where {T} OffsetVector{T}(uninitialized, inds)
+# Only activate deprecation if `undef` is available from Base;
+# should not rely on the user having `undef` available from Compat
+# and OffsetArrays.jl should probably not re-export Compat.undef
+@static if isdefined(Base, :UndefInitializer)
+    @deprecate OffsetArray{T,N}(inds::Indices{N}) where {T,N} OffsetArray{T,N}(undef, inds)
+    @deprecate OffsetArray{T}(inds::Indices{N}) where {T,N} OffsetArray{T}(undef, inds)
+    @deprecate OffsetArray{T,N}(inds::Vararg{AbstractUnitRange,N}) where {T,N} OffsetArray{T,N}(undef, inds)
+    @deprecate OffsetArray{T}(inds::Vararg{AbstractUnitRange,N}) where {T,N} OffsetArray{T}(undef, inds)
+    @deprecate OffsetVector{T}(inds::AbstractUnitRange) where {T} OffsetVector{T}(undef, inds)
 else
-    OffsetArray{T,N}(inds::Indices{N}) where {T,N} = OffsetArray{T,N}(uninitialized, inds)
-    OffsetArray{T}(inds::Indices{N}) where {T,N} = OffsetArray{T}(uninitialized, inds)
-    OffsetArray{T,N}(inds::Vararg{AbstractUnitRange,N}) where {T,N} = OffsetArray{T,N}(uninitialized, inds)
-    OffsetArray{T}(inds::Vararg{AbstractUnitRange,N}) where {T,N} = OffsetArray{T}(uninitialized, inds)
-    OffsetVector{T}(inds::AbstractUnitRange) where {T} = OffsetVector{T}(uninitialized, inds)
+    OffsetArray{T,N}(inds::Indices{N}) where {T,N} = OffsetArray{T,N}(undef, inds)
+    OffsetArray{T}(inds::Indices{N}) where {T,N} = OffsetArray{T}(undef, inds)
+    OffsetArray{T,N}(inds::Vararg{AbstractUnitRange,N}) where {T,N} = OffsetArray{T,N}(undef, inds)
+    OffsetArray{T}(inds::Vararg{AbstractUnitRange,N}) where {T,N} = OffsetArray{T}(undef, inds)
+    OffsetVector{T}(inds::AbstractUnitRange) where {T} = OffsetVector{T}(undef, inds)
 end
 
 
@@ -119,9 +119,9 @@ Base.similar(f::Function, shape::Tuple{UnitRange,Vararg{UnitRange}}) =
 Base.similar(::Type{T}, shape::Tuple{UnitRange,Vararg{UnitRange}}) where {T<:OffsetArray} =
     OffsetArray(T(map(length, shape)), map(indexoffset, shape))
 Base.similar(::Type{T}, shape::Tuple{UnitRange,Vararg{UnitRange}}) where {T<:Array} =
-    OffsetArray(T(uninitialized, map(length, shape)), map(indexoffset, shape))
+    OffsetArray(T(undef, map(length, shape)), map(indexoffset, shape))
 Base.similar(::Type{T}, shape::Tuple{UnitRange,Vararg{UnitRange}}) where {T<:BitArray} =
-    OffsetArray(T(uninitialized, map(length, shape)), map(indexoffset, shape))
+    OffsetArray(T(undef, map(length, shape)), map(indexoffset, shape))
 
 Base.reshape(A::AbstractArray, inds::Tuple{UnitRange,Vararg{UnitRange}}) =
     OffsetArray(reshape(A, map(length, inds)), map(indexoffset, inds))
@@ -168,7 +168,7 @@ end
 ### Convenience functions ###
 
 Base.fill(x, inds::Tuple{UnitRange,Vararg{UnitRange}}) =
-    fill!(OffsetArray{typeof(x)}(uninitialized, inds), x)
+    fill!(OffsetArray{typeof(x)}(undef, inds), x)
 @inline Base.fill(x, ind1::UnitRange, inds::UnitRange...) = fill(x, (ind1, inds...))
 
 ### Low-level utilities ###
