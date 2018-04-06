@@ -114,8 +114,6 @@ function Base.similar(A::AbstractArray, ::Type{T}, inds::Tuple{UnitRange,Vararg{
     OffsetArray(B, map(indexoffset, inds))
 end
 
-Base.similar(f::Function, shape::Tuple{UnitRange,Vararg{UnitRange}}) =
-    OffsetArray(f(map(length, shape)), map(indexoffset, shape))
 Base.similar(::Type{T}, shape::Tuple{UnitRange,Vararg{UnitRange}}) where {T<:OffsetArray} =
     OffsetArray(T(map(length, shape)), map(indexoffset, shape))
 Base.similar(::Type{T}, shape::Tuple{UnitRange,Vararg{UnitRange}}) where {T<:Array} =
@@ -132,6 +130,17 @@ Base.reshape(A::OffsetArray, inds::Tuple{UnitRange,Vararg{UnitRange}}) =
 function Base.reshape(A::OffsetArray, inds::Tuple{UnitRange,Vararg{Union{UnitRange,Int,Base.OneTo}}})
     throw(ArgumentError("reshape must supply UnitRange axes, got $(typeof(inds)).\n       Note that reshape(A, Val{N}) is not supported for OffsetArrays."))
 end
+
+Base.fill(v, inds::NTuple{N, Union{Integer, AbstractUnitRange}}) where {N} =
+    fill!(OffsetArray(Array{typeof(v), N}(undef, map(indexlength, inds)), map(indexoffset, inds)), v)
+Base.zeros(::Type{T}, inds::NTuple{N, Union{Integer, AbstractUnitRange}}) where {T, N} =
+    fill!(OffsetArray(Array{T, N}(undef, map(indexlength, inds)), map(indexoffset, inds)), zero(T))
+Base.ones(::Type{T}, inds::NTuple{N, Union{Integer, AbstractUnitRange}}) where {T, N} =
+    fill!(OffsetArray(Array{T, N}(undef, map(indexlength, inds)), map(indexoffset, inds)), one(T))
+Base.trues(inds::NTuple{N, Union{Integer, AbstractUnitRange}}) where {N} =
+    fill!(OffsetArray(BitArray{N}(undef, map(indexlength, inds)), map(indexoffset, inds)), true)
+Base.falses(inds::NTuple{N, Union{Integer, AbstractUnitRange}}) where {N} =
+    fill!(OffsetArray(BitArray{N}(undef, map(indexlength, inds)), map(indexoffset, inds)), false)
 
 # Don't allow bounds-checks to be removed during Julia 0.5
 @inline function Base.getindex(A::OffsetArray{T,N}, I::Vararg{Int,N}) where {T,N}
@@ -185,6 +194,8 @@ offset(offsets::Tuple{Vararg{Int}}, inds::Tuple{}) = error("inds cannot be short
 
 indexoffset(r::AbstractRange) = first(r) - 1
 indexoffset(i::Integer) = 0
+indexlength(r::AbstractRange) = length(r)
+indexlength(i::Integer) = i
 
 macro unsafe(ex)
     esc(unsafe(ex))
