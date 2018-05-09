@@ -94,7 +94,7 @@ Ac[0,3,1] = 11
 @test_throws BoundsError S[CartesianIndex(1,1),0]
 @test_throws BoundsError S[CartesianIndex(1,1),2]
 @test eachindex(A) == 1:4
-@test eachindex(S) == CartesianIndices((0:1,3:4))
+@test eachindex(S) == CartesianIndices(Base.Slice.((0:1,3:4)))
 
 # view
 S = view(A, :, 3)
@@ -102,13 +102,13 @@ S = view(A, :, 3)
 @test S[0] == 1
 @test S[1] == 2
 @test_throws BoundsError S[2]
-@test axes(S) === (0:1,)
+@test axes(S) === (Base.Slice(0:1),)
 S = view(A, 0, :)
 @test S == OffsetArray([1,3], (A.offsets[2],))
 @test S[3] == 1
 @test S[4] == 3
 @test_throws BoundsError S[1]
-@test axes(S) === (3:4,)
+@test axes(S) === (Base.Slice(3:4),)
 S = view(A, 0:0, 4)
 @test S == [3]
 @test S[1] == 3
@@ -127,7 +127,7 @@ S = view(A, :, :)
 @test S[0,4] == S[3] == 3
 @test S[1,4] == S[4] == 4
 @test_throws BoundsError S[1,1]
-@test axes(S) === (0:1, 3:4)
+@test axes(S) === Base.Slice.((0:1, 3:4))
 
 # iteration
 let a
@@ -168,43 +168,50 @@ B = similar(A, (3,4))
 @test axes(B) === (Base.OneTo(3), Base.OneTo(4))
 B = similar(A, (-3:3,1:4))
 @test isa(B, OffsetArray{Int,2})
-@test axes(B) === (-3:3, 1:4)
+@test axes(B) === Base.Slice.((-3:3, 1:4))
 B = similar(parent(A), (-3:3,1:4))
 @test isa(B, OffsetArray{Int,2})
-@test axes(B) === (-3:3, 1:4)
+@test axes(B) === Base.Slice.((-3:3, 1:4))
 
 # Reshape
 B = reshape(A0, -10:-9, 9:10)
 @test isa(B, OffsetArray{Int,2})
 @test parent(B) === A0
-@test axes(B) == (-10:-9, 9:10)
+@test axes(B) == Base.Slice.((-10:-9, 9:10))
 B = reshape(A, -10:-9, 9:10)
 @test isa(B, OffsetArray{Int,2})
-@test parent(B) === A0
-@test axes(B) == (-10:-9, 9:10)
+@test pointer(parent(B)) === pointer(A0)
+@test axes(B) == Base.Slice.((-10:-9, 9:10))
 b = reshape(A, -7:-4)
-@test axes(b) == (-7:-4,)
+@test axes(b) == (Base.Slice(-7:-4),)
 @test isa(parent(b), Vector{Int})
+@test pointer(parent(b)) === pointer(parent(A))
 @test parent(b) == A0[:]
 a = OffsetArray(rand(3,3,3), -1:1, 0:2, 3:5)
-@test_throws ArgumentError reshape(a, Val(2))
-@test_throws ArgumentError reshape(a, Val(4))
+b = reshape(a, Val(2))
+@test isa(b, OffsetArray{Float64,2})
+@test pointer(parent(b)) === pointer(parent(a))
+@test axes(b) == Base.Slice.((-1:1, 1:9))
+b = reshape(a, Val(4))
+@test isa(b, OffsetArray{Float64,4})
+@test pointer(parent(b)) === pointer(parent(a))
+@test axes(b) == (axes(a)..., Base.Slice(1:1))
 
 # Indexing with OffsetArray axes
 i1 = OffsetArray([2,1], (-5,))
 i1 = OffsetArray([2,1], -5)
 b = A0[i1, 1]
-@test axes(b) === (-4:-3,)
+@test axes(b) === (Base.Slice(-4:-3),)
 @test b[-4] == 2
 @test b[-3] == 1
 b = A0[1,i1]
-@test axes(b) === (-4:-3,)
+@test axes(b) === (Base.Slice(-4:-3),)
 @test b[-4] == 3
 @test b[-3] == 1
 v = view(A0, i1, 1)
-@test axes(v) === (-4:-3,)
+@test axes(v) === (Base.Slice(-4:-3),)
 v = view(A0, 1:1, i1)
-@test axes(v) === (Base.OneTo(1), -4:-3)
+@test axes(v) === (Base.OneTo(1), Base.Slice(-4:-3))
 
 # logical indexing
 @test A[A .> 2] == [3,4]
@@ -314,8 +321,8 @@ seek(io, 0)
 amin, amax = extrema(parent(A))
 @test clamp.(A, (amax+amin)/2, amax) == OffsetArray(clamp.(parent(A), (amax+amin)/2, amax), axes(A))
 
-@test unique(A, 1) == parent(A)
-@test unique(A, 2) == parent(A)
+@test unique(A, 1) == OffsetArray(parent(A), 0, first(axes(A, 2)) - 1)
+@test unique(A, 2) == OffsetArray(parent(A), first(axes(A, 1)) - 1, 0)
 v = OffsetArray(rand(8), (-2,))
 @test sort(v) == OffsetArray(sort(parent(v)), v.offsets)
 @test sortrows(A) == OffsetArray(sortrows(parent(A)), A.offsets)
