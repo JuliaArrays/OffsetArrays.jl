@@ -9,10 +9,10 @@ using Compat.DelimitedFiles
 # Basics
 for n = 0:5
     for a in (OffsetArray(ones(Int,ntuple(d->1,n)), ntuple(x->x-1,n)),
-              fill!(OffsetArray{Float64}(uninitialized, ntuple(x->x:x, n)), 1),
-              fill!(OffsetArray{Float64}(uninitialized, ntuple(x->x:x, n)...), 1),
-              fill!(OffsetArray{Float64,n}(uninitialized, ntuple(x->x:x, n)), 1),
-              fill!(OffsetArray{Float64,n}(uninitialized, ntuple(x->x:x, n)...), 1))
+              fill!(OffsetArray{Float64}(undef, ntuple(x->x:x, n)), 1),
+              fill!(OffsetArray{Float64}(undef, ntuple(x->x:x, n)...), 1),
+              fill!(OffsetArray{Float64,n}(undef, ntuple(x->x:x, n)), 1),
+              fill!(OffsetArray{Float64,n}(undef, ntuple(x->x:x, n)...), 1))
         @test length(linearindices(a)) == 1
         @test axes(a) == ntuple(x->x:x, n)
         @test a[1] == 1
@@ -24,7 +24,7 @@ a = OffsetArray(a0)
 @test ndims(a) == 0
 @test a[] == 3
 
-y = OffsetArray{Float64}(uninitialized, -1:1, -7:7, -128:512, -5:5, -1:1, -3:3, -2:2, -1:1)
+y = OffsetArray{Float64}(undef, -1:1, -7:7, -128:512, -5:5, -1:1, -3:3, -2:2, -1:1)
 @test axes(y) == (-1:1, -7:7, -128:512, -5:5, -1:1, -3:3, -2:2, -1:1)
 y[-1,-7,-128,-5,-1,-3,-2,-1] = 14
 y[-1,-7,-128,-5,-1,-3,-2,-1] += 5
@@ -210,7 +210,7 @@ v = view(A0, 1:1, i1)
 @test A[A .> 2] == [3,4]
 
 # copyto!
-a = OffsetArray{Int}(uninitialized, (-3:-1,))
+a = OffsetArray{Int}(undef, (-3:-1,))
 fill!(a, -1)
 copyto!(a, (1,2))   # non-array iterables
 @test a[-3] == 1
@@ -254,7 +254,7 @@ copyto!(a, -3, b, 2)
 @test a[-3] == 2
 @test a[-2] == a[-1] == -1
 @test_throws BoundsError copyto!(a, -3, b, 1, 4)
-am = OffsetArray{Int}(uninitialized, (1:1, 7:9))  # for testing linear indexing
+am = OffsetArray{Int}(undef, (1:1, 7:9))  # for testing linear indexing
 fill!(am, -1)
 copyto!(am, b)
 @test am[1] == 1
@@ -275,17 +275,17 @@ A = OffsetArray(rand(4,4), (-3,5))
 @test minimum(A) == minimum(parent(A))
 @test extrema(A) == extrema(parent(A))
 C = similar(A)
-cumsum!(C, A, 1)
-@test parent(C) == cumsum(parent(A), 1)
-@test parent(cumsum(A, 1)) == cumsum(parent(A), 1)
-cumsum!(C, A, 2)
-@test parent(C) == cumsum(parent(A), 2)
+Compat.cumsum!(C, A, dims = 1)
+@test parent(C) == Compat.cumsum(parent(A), dims = 1)
+@test parent(Compat.cumsum(A, dims = 1)) == Compat.cumsum(parent(A), dims = 1)
+Compat.cumsum!(C, A, dims = 2)
+@test parent(C) == Compat.cumsum(parent(A), dims = 2)
 R = similar(A, (1:1, 6:9))
 maximum!(R, A)
-@test parent(R) == maximum(parent(A), 1)
+@test parent(R) == Compat.maximum(parent(A), dims = 1)
 R = similar(A, (-2:1, 1:1))
 maximum!(R, A)
-@test parent(R) == maximum(parent(A), 2)
+@test parent(R) == Compat.maximum(parent(A), dims = 2)
 amin, iamin = findmin(A)
 pmin, ipmin = findmin(parent(A))
 @test amin == pmin
@@ -320,16 +320,16 @@ v = OffsetArray(rand(8), (-2,))
 @test sort(v) == OffsetArray(sort(parent(v)), v.offsets)
 @test sortrows(A) == OffsetArray(sortrows(parent(A)), A.offsets)
 @test sortcols(A) == OffsetArray(sortcols(parent(A)), A.offsets)
-@test sort(A, 1) == OffsetArray(sort(parent(A), 1), A.offsets)
-@test sort(A, 2) == OffsetArray(sort(parent(A), 2), A.offsets)
+@test Compat.sort(A, dims = 1) == OffsetArray(Compat.sort(parent(A), dims = 1), A.offsets)
+@test Compat.sort(A, dims = 2) == OffsetArray(Compat.sort(parent(A), dims = 2), A.offsets)
 
 @test mapslices(v->sort(v), A, 1) == OffsetArray(mapslices(v->sort(v), parent(A), 1), A.offsets)
 @test mapslices(v->sort(v), A, 2) == OffsetArray(mapslices(v->sort(v), parent(A), 2), A.offsets)
 
 @test rotl90(A) == OffsetArray(rotl90(parent(A)), A.offsets[[2,1]])
 @test rotr90(A) == OffsetArray(rotr90(parent(A)), A.offsets[[2,1]])
-@test flipdim(A, 1) == OffsetArray(flipdim(parent(A), 1), A.offsets)
-@test flipdim(A, 2) == OffsetArray(flipdim(parent(A), 2), A.offsets)
+@test Compat.reverse(A, dims = 1) == OffsetArray(Compat.reverse(parent(A), dims = 1), A.offsets)
+@test Compat.reverse(A, dims = 2) == OffsetArray(Compat.reverse(parent(A), dims = 2), A.offsets)
 
 @test A.+1 == OffsetArray(parent(A).+1, A.offsets)
 @test 2*A == OffsetArray(2*parent(A), A.offsets)
@@ -368,5 +368,5 @@ end
     local v = rand(5)
     @test OffsetVector(v, -2) == OffsetArray(v, -2)
     @test OffsetVector(v, -2:2) == OffsetArray(v, -2:2)
-    @test typeof(OffsetVector{Float64}(uninitialized, -2:2)) == typeof(OffsetArray{Float64}(uninitialized, -2:2))
+    @test typeof(OffsetVector{Float64}(undef, -2:2)) == typeof(OffsetArray{Float64}(undef, -2:2))
 end
