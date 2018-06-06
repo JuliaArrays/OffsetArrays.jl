@@ -289,8 +289,10 @@ if VERSION >= v"0.7.0-DEV.1790"
         toplevel && print(io, " with eltype ", eltype(a))
     end
     printindices(io::IO, ind1, inds...) =
-        (print(io, ind1, ", "); printindices(io, inds...))
-    printindices(io::IO, ind1) = print(io, ind1)
+        (print(io, _unslice(ind1), ", "); printindices(io, inds...))
+    printindices(io::IO, ind1) = print(io, _unslice(ind1))
+    _unslice(x) = x
+    _unslice(x::Base.Slice) = x.indices
 end
 
 end # module
