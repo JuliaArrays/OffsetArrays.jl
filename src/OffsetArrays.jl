@@ -8,6 +8,9 @@ using Compat: axes, CartesianIndices
 
 export OffsetArray, OffsetVector, @unsafe
 
+## Major change in 0.7: OffsetArray now uses Offset axes
+const AxisType = VERSION < v"0.7.0-DEV.5242" ? identity : Base.Slice
+
 # TODO: just use .+
 # See https://github.com/JuliaLang/julia/pull/22932#issuecomment-330711997
 if VERSION < v"0.7.0-DEV.1759"
@@ -98,11 +101,11 @@ Base.eachindex(::IndexLinear, A::OffsetVector)   = axes(A, 1)
 # performance-critical and relies on axes, these are usually worth
 # optimizing thoroughly.
 @inline Compat.axes(A::OffsetArray, d) =
-    1 <= d <= length(A.offsets) ? Base.Slice(plus(axes(parent(A))[d], A.offsets[d])) : (1:1)
+    1 <= d <= length(A.offsets) ? AxisType(plus(axes(parent(A))[d], A.offsets[d])) : (1:1)
 @inline Compat.axes(A::OffsetArray) =
     _axes(axes(parent(A)), A.offsets)  # would rather use ntuple, but see #15276
 @inline _axes(inds, offsets) =
-    (Base.Slice(plus(inds[1], offsets[1])), _axes(tail(inds), tail(offsets))...)
+    (AxisType(plus(inds[1], offsets[1])), _axes(tail(inds), tail(offsets))...)
 _axes(::Tuple{}, ::Tuple{}) = ()
 Base.indices1(A::OffsetArray{T,0}) where {T} = 1:1  # we only need to specialize this one
 
@@ -119,6 +122,16 @@ end
 Base.similar(::Type{T}, shape::Tuple{OffsetAxis,Vararg{OffsetAxis}}) where {T<:AbstractArray} =
     OffsetArray(T(undef, map(indexlength, shape)), map(indexoffset, shape))
 
+if VERSION < v"0.7.0-DEV.5242"
+# Reshape's methods in Base changed, so using the new definitions leads to ambiguities
+Base.reshape(A::AbstractArray, inds::Tuple{UnitRange,Vararg{UnitRange}}) =
+    OffsetArray(reshape(A, map(length, inds)), map(indexoffset, inds))
+Base.reshape(A::OffsetArray, inds::Tuple{UnitRange,Vararg{UnitRange}}) =
+    OffsetArray(reshape(parent(A), map(length, inds)), map(indexoffset, inds))
+function Base.reshape(A::OffsetArray, inds::Tuple{UnitRange,Vararg{Union{UnitRange,Int,Base.OneTo}}})
+    throw(ArgumentError("reshape must supply UnitRange axes, got $(typeof(inds)).\n       Note that reshape(A, Val{N}) is not supported for OffsetArrays."))
+end
+else
 Base.reshape(A::AbstractArray, inds::Tuple{OffsetAxis,Vararg{OffsetAxis}}) =
     OffsetArray(reshape(A, map(indexlength, inds)), map(indexoffset, inds))
 
@@ -129,6 +142,7 @@ Base.reshape(A::OffsetArray, inds::Tuple{OffsetAxis,Vararg{OffsetAxis}}) =
 # And for non-offset axes, we can just return a reshape of the parent directly
 Base.reshape(A::OffsetArray, inds::Tuple{Union{Integer,Base.OneTo},Vararg{Union{Integer,Base.OneTo}}}) = reshape(parent(A), inds)
 Base.reshape(A::OffsetArray, inds::Dims) = reshape(parent(A), inds)
+end
 
 if VERSION < v"0.7.0-DEV.4873"
     # Julia PR #26733 removed similar(f, ...) in favor of just using method extension directly
