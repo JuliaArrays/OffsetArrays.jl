@@ -131,16 +131,23 @@ function Base.reshape(A::OffsetArray, inds::Tuple{UnitRange,Vararg{Union{UnitRan
     throw(ArgumentError("reshape must supply UnitRange axes, got $(typeof(inds)).\n       Note that reshape(A, Val{N}) is not supported for OffsetArrays."))
 end
 
-Base.fill(v, inds::NTuple{N, Union{Integer, AbstractUnitRange}}) where {N} =
-    fill!(OffsetArray(Array{typeof(v), N}(undef, map(indexlength, inds)), map(indexoffset, inds)), v)
-Base.zeros(::Type{T}, inds::NTuple{N, Union{Integer, AbstractUnitRange}}) where {T, N} =
-    fill!(OffsetArray(Array{T, N}(undef, map(indexlength, inds)), map(indexoffset, inds)), zero(T))
-Base.ones(::Type{T}, inds::NTuple{N, Union{Integer, AbstractUnitRange}}) where {T, N} =
-    fill!(OffsetArray(Array{T, N}(undef, map(indexlength, inds)), map(indexoffset, inds)), one(T))
-Base.trues(inds::NTuple{N, Union{Integer, AbstractUnitRange}}) where {N} =
-    fill!(OffsetArray(BitArray{N}(undef, map(indexlength, inds)), map(indexoffset, inds)), true)
-Base.falses(inds::NTuple{N, Union{Integer, AbstractUnitRange}}) where {N} =
-    fill!(OffsetArray(BitArray{N}(undef, map(indexlength, inds)), map(indexoffset, inds)), false)
+if VERSION < v"0.7.0-DEV.4873"
+    # Julia PR #26733 removed similar(f, ...) in favor of just using method extension directly
+    # https://github.com/JuliaLang/julia/pull/26733
+    Base.similar(f::Function, shape::Tuple{UnitRange,Vararg{UnitRange}}) =
+        OffsetArray(f(map(length, shape)), map(indexoffset, shape))
+else
+    Base.fill(v, inds::NTuple{N, Union{Integer, AbstractUnitRange}}) where {N} =
+        fill!(OffsetArray(Array{typeof(v), N}(undef, map(indexlength, inds)), map(indexoffset, inds)), v)
+    Base.zeros(::Type{T}, inds::NTuple{N, Union{Integer, AbstractUnitRange}}) where {T, N} =
+        fill!(OffsetArray(Array{T, N}(undef, map(indexlength, inds)), map(indexoffset, inds)), zero(T))
+    Base.ones(::Type{T}, inds::NTuple{N, Union{Integer, AbstractUnitRange}}) where {T, N} =
+        fill!(OffsetArray(Array{T, N}(undef, map(indexlength, inds)), map(indexoffset, inds)), one(T))
+    Base.trues(inds::NTuple{N, Union{Integer, AbstractUnitRange}}) where {N} =
+        fill!(OffsetArray(BitArray{N}(undef, map(indexlength, inds)), map(indexoffset, inds)), true)
+    Base.falses(inds::NTuple{N, Union{Integer, AbstractUnitRange}}) where {N} =
+        fill!(OffsetArray(BitArray{N}(undef, map(indexlength, inds)), map(indexoffset, inds)), false)
+end
 
 # Don't allow bounds-checks to be removed during Julia 0.5
 @inline function Base.getindex(A::OffsetArray{T,N}, I::Vararg{Int,N}) where {T,N}
