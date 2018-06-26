@@ -13,7 +13,7 @@ for n = 0:5
               fill!(OffsetArray{Float64}(undef, ntuple(x->x:x, n)...), 1),
               fill!(OffsetArray{Float64,n}(undef, ntuple(x->x:x, n)), 1),
               fill!(OffsetArray{Float64,n}(undef, ntuple(x->x:x, n)...), 1))
-        @test length(linearindices(a)) == 1
+        @test length(LinearIndices(a)) == 1
         @test axes(a) == ntuple(x->x:x, n)
         @test a[1] == 1
     end
@@ -326,8 +326,8 @@ amin, amax = extrema(parent(A))
 @test clamp.(A, (amax+amin)/2, amax) == OffsetArray(clamp.(parent(A), (amax+amin)/2, amax), axes(A))
 
 if VERSION >= v"0.7.0-DEV.5242"
-@test unique(A, 1) == OffsetArray(parent(A), 0, first(axes(A, 2)) - 1)
-@test unique(A, 2) == OffsetArray(parent(A), first(axes(A, 1)) - 1, 0)
+@test unique(A, dims=1) == OffsetArray(parent(A), 0, first(axes(A, 2)) - 1)
+@test unique(A, dims=2) == OffsetArray(parent(A), first(axes(A, 1)) - 1, 0)
 end
 v = OffsetArray(rand(8), (-2,))
 @test sort(v) == OffsetArray(sort(parent(v)), v.offsets)
