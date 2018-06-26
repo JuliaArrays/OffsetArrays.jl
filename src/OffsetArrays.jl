@@ -8,6 +8,9 @@ using Compat: axes, CartesianIndices
 
 export OffsetArray, OffsetVector, @unsafe
 
+## Major change in 0.7: OffsetArray now uses Offset axes
+const AxisType = VERSION < v"0.7.0-DEV.5242" ? identity : Base.Slice
+
 # TODO: just use .+
 # See https://github.com/JuliaLang/julia/pull/22932#issuecomment-330711997
 if VERSION < v"0.7.0-DEV.1759"
@@ -74,8 +77,8 @@ end
 OffsetArray(A::AbstractArray{T,0}, inds::Tuple{}) where {T} = OffsetArray{T,0,typeof(A)}(A, ())
 OffsetArray(A::AbstractArray{T,N}, inds::Tuple{}) where {T,N} = error("this should never be called")
 function OffsetArray(A::AbstractArray{T,N}, inds::NTuple{N,AbstractUnitRange}) where {T,N}
-    lA = map(length, axes(A))
-    lI = map(length, inds)
+    lA = map(indexlength, axes(A))
+    lI = map(indexlength, inds)
     lA == lI || throw(DimensionMismatch("supplied axes do not agree with the size of the array (got size $lA for the array and $lI for the indices"))
     OffsetArray(A, map(indexoffset, inds))
 end
@@ -98,37 +101,47 @@ Base.eachindex(::IndexLinear, A::OffsetVector)   = axes(A, 1)
 # performance-critical and relies on axes, these are usually worth
 # optimizing thoroughly.
 @inline Compat.axes(A::OffsetArray, d) =
-    1 <= d <= length(A.offsets) ? plus(axes(parent(A))[d], A.offsets[d]) : (1:1)
+    1 <= d <= length(A.offsets) ? AxisType(plus(axes(parent(A))[d], A.offsets[d])) : (1:1)
 @inline Compat.axes(A::OffsetArray) =
     _axes(axes(parent(A)), A.offsets)  # would rather use ntuple, but see #15276
 @inline _axes(inds, offsets) =
-    (plus(inds[1], offsets[1]), _axes(tail(inds), tail(offsets))...)
+    (AxisType(plus(inds[1], offsets[1])), _axes(tail(inds), tail(offsets))...)
 _axes(::Tuple{}, ::Tuple{}) = ()
 Base.indices1(A::OffsetArray{T,0}) where {T} = 1:1  # we only need to specialize this one
 
+
+const OffsetAxis = Union{Integer, UnitRange, Base.Slice{<:UnitRange}, Base.OneTo}
 function Base.similar(A::OffsetArray, ::Type{T}, dims::Dims) where T
     B = similar(parent(A), T, dims)
 end
-function Base.similar(A::AbstractArray, ::Type{T}, inds::Tuple{UnitRange,Vararg{UnitRange}}) where T
-    B = similar(A, T, map(length, inds))
+function Base.similar(A::AbstractArray, ::Type{T}, inds::Tuple{OffsetAxis,Vararg{OffsetAxis}}) where T
+    B = similar(A, T, map(indexlength, inds))
     OffsetArray(B, map(indexoffset, inds))
 end
 
-Base.similar(::Type{T}, shape::Tuple{UnitRange,Vararg{UnitRange}}) where {T<:OffsetArray} =
-    OffsetArray(T(map(length, shape)), map(indexoffset, shape))
-Base.similar(::Type{T}, shape::Tuple{UnitRange,Vararg{UnitRange}}) where {T<:Array} =
-    OffsetArray(T(undef, map(length, shape)), map(indexoffset, shape))
-Base.similar(::Type{T}, shape::Tuple{UnitRange,Vararg{UnitRange}}) where {T<:BitArray} =
-    OffsetArray(T(undef, map(length, shape)), map(indexoffset, shape))
+Base.similar(::Type{T}, shape::Tuple{OffsetAxis,Vararg{OffsetAxis}}) where {T<:AbstractArray} =
+    OffsetArray(T(undef, map(indexlength, shape)), map(indexoffset, shape))
 
+if VERSION < v"0.7.0-DEV.5242"
+# Reshape's methods in Base changed, so using the new definitions leads to ambiguities
 Base.reshape(A::AbstractArray, inds::Tuple{UnitRange,Vararg{UnitRange}}) =
     OffsetArray(reshape(A, map(length, inds)), map(indexoffset, inds))
-
 Base.reshape(A::OffsetArray, inds::Tuple{UnitRange,Vararg{UnitRange}}) =
     OffsetArray(reshape(parent(A), map(length, inds)), map(indexoffset, inds))
-
 function Base.reshape(A::OffsetArray, inds::Tuple{UnitRange,Vararg{Union{UnitRange,Int,Base.OneTo}}})
     throw(ArgumentError("reshape must supply UnitRange axes, got $(typeof(inds)).\n       Note that reshape(A, Val{N}) is not supported for OffsetArrays."))
+end
+else
+Base.reshape(A::AbstractArray, inds::Tuple{OffsetAxis,Vararg{OffsetAxis}}) =
+    OffsetArray(reshape(A, map(indexlength, inds)), map(indexoffset, inds))
+
+# Reshaping OffsetArrays can "pop" the original OffsetArray wrapper and return
+# an OffsetArray(reshape(...)) instead of an OffsetArray(reshape(OffsetArray(...)))
+Base.reshape(A::OffsetArray, inds::Tuple{OffsetAxis,Vararg{OffsetAxis}}) =
+    OffsetArray(reshape(parent(A), map(indexlength, inds)), map(indexoffset, inds))
+# And for non-offset axes, we can just return a reshape of the parent directly
+Base.reshape(A::OffsetArray, inds::Tuple{Union{Integer,Base.OneTo},Vararg{Union{Integer,Base.OneTo}}}) = reshape(parent(A), inds)
+Base.reshape(A::OffsetArray, inds::Dims) = reshape(parent(A), inds)
 end
 
 if VERSION < v"0.7.0-DEV.4873"
@@ -201,7 +214,7 @@ offset(offsets::Tuple{Vararg{Int}}, inds::Tuple{}) = error("inds cannot be short
 
 indexoffset(r::AbstractRange) = first(r) - 1
 indexoffset(i::Integer) = 0
-indexlength(r::AbstractRange) = length(r)
+indexlength(r::AbstractRange) = Base._length(r)
 indexlength(i::Integer) = i
 
 macro unsafe(ex)
@@ -290,8 +303,10 @@ if VERSION >= v"0.7.0-DEV.1790"
         toplevel && print(io, " with eltype ", eltype(a))
     end
     printindices(io::IO, ind1, inds...) =
-        (print(io, ind1, ", "); printindices(io, inds...))
-    printindices(io::IO, ind1) = print(io, ind1)
+        (print(io, _unslice(ind1), ", "); printindices(io, inds...))
+    printindices(io::IO, ind1) = print(io, _unslice(ind1))
+    _unslice(x) = x
+    _unslice(x::Base.Slice) = x.indices
 end
 
 end # module
