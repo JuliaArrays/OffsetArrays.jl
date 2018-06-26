@@ -23,24 +23,24 @@ julia> y[-1,-7,-128,-5,-1,-3,-2,-1] += 5
 Support for such arrays is based on new functionality in Julia v0.5,
 and the modern package is not usable on earlier Julia versions.
 
-## Special note for Julia 0.5
+## Special note for Julia 0.7
 
-During the transition during Julia 0.5 to allowing arrays with
+During the transition to allowing arrays with
 arbitrary indices, certain operations (like `size` and `length`) are
 deliberately unsupported; see the
 [documentation](http://docs.julialang.org/en/latest/devdocs/offset-arrays/)
 describing the reasoning behind this decision. The general
-recommendation is to use `indices` and `linearindices` for most
+recommendation is to use iteration and `eachindex` and `LinearIndices` for most
 operations where `size` and `length` would have formerly been used.
 
 If your package makes use of OffsetArrays, you can also add the
 following internal convenience definitions:
 
 ```jl
-_size(A::AbstractArray) = map(length, indices(A))
+_size(A::AbstractArray) = size(LinearIndices(A))
 _size(A) = size(A)
 
-_length(A::AbstractArray) = length(linearindices(A))
+_length(A::AbstractArray) = length(LinearIndices(A))
 _length(A) = length(A)
 ```
 
