@@ -119,9 +119,6 @@ function Base.similar(A::AbstractArray, ::Type{T}, inds::Tuple{OffsetAxis,Vararg
     OffsetArray(B, map(indexoffset, inds))
 end
 
-Base.similar(::Type{T}, shape::Tuple{OffsetAxis,Vararg{OffsetAxis}}) where {T<:AbstractArray} =
-    OffsetArray(T(undef, map(indexlength, shape)), map(indexoffset, shape))
-
 if VERSION < v"0.7.0-DEV.5242"
 # Reshape's methods in Base changed, so using the new definitions leads to ambiguities
 Base.reshape(A::AbstractArray, inds::Tuple{UnitRange,Vararg{UnitRange}}) =
@@ -147,9 +144,14 @@ end
 if VERSION < v"0.7.0-DEV.4873"
     # Julia PR #26733 removed similar(f, ...) in favor of just using method extension directly
     # https://github.com/JuliaLang/julia/pull/26733
+    Base.similar(::Type{T}, shape::Tuple{UnitRange,Vararg{UnitRange}}) where {T<:AbstractArray} =
+        OffsetArray(T(undef, map(indexlength, shape)), map(indexoffset, shape))
     Base.similar(f::Function, shape::Tuple{UnitRange,Vararg{UnitRange}}) =
-        OffsetArray(f(map(length, shape)), map(indexoffset, shape))
+        OffsetArray(f(map(indexlength, shape)), map(indexoffset, shape))
 else
+    Base.similar(::Type{T}, shape::Tuple{OffsetAxis,Vararg{OffsetAxis}}) where {T<:AbstractArray} =
+        OffsetArray(T(undef, map(indexlength, shape)), map(indexoffset, shape))
+
     Base.fill(v, inds::NTuple{N, Union{Integer, AbstractUnitRange}}) where {N} =
         fill!(OffsetArray(Array{typeof(v), N}(undef, map(indexlength, inds)), map(indexoffset, inds)), v)
     Base.zeros(::Type{T}, inds::NTuple{N, Union{Integer, AbstractUnitRange}}) where {T, N} =
