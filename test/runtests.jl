@@ -173,6 +173,13 @@ B = similar(A, (-3:3,1:4))
 B = similar(parent(A), (-3:3,1:4))
 @test isa(B, OffsetArray{Int,2})
 @test axes(B) === AxisType.((-3:3, 1:4))
+@test isa([x for x in [1,2,3]], Vector{Int})
+@test similar(Array{Int}, (0:0, 0:0)) isa OffsetArray{Int, 2}
+@test similar(Array{Int}, (1, 1)) isa Matrix{Int}
+@test similar(Array{Int}, (Base.OneTo(1), Base.OneTo(1))) isa Matrix{Int}
+if VERSION < v"0.7.0-DEV.4873"
+    @test similar(x->zeros(1, 1), (0:0, 0:0)) isa OffsetArray{Float64, 2}
+end
 
 # Reshape
 B = reshape(A0, -10:-9, 9:10)
