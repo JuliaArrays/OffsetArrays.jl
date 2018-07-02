@@ -177,9 +177,6 @@ B = similar(parent(A), (-3:3,1:4))
 @test similar(Array{Int}, (0:0, 0:0)) isa OffsetArray{Int, 2}
 @test similar(Array{Int}, (1, 1)) isa Matrix{Int}
 @test similar(Array{Int}, (Base.OneTo(1), Base.OneTo(1))) isa Matrix{Int}
-if VERSION < v"0.7.0-DEV.4873"
-    @test similar(x->zeros(1, 1), (0:0, 0:0)) isa OffsetArray{Float64, 2}
-end
 
 # Reshape
 B = reshape(A0, -10:-9, 9:10)
@@ -196,7 +193,6 @@ b = reshape(A, -7:-4)
 @test pointer(parent(b)) === pointer(parent(A))
 @test parent(b) == A0[:]
 a = OffsetArray(rand(3,3,3), -1:1, 0:2, 3:5)
-if VERSION >= v"0.7.0-DEV.5242"
 # Offset axes are required for reshape(::OffsetArray, ::Val) support
 b = reshape(a, Val(2))
 @test isa(b, OffsetArray{Float64,2})
@@ -206,7 +202,6 @@ b = reshape(a, Val(4))
 @test isa(b, OffsetArray{Float64,4})
 @test pointer(parent(b)) === pointer(parent(a))
 @test axes(b) == (axes(a)..., Base.Slice(1:1))
-end
 
 # Indexing with OffsetArray axes
 i1 = OffsetArray([2,1], (-5,))
@@ -332,10 +327,8 @@ seek(io, 0)
 amin, amax = extrema(parent(A))
 @test clamp.(A, (amax+amin)/2, amax) == OffsetArray(clamp.(parent(A), (amax+amin)/2, amax), axes(A))
 
-if VERSION >= v"0.7.0-DEV.5242"
 @test unique(A, dims=1) == OffsetArray(parent(A), 0, first(axes(A, 2)) - 1)
 @test unique(A, dims=2) == OffsetArray(parent(A), first(axes(A, 1)) - 1, 0)
-end
 v = OffsetArray(rand(8), (-2,))
 @test sort(v) == OffsetArray(sort(parent(v)), v.offsets)
 @test sortrows(A) == OffsetArray(sortrows(parent(A)), A.offsets)
@@ -376,13 +369,11 @@ for i = -3:3
 end
 @test unsafe_sum(a) == 0
 
-if VERSION >= v"0.7.0-DEV.1790"
-    a = OffsetArray([1 2; 3 4], -1:0, 5:6)
-    @test summary(a) == "OffsetArray(::Array{$(Int),2}, -1:0, 5:6) with eltype $(Int) with indices -1:0×5:6"
-    @test summary(view(a, :, 5)) == "view(OffsetArray(::Array{Int64,2}, -1:0, 5:6), :, 5) with eltype Int64 with indices -1:0"
-    a = OffsetArray(reshape([1]))
-    @test summary(a) == "0-dimensional OffsetArray(::Array{Int64,0}) with eltype Int64"
-end
+a = OffsetArray([1 2; 3 4], -1:0, 5:6)
+@test summary(a) == "OffsetArray(::Array{$(Int),2}, -1:0, 5:6) with eltype $(Int) with indices -1:0×5:6"
+@test summary(view(a, :, 5)) == "view(OffsetArray(::Array{Int64,2}, -1:0, 5:6), :, 5) with eltype Int64 with indices -1:0"
+a = OffsetArray(reshape([1]))
+@test summary(a) == "0-dimensional OffsetArray(::Array{Int64,0}) with eltype Int64"
 
 @testset "OffsetVector constructors" begin
     local v = rand(5)
