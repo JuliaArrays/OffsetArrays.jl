@@ -3,21 +3,8 @@ __precompile__()
 module OffsetArrays
 
 using Base: Indices, tail
-using Compat
-using Compat: axes, CartesianIndices
 
 export OffsetArray, OffsetVector, @unsafe
-
-## Major change in 0.7: OffsetArray now uses Offset axes
-const AxisType = VERSION < v"0.7.0-DEV.5242" ? identity : Base.Slice
-
-# TODO: just use .+
-# See https://github.com/JuliaLang/julia/pull/22932#issuecomment-330711997
-if VERSION < v"0.7.0-DEV.1759"
-    plus(r::AbstractUnitRange, i::Integer) = r + i
-else
-    plus(r::AbstractUnitRange, i::Integer) = broadcast(+, r, i)
-end
 
 struct OffsetArray{T,N,AA<:AbstractArray} <: AbstractArray{T,N}
     parent::AA
@@ -31,7 +18,7 @@ OffsetArray(A::AbstractArray{T,N}, offsets::Vararg{Int,N}) where {T,N} =
     OffsetArray(A, offsets)
 
 OffsetArray{T,N}(::UndefInitializer, inds::Indices{N}) where {T,N} =
-    OffsetArray{T,N,Array{T,N}}(Array{T,N}(undef, map(length, inds)), map(indexoffset, inds))
+    OffsetArray{T,N,Array{T,N}}(Array{T,N}(undef, map(indexlength, inds)), map(indexoffset, inds))
 OffsetArray{T}(::UndefInitializer, inds::Indices{N}) where {T,N} = OffsetArray{T,N}(undef, inds)
 OffsetArray{T,N}(::UndefInitializer, inds::Vararg{AbstractUnitRange,N}) where {T,N} = OffsetArray{T,N}(undef, inds)
 OffsetArray{T}(::UndefInitializer, inds::Vararg{AbstractUnitRange,N}) where {T,N} = OffsetArray{T,N}(undef, inds)
@@ -44,33 +31,13 @@ OffsetVector{T}(::UndefInitializer, inds::AbstractUnitRange) where {T} = OffsetA
 # deprecated constructors
 using Base: @deprecate
 
-# https://github.com/JuliaLang/julia/pull/19989
-@static if isdefined(Base, :UndefInitializer)
-    @deprecate OffsetArray(::Type{T}, inds::Vararg{UnitRange{Int},N}) where {T,N} OffsetArray{T}(undef, inds)
-    @deprecate OffsetVector(::Type{T}, inds::AbstractUnitRange) where {T} OffsetVector{T}(undef, inds)
-else
-    OffsetArray(::Type{T}, inds::Vararg{UnitRange{Int},N}) where {T,N} = OffsetArray{T}(inds)
-    OffsetVector(::Type{T}, inds::AbstractUnitRange) where {T} = OffsetVector{T}(inds)
-end
-
-# https://github.com/JuliaLang/julia/pull/24652
-# Only activate deprecation if `undef` is available from Base;
-# should not rely on the user having `undef` available from Compat
-# and OffsetArrays.jl should probably not re-export Compat.undef
-@static if isdefined(Base, :UndefInitializer)
-    @deprecate OffsetArray{T,N}(inds::Indices{N}) where {T,N} OffsetArray{T,N}(undef, inds)
-    @deprecate OffsetArray{T}(inds::Indices{N}) where {T,N} OffsetArray{T}(undef, inds)
-    @deprecate OffsetArray{T,N}(inds::Vararg{AbstractUnitRange,N}) where {T,N} OffsetArray{T,N}(undef, inds)
-    @deprecate OffsetArray{T}(inds::Vararg{AbstractUnitRange,N}) where {T,N} OffsetArray{T}(undef, inds)
-    @deprecate OffsetVector{T}(inds::AbstractUnitRange) where {T} OffsetVector{T}(undef, inds)
-else
-    OffsetArray{T,N}(inds::Indices{N}) where {T,N} = OffsetArray{T,N}(undef, inds)
-    OffsetArray{T}(inds::Indices{N}) where {T,N} = OffsetArray{T}(undef, inds)
-    OffsetArray{T,N}(inds::Vararg{AbstractUnitRange,N}) where {T,N} = OffsetArray{T,N}(undef, inds)
-    OffsetArray{T}(inds::Vararg{AbstractUnitRange,N}) where {T,N} = OffsetArray{T}(undef, inds)
-    OffsetVector{T}(inds::AbstractUnitRange) where {T} = OffsetVector{T}(undef, inds)
-end
-
+@deprecate OffsetArray(::Type{T}, inds::Vararg{UnitRange{Int},N}) where {T,N} OffsetArray{T}(undef, inds)
+@deprecate OffsetVector(::Type{T}, inds::AbstractUnitRange) where {T} OffsetVector{T}(undef, inds)
+@deprecate OffsetArray{T,N}(inds::Indices{N}) where {T,N} OffsetArray{T,N}(undef, inds)
+@deprecate OffsetArray{T}(inds::Indices{N}) where {T,N} OffsetArray{T}(undef, inds)
+@deprecate OffsetArray{T,N}(inds::Vararg{AbstractUnitRange,N}) where {T,N} OffsetArray{T,N}(undef, inds)
+@deprecate OffsetArray{T}(inds::Vararg{AbstractUnitRange,N}) where {T,N} OffsetArray{T}(undef, inds)
+@deprecate OffsetVector{T}(inds::AbstractUnitRange) where {T} OffsetVector{T}(undef, inds)
 
 # The next two are necessary for ambiguity resolution. Really, the
 # second method should not be necessary.
@@ -100,12 +67,12 @@ Base.eachindex(::IndexLinear, A::OffsetVector)   = axes(A, 1)
 # Implementations of axes and indices1. Since bounds-checking is
 # performance-critical and relies on axes, these are usually worth
 # optimizing thoroughly.
-@inline Compat.axes(A::OffsetArray, d) =
-    1 <= d <= length(A.offsets) ? AxisType(plus(axes(parent(A))[d], A.offsets[d])) : (1:1)
-@inline Compat.axes(A::OffsetArray) =
+@inline Base.axes(A::OffsetArray, d) =
+    1 <= d <= length(A.offsets) ? Base.Slice(axes(parent(A))[d] .+ A.offsets[d]) : (1:1)
+@inline Base.axes(A::OffsetArray) =
     _axes(axes(parent(A)), A.offsets)  # would rather use ntuple, but see #15276
 @inline _axes(inds, offsets) =
-    (AxisType(plus(inds[1], offsets[1])), _axes(tail(inds), tail(offsets))...)
+    (Base.Slice(inds[1] .+ offsets[1]), _axes(tail(inds), tail(offsets))...)
 _axes(::Tuple{}, ::Tuple{}) = ()
 Base.indices1(A::OffsetArray{T,0}) where {T} = 1:1  # we only need to specialize this one
 
@@ -119,16 +86,6 @@ function Base.similar(A::AbstractArray, ::Type{T}, inds::Tuple{OffsetAxis,Vararg
     OffsetArray(B, map(indexoffset, inds))
 end
 
-if VERSION < v"0.7.0-DEV.5242"
-# Reshape's methods in Base changed, so using the new definitions leads to ambiguities
-Base.reshape(A::AbstractArray, inds::Tuple{UnitRange,Vararg{UnitRange}}) =
-    OffsetArray(reshape(A, map(length, inds)), map(indexoffset, inds))
-Base.reshape(A::OffsetArray, inds::Tuple{UnitRange,Vararg{UnitRange}}) =
-    OffsetArray(reshape(parent(A), map(length, inds)), map(indexoffset, inds))
-function Base.reshape(A::OffsetArray, inds::Tuple{UnitRange,Vararg{Union{UnitRange,Int,Base.OneTo}}})
-    throw(ArgumentError("reshape must supply UnitRange axes, got $(typeof(inds)).\n       Note that reshape(A, Val{N}) is not supported for OffsetArrays."))
-end
-else
 Base.reshape(A::AbstractArray, inds::Tuple{OffsetAxis,Vararg{OffsetAxis}}) =
     OffsetArray(reshape(A, map(indexlength, inds)), map(indexoffset, inds))
 
@@ -139,30 +96,20 @@ Base.reshape(A::OffsetArray, inds::Tuple{OffsetAxis,Vararg{OffsetAxis}}) =
 # And for non-offset axes, we can just return a reshape of the parent directly
 Base.reshape(A::OffsetArray, inds::Tuple{Union{Integer,Base.OneTo},Vararg{Union{Integer,Base.OneTo}}}) = reshape(parent(A), inds)
 Base.reshape(A::OffsetArray, inds::Dims) = reshape(parent(A), inds)
-end
 
-if VERSION < v"0.7.0-DEV.4873"
-    # Julia PR #26733 removed similar(f, ...) in favor of just using method extension directly
-    # https://github.com/JuliaLang/julia/pull/26733
-    Base.similar(::Type{T}, shape::Tuple{UnitRange,Vararg{UnitRange}}) where {T<:AbstractArray} =
-        OffsetArray(T(undef, map(indexlength, shape)), map(indexoffset, shape))
-    Base.similar(f::Function, shape::Tuple{UnitRange,Vararg{UnitRange}}) =
-        OffsetArray(f(map(indexlength, shape)), map(indexoffset, shape))
-else
-    Base.similar(::Type{T}, shape::Tuple{OffsetAxis,Vararg{OffsetAxis}}) where {T<:AbstractArray} =
-        OffsetArray(T(undef, map(indexlength, shape)), map(indexoffset, shape))
+Base.similar(::Type{T}, shape::Tuple{OffsetAxis,Vararg{OffsetAxis}}) where {T<:AbstractArray} =
+    OffsetArray(T(undef, map(indexlength, shape)), map(indexoffset, shape))
 
-    Base.fill(v, inds::NTuple{N, Union{Integer, AbstractUnitRange}}) where {N} =
-        fill!(OffsetArray(Array{typeof(v), N}(undef, map(indexlength, inds)), map(indexoffset, inds)), v)
-    Base.zeros(::Type{T}, inds::NTuple{N, Union{Integer, AbstractUnitRange}}) where {T, N} =
-        fill!(OffsetArray(Array{T, N}(undef, map(indexlength, inds)), map(indexoffset, inds)), zero(T))
-    Base.ones(::Type{T}, inds::NTuple{N, Union{Integer, AbstractUnitRange}}) where {T, N} =
-        fill!(OffsetArray(Array{T, N}(undef, map(indexlength, inds)), map(indexoffset, inds)), one(T))
-    Base.trues(inds::NTuple{N, Union{Integer, AbstractUnitRange}}) where {N} =
-        fill!(OffsetArray(BitArray{N}(undef, map(indexlength, inds)), map(indexoffset, inds)), true)
-    Base.falses(inds::NTuple{N, Union{Integer, AbstractUnitRange}}) where {N} =
-        fill!(OffsetArray(BitArray{N}(undef, map(indexlength, inds)), map(indexoffset, inds)), false)
-end
+Base.fill(v, inds::NTuple{N, Union{Integer, AbstractUnitRange}}) where {N} =
+    fill!(OffsetArray(Array{typeof(v), N}(undef, map(indexlength, inds)), map(indexoffset, inds)), v)
+Base.zeros(::Type{T}, inds::NTuple{N, Union{Integer, AbstractUnitRange}}) where {T, N} =
+    fill!(OffsetArray(Array{T, N}(undef, map(indexlength, inds)), map(indexoffset, inds)), zero(T))
+Base.ones(::Type{T}, inds::NTuple{N, Union{Integer, AbstractUnitRange}}) where {T, N} =
+    fill!(OffsetArray(Array{T, N}(undef, map(indexlength, inds)), map(indexoffset, inds)), one(T))
+Base.trues(inds::NTuple{N, Union{Integer, AbstractUnitRange}}) where {N} =
+    fill!(OffsetArray(BitArray{N}(undef, map(indexlength, inds)), map(indexoffset, inds)), true)
+Base.falses(inds::NTuple{N, Union{Integer, AbstractUnitRange}}) where {N} =
+    fill!(OffsetArray(BitArray{N}(undef, map(indexlength, inds)), map(indexoffset, inds)), false)
 
 # Don't allow bounds-checks to be removed during Julia 0.5
 @inline function Base.getindex(A::OffsetArray{T,N}, I::Vararg{Int,N}) where {T,N}
@@ -293,22 +240,20 @@ end
 @inline unsafe_getindex(a::OffsetSubArray, I::Union{Integer,CartesianIndex}...) = unsafe_getindex(a, Base.IteratorsMD.flatten(I)...)
 @inline unsafe_setindex!(a::OffsetSubArray, val, I::Union{Integer,CartesianIndex}...) = unsafe_setindex!(a, val, Base.IteratorsMD.flatten(I)...)
 
-if VERSION >= v"0.7.0-DEV.1790"
-    function Base.showarg(io::IO, a::OffsetArray, toplevel)
-        print(io, "OffsetArray(")
-        Base.showarg(io, parent(a), false)
-        if ndims(a) > 0
-            print(io, ", ")
-            printindices(io, axes(a)...)
-        end
-        print(io, ')')
-        toplevel && print(io, " with eltype ", eltype(a))
+function Base.showarg(io::IO, a::OffsetArray, toplevel)
+    print(io, "OffsetArray(")
+    Base.showarg(io, parent(a), false)
+    if ndims(a) > 0
+        print(io, ", ")
+        printindices(io, axes(a)...)
     end
-    printindices(io::IO, ind1, inds...) =
-        (print(io, _unslice(ind1), ", "); printindices(io, inds...))
-    printindices(io::IO, ind1) = print(io, _unslice(ind1))
-    _unslice(x) = x
-    _unslice(x::Base.Slice) = x.indices
+    print(io, ')')
+    toplevel && print(io, " with eltype ", eltype(a))
 end
+printindices(io::IO, ind1, inds...) =
+    (print(io, _unslice(ind1), ", "); printindices(io, inds...))
+printindices(io::IO, ind1) = print(io, _unslice(ind1))
+_unslice(x) = x
+_unslice(x::Base.Slice) = x.indices
 
 end # module
