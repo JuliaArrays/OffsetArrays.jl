@@ -34,6 +34,9 @@ y = OffsetArray(r, r)
 y = OffsetArray(r, (r,))
 @test axes(y) == (r,)
 
+y = OffsetArray{Float32}(undef, (Base.Slice(-1:1),))
+@test axes(y) === (Base.Slice(-1:1),)
+
 A0 = [1 3; 2 4]
 A = OffsetArray(A0, (-1,2))                   # IndexLinear
 S = OffsetArray(view(A0, 1:2, 1:2), (-1,2))   # IndexCartesian

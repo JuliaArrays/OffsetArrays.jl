@@ -18,7 +18,7 @@ OffsetArray(A::AbstractArray{T,N}, offsets::Vararg{Int,N}) where {T,N} =
     OffsetArray(A, offsets)
 
 OffsetArray{T,N}(::UndefInitializer, inds::Indices{N}) where {T,N} =
-    OffsetArray{T,N,Array{T,N}}(Array{T,N}(undef, map(length, inds)), map(indexoffset, inds))
+    OffsetArray{T,N,Array{T,N}}(Array{T,N}(undef, map(indexlength, inds)), map(indexoffset, inds))
 OffsetArray{T}(::UndefInitializer, inds::Indices{N}) where {T,N} = OffsetArray{T,N}(undef, inds)
 OffsetArray{T,N}(::UndefInitializer, inds::Vararg{AbstractUnitRange,N}) where {T,N} = OffsetArray{T,N}(undef, inds)
 OffsetArray{T}(::UndefInitializer, inds::Vararg{AbstractUnitRange,N}) where {T,N} = OffsetArray{T,N}(undef, inds)
