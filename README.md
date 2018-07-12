@@ -8,7 +8,7 @@ like Fortran.
 ```julia
 julia> using OffsetArrays
 
-julia> y = OffsetArray{Float64}(uninitialized, -1:1, -7:7, -128:512, -5:5, -1:1, -3:3, -2:2, -1:1);
+julia> y = OffsetArray{Float64}(undef, -1:1, -7:7, -128:512, -5:5, -1:1, -3:3, -2:2, -1:1);
 
 julia> summary(y)
 "OffsetArrays.OffsetArray{Float64,8,Array{Float64,8}} with indices -1:1×-7:7×-128:512×-5:5×-1:1×-3:3×-2:2×-1:1"
@@ -20,119 +20,6 @@ julia> y[-1,-7,-128,-5,-1,-3,-2,-1] += 5
 19.0
 ```
 
-Support for such arrays is based on new functionality in Julia v0.5,
-and the modern package is not usable on earlier Julia versions.
+## Notes on supporting OffsetArrays
 
-## Special note for Julia 0.7
-
-During the transition to allowing arrays with
-arbitrary indices, certain operations (like `size` and `length`) are
-deliberately unsupported; see the
-[documentation](http://docs.julialang.org/en/latest/devdocs/offset-arrays/)
-describing the reasoning behind this decision. The general
-recommendation is to use iteration and `eachindex` and `LinearIndices` for most
-operations where `size` and `length` would have formerly been used.
-
-If your package makes use of OffsetArrays, you can also add the
-following internal convenience definitions:
-
-```jl
-_size(A::AbstractArray) = size(LinearIndices(A))
-_size(A) = size(A)
-
-_length(A::AbstractArray) = length(LinearIndices(A))
-_length(A) = length(A)
-```
-
-These versions should work for all types.
-
-## Performance optimization with @unsafe
-
-Also during Julia 0.5, `@inbounds` will not remove the internal
-bounds-checking that happens when using an OffsetArray. Until this
-changes, you can often accomplish the same task with `@unsafe`:
-
-```jl
-v = OffsetArray(rand(1000), 0:999)
-@unsafe for i in indices(v, 1)
-    v[i] += 1
-end
-```
-
-With such annotation, `OffsetArray`s are as performant as `Array`s.
-
-`@unsafe` is not as powerful as `@inbounds`, and it is possible to set
-up situations where it fails to remove bounds checks.  However, it
-suffices for many uses.
-
-# Comparison with Fortran
-
-The original purpose of the package was to simplify translation of Fortran codes, say
-* the codes accompanying the book _Numerical Solution of Hyperbolic Partial Differential Equations_ by prof. John A. Trangenstein
-  Please refer [here](http://www.math.duke.edu/~johnt/) and [here](http://www.cambridge.org/us/academic/subjects/mathematics/differential-and-integral-equations-dynamical-systems-and-co/numerical-solution-hyperbolic-partial-differential-equations)
-* Clawpack (stands for *Conservation Laws Package*) by prof. Randall J. LeVeque
-
-  + [classic ClawPack](http://depts.washington.edu/clawpack/)
-
-  + [ClawPack 5.0](http://clawpack.github.io/index.html)
-
-see also [translation to Julia of Fortran codes from ClawPack](https://github.com/alsam/Claw.jl)
-
-The directory _examples_ of [hyperbolic_PDE](https://github.com/alsam/hyperbolic_PDE.jl) contains at the moment a translation of explicit upwind finite difference scheme for scalar law advection equation from
-the book _Numerical Solution of Hyperbolic Partial Differential Equations_ by prof. John A. Trangenstein.
-
-+ examples/scalar_law/PROGRAM0/main.jl
-    The original Fortran arrays  `u(-2:ncells+1), x(0:ncells), flux(0:ncells)` transformed to 1-based Julia arrays by shifting index expressions
-```julia
-    u    = Array(Float64, ncells+4)
-    x    = Array(Float64, ncells+1)
-    flux = Array(Float64, ncells+1)
-```
-
-+ examples/scalar_law/PROGRAM0/main_offset_array.jl
-    Exemplary _use case_ of this package
-```julia
-    u    = OffsetArray(Float64, -2:ncells+1)
-    x    = OffsetArray(Float64,  0:ncells)
-    flux = OffsetArray(Float64,  0:ncells)
-```
-
-+ Timings for baseline with `@unsafe` annotation:
-```sh
-  0.103402 seconds (21 allocations: 235.531 KB)
-```
-
-+ Timing for `OffsetArray` version with `@unsafe` annotation:
-```sh
-  0.103987 seconds (16 allocations: 235.094 KB)
-```
-
-+ Timing for `sub` macro version with `@unsafe` annotation (doesn't work without `@unsafe`):
-```sh
-  0.105967 seconds (217 allocations: 268.094 KB)
-```
-Only the 2nd timing after warming up is given.
-
-+ UPDATE:
-    Added
-    + examples/scalar_law/PROGRAM1/...
-```sh
-[~/w/m/O/e/s/PROGRAM1] $ julia linaddmain.jl --cells=10000 --runs=3                                                                           ms  master|✚ 1…
-  0.672295 seconds (42.90 k allocations: 1.990 MB)
-  0.509693 seconds (18 allocations: 313.281 KB)
-  0.512243 seconds (18 allocations: 313.281 KB)
-[~/w/m/O/e/s/PROGRAM1] $ julia linaddmain.jl --cells=100000 --runs=3                                                                      6134ms  master|✚ 1…
-  7.270463 seconds (42.90 k allocations: 4.736 MB)
-  7.177485 seconds (18 allocations: 3.053 MB)
-  7.248687 seconds (18 allocations: 3.053 MB)
-```
-
-    Fortran timing for `100000` number of cells
-```sh
-real    0m4.781s
-user    0m4.760s
-sys     0m0.000s
-
-```
-
-    That is 7.2s for Julia script vs. 4.8s for Fortran.
+Julia supports generic programming with arrays that doesn't require you to assume that indices start with 1, see the [documentation](http://docs.julialang.org/en/latest/devdocs/offset-arrays/).

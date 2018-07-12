@@ -6,14 +6,14 @@ using DelimitedFiles
 
 # Basics
 for n = 0:5
-    for a in (OffsetArray(ones(Int,ntuple(d->1,n)), ntuple(x->x-1,n)),
+    for z in (OffsetArray(ones(Int,ntuple(d->1,n)), ntuple(x->x-1,n)),
               fill!(OffsetArray{Float64}(undef, ntuple(x->x:x, n)), 1),
               fill!(OffsetArray{Float64}(undef, ntuple(x->x:x, n)...), 1),
               fill!(OffsetArray{Float64,n}(undef, ntuple(x->x:x, n)), 1),
               fill!(OffsetArray{Float64,n}(undef, ntuple(x->x:x, n)...), 1))
-        @test length(LinearIndices(a)) == 1
-        @test axes(a) == ntuple(x->x:x, n)
-        @test a[1] == 1
+        @test length(LinearIndices(z)) == 1
+        @test axes(z) == ntuple(x->x:x, n)
+        @test z[1] == 1
     end
 end
 a0 = reshape([3])
@@ -41,8 +41,9 @@ A0 = [1 3; 2 4]
 A = OffsetArray(A0, (-1,2))                   # IndexLinear
 S = OffsetArray(view(A0, 1:2, 1:2), (-1,2))   # IndexCartesian
 @test axes(A) == axes(S) == (0:1, 3:4)
-@test_throws ErrorException size(A)
-@test_throws ErrorException size(A, 1)
+@test size(A) == size(A0)
+@test size(A, 1) == size(A0, 1)
+@test length(A) == length(A0)
 @test A == OffsetArray(A0, 0:1, 3:4)
 @test_throws DimensionMismatch OffsetArray(A0, 0:2, 3:4)
 @test_throws DimensionMismatch OffsetArray(A0, 0:1, 2:4)
@@ -52,10 +53,10 @@ S = OffsetArray(view(A0, 1:2, 1:2), (-1,2))   # IndexCartesian
 @test A[1,3] == A[1,3,1] == A[2] == S[1,3] == S[1,3,1] == S[2] == 2
 @test A[0,4] == A[0,4,1] == A[3] == S[0,4] == S[0,4,1] == S[3] == 3
 @test A[1,4] == A[1,4,1] == A[4] == S[1,4] == S[1,4,1] == S[4] == 4
-@test @unsafe(A[0,3]) == @unsafe(A[0,3,1]) == @unsafe(A[1]) == @unsafe(S[0,3]) == @unsafe(S[0,3,1]) == @unsafe(S[1]) == 1
-@test @unsafe(A[1,3]) == @unsafe(A[1,3,1]) == @unsafe(A[2]) == @unsafe(S[1,3]) == @unsafe(S[1,3,1]) == @unsafe(S[2]) == 2
-@test @unsafe(A[0,4]) == @unsafe(A[0,4,1]) == @unsafe(A[3]) == @unsafe(S[0,4]) == @unsafe(S[0,4,1]) == @unsafe(S[3]) == 3
-@test @unsafe(A[1,4]) == @unsafe(A[1,4,1]) == @unsafe(A[4]) == @unsafe(S[1,4]) == @unsafe(S[1,4,1]) == @unsafe(S[4]) == 4
+@test @inbounds(A[0,3]) == @inbounds(A[0,3,1]) == @inbounds(A[1]) == @inbounds(S[0,3]) == @inbounds(S[0,3,1]) == @inbounds(S[1]) == 1
+@test @inbounds(A[1,3]) == @inbounds(A[1,3,1]) == @inbounds(A[2]) == @inbounds(S[1,3]) == @inbounds(S[1,3,1]) == @inbounds(S[2]) == 2
+@test @inbounds(A[0,4]) == @inbounds(A[0,4,1]) == @inbounds(A[3]) == @inbounds(S[0,4]) == @inbounds(S[0,4,1]) == @inbounds(S[3]) == 3
+@test @inbounds(A[1,4]) == @inbounds(A[1,4,1]) == @inbounds(A[4]) == @inbounds(S[1,4]) == @inbounds(S[1,4,1]) == @inbounds(S[4]) == 4
 @test_throws BoundsError A[1,1]
 @test_throws BoundsError S[1,1]
 @test_throws BoundsError A[0,3,2]
@@ -65,7 +66,7 @@ Ac[0,3] = 10
 @test Ac[0,3] == 10
 Ac[0,3,1] = 11
 @test Ac[0,3] == 11
-@unsafe Ac[0,3,1] = 12
+@inbounds Ac[0,3,1] = 12
 @test Ac[0,3] == 12
 
 # Vector indexing
@@ -86,8 +87,8 @@ Ac[0,3,1] = 11
 # CartesianIndexing
 @test A[CartesianIndex((0,3))] == S[CartesianIndex((0,3))] == 1
 @test A[CartesianIndex((0,3)),1] == S[CartesianIndex((0,3)),1] == 1
-@test @unsafe(A[CartesianIndex((0,3))]) == @unsafe(S[CartesianIndex((0,3))]) == 1
-@test @unsafe(A[CartesianIndex((0,3)),1]) == @unsafe(S[CartesianIndex((0,3)),1]) == 1
+@test @inbounds(A[CartesianIndex((0,3))]) == @inbounds(S[CartesianIndex((0,3))]) == 1
+@test @inbounds(A[CartesianIndex((0,3)),1]) == @inbounds(S[CartesianIndex((0,3)),1]) == 1
 @test_throws BoundsError A[CartesianIndex(1,1)]
 @test_throws BoundsError A[CartesianIndex(1,1),0]
 @test_throws BoundsError A[CartesianIndex(1,1),2]
@@ -353,12 +354,12 @@ B = fill(5, 1:3, -1:1)
 @test axes(B) == (1:3,-1:1)
 @test all(B.==5)
 
-# @unsafe
+# @inbounds
 a = OffsetArray(zeros(7), -3:3)
-unsafe_fill!(x) = @unsafe(for i in axes(x,1); x[i] = i; end)
+unsafe_fill!(x) = @inbounds(for i in axes(x,1); x[i] = i; end)
 function unsafe_sum(x)
     s = zero(eltype(x))
-    @unsafe for i in axes(x,1)
+    @inbounds for i in axes(x,1)
         s += x[i]
     end
     s
