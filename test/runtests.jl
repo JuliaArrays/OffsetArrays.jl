@@ -332,8 +332,8 @@ amin, amax = extrema(parent(A))
 @test unique(A, dims=2) == OffsetArray(parent(A), first(axes(A, 1)) - 1, 0)
 v = OffsetArray(rand(8), (-2,))
 @test sort(v) == OffsetArray(sort(parent(v)), v.offsets)
-@test sortrows(A) == OffsetArray(sortrows(parent(A)), A.offsets)
-@test sortcols(A) == OffsetArray(sortcols(parent(A)), A.offsets)
+@test sortslices(A; dims=1) == OffsetArray(sortslices(parent(A); dims=1), A.offsets)
+@test sortslices(A; dims=2) == OffsetArray(sortslices(parent(A); dims=2), A.offsets)
 @test sort(A, dims = 1) == OffsetArray(sort(parent(A), dims = 1), A.offsets)
 @test sort(A, dims = 2) == OffsetArray(sort(parent(A), dims = 2), A.offsets)
 
@@ -372,9 +372,9 @@ end
 
 a = OffsetArray([1 2; 3 4], -1:0, 5:6)
 @test summary(a) == "OffsetArray(::Array{$(Int),2}, -1:0, 5:6) with eltype $(Int) with indices -1:0×5:6"
-@test summary(view(a, :, 5)) == "view(OffsetArray(::Array{Int64,2}, -1:0, 5:6), :, 5) with eltype Int64 with indices -1:0"
+@test summary(view(a, :, 5)) == "view(OffsetArray(::Array{$(Int),2}, -1:0, 5:6), :, 5) with eltype $(Int) with indices -1:0"
 a = OffsetArray(reshape([1]))
-@test summary(a) == "0-dimensional OffsetArray(::Array{Int64,0}) with eltype Int64"
+@test summary(a) == "0-dimensional OffsetArray(::Array{$(Int),0}) with eltype $(Int)"
 
 @testset "OffsetVector constructors" begin
     local v = rand(5)
