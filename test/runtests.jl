@@ -376,6 +376,16 @@ a = OffsetArray([1 2; 3 4], -1:0, 5:6)
 a = OffsetArray(reshape([1]))
 @test summary(a) == "0-dimensional OffsetArray(::Array{$(Int),0}) with eltype $(Int)"
 
+@testset "Resizing OffsetVectors" begin
+    local a = OffsetVector(rand(5),-3)
+    axes(a,1) == -2:2
+    length(a) == 5
+    resize!(a,3)
+    length(a) == 3
+    axes(a,1) == -2:0
+    @test_throws ArgumentError resize!(a,-3)
+end
+
 @testset "OffsetVector constructors" begin
     local v = rand(5)
     @test OffsetVector(v, -2) == OffsetArray(v, -2)

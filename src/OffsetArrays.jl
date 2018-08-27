@@ -147,6 +147,8 @@ Base.fill(x, inds::Tuple{UnitRange,Vararg{UnitRange}}) =
     fill!(OffsetArray{typeof(x)}(undef, inds), x)
 @inline Base.fill(x, ind1::UnitRange, inds::UnitRange...) = fill(x, (ind1, inds...))
 
+Base.resize!(A::OffsetVector, nl::Integer) = (resize!(A.parent, nl); A)
+
 ### Low-level utilities ###
 
 # Computing a shifted index (subtracting the offset)
