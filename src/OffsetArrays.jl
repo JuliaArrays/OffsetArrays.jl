@@ -68,13 +68,16 @@ Base.size(A::OffsetArray, d) = size(parent(A), d)
 # performance-critical and relies on axes, these are usually worth
 # optimizing thoroughly.
 @inline Base.axes(A::OffsetArray, d) =
-    1 <= d <= length(A.offsets) ? Base.Slice(axes(parent(A))[d] .+ A.offsets[d]) : (1:1)
+    1 <= d <= length(A.offsets) ? _slice(axes(parent(A))[d], A.offsets[d]) : (1:1)
 @inline Base.axes(A::OffsetArray) =
     _axes(axes(parent(A)), A.offsets)  # would rather use ntuple, but see #15276
 @inline _axes(inds, offsets) =
-    (Base.Slice(inds[1] .+ offsets[1]), _axes(tail(inds), tail(offsets))...)
+    (_slice(inds[1], offsets[1]), _axes(tail(inds), tail(offsets))...)
 _axes(::Tuple{}, ::Tuple{}) = ()
 Base.axes1(A::OffsetArray{T,0}) where {T} = 1:1  # we only need to specialize this one
+
+# Avoid the kw-arg on the range(r+x, length=length(r)) call in r .+ x
+@inline _slice(r, x) = Base.Slice(Base._range(first(r) + x, nothing, nothing, length(r)))
 
 const OffsetAxis = Union{Integer, UnitRange, Base.Slice{<:UnitRange}, Base.OneTo}
 function Base.similar(A::OffsetArray, ::Type{T}, dims::Dims) where T
