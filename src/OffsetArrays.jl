@@ -17,16 +17,17 @@ OffsetArray(A::AbstractArray{T,N}, offsets::NTuple{N,Int}) where {T,N} =
 OffsetArray(A::AbstractArray{T,N}, offsets::Vararg{Int,N}) where {T,N} =
     OffsetArray(A, offsets)
 
-OffsetArray{T,N}(::UndefInitializer, inds::Indices{N}) where {T,N} =
-    OffsetArray{T,N,Array{T,N}}(Array{T,N}(undef, map(indexlength, inds)), map(indexoffset, inds))
-OffsetArray{T}(::UndefInitializer, inds::Indices{N}) where {T,N} = OffsetArray{T,N}(undef, inds)
-OffsetArray{T,N}(::UndefInitializer, inds::Vararg{AbstractUnitRange,N}) where {T,N} = OffsetArray{T,N}(undef, inds)
-OffsetArray{T}(::UndefInitializer, inds::Vararg{AbstractUnitRange,N}) where {T,N} = OffsetArray{T,N}(undef, inds)
+const ArrayInitializer = Union{UndefInitializer, Missing, Nothing}
+OffsetArray{T,N}(init::ArrayInitializer, inds::Indices{N}) where {T,N} =
+    OffsetArray{T,N,Array{T,N}}(Array{T,N}(init, map(indexlength, inds)), map(indexoffset, inds))
+OffsetArray{T}(init::ArrayInitializer, inds::Indices{N}) where {T,N} = OffsetArray{T,N}(init, inds)
+OffsetArray{T,N}(init::ArrayInitializer, inds::Vararg{AbstractUnitRange,N}) where {T,N} = OffsetArray{T,N}(init, inds)
+OffsetArray{T}(init::ArrayInitializer, inds::Vararg{AbstractUnitRange,N}) where {T,N} = OffsetArray{T,N}(init, inds)
 OffsetArray(A::AbstractArray{T,0}) where {T} = OffsetArray{T,0,typeof(A)}(A, ())
 
 # OffsetVector constructors
 OffsetVector(A::AbstractVector, offset) = OffsetArray(A, offset)
-OffsetVector{T}(::UndefInitializer, inds::AbstractUnitRange) where {T} = OffsetArray{T}(undef, inds)
+OffsetVector{T}(init::ArrayInitializer, inds::AbstractUnitRange) where {T} = OffsetArray{T}(init, inds)
 
 # deprecated constructors
 using Base: @deprecate

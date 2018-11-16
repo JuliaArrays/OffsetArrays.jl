@@ -22,6 +22,14 @@ a = OffsetArray(a0)
 @test ndims(a) == 0
 @test a[] == 3
 
+# missing and nothing constructors
+for (T, t) in ((Missing, missing), (Nothing, nothing))
+    @test !isassigned(OffsetArray{Union{T,Vector{Int}}}(undef, -1:1, -1:1), -1, -1)
+    @test OffsetArray{Union{T,Vector{Int}}}(t, -1:1, -1:1)[-1, -1] === t
+    @test !isassigned(OffsetVector{Union{T,Vector{Int}}}(undef, -1:1), -1)
+    @test OffsetVector{Union{T,Vector{Int}}}(t, -1:1)[-1] === t
+end
+
 y = OffsetArray{Float64}(undef, -1:1, -7:7, -128:512, -5:5, -1:1, -3:3, -2:2, -1:1)
 @test axes(y) == (-1:1, -7:7, -128:512, -5:5, -1:1, -3:3, -2:2, -1:1)
 y[-1,-7,-128,-5,-1,-3,-2,-1] = 14
