@@ -68,6 +68,7 @@ polynomial (generic function with 1 method)
 julia> polynomial(2.0, coeffs)
 24.0
 ```
+Notice our use of the `eachindex` function which does not assume that the given array starts at `1`.
 
 ## Notes on supporting OffsetArrays
 
