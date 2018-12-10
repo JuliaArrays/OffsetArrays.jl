@@ -47,7 +47,7 @@ julia> x[1:3]
 ## Example: Polynomials
 Suppose one wants to represent the Laurent polynomial
 ```
-6/x + 5 - 2 * x + 3 * x^2 + x^3
+6/x + 5 - 2*x + 3*x^2 + x^3
 ```
 in julia. The coefficients of this polynomial are a naturally `-1` based list, since the `n`th element of the list 
 (counting from `-1`) `6, 5, -2, 3, 1` is the coefficient corresponding to the `n`th of `x`. This Laurent polynomial can be evaluated at say `x = 2` as follows.
