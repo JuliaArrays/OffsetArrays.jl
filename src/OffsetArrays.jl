@@ -3,6 +3,11 @@ VERSION < v"0.7.0-beta2.199" && __precompile__()
 module OffsetArrays
 
 using Base: Indices, tail, @propagate_inbounds
+@static if !isdefined(Base, :IdentityUnitRange)
+    const IdentityUnitRange = Base.Slice
+else
+    using Base: IdentityUnitRange
+end
 
 export OffsetArray, OffsetVector
 
@@ -78,9 +83,9 @@ _axes(::Tuple{}, ::Tuple{}) = ()
 Base.axes1(A::OffsetArray{T,0}) where {T} = 1:1  # we only need to specialize this one
 
 # Avoid the kw-arg on the range(r+x, length=length(r)) call in r .+ x
-@inline _slice(r, x) = Base.Slice(Base._range(first(r) + x, nothing, nothing, length(r)))
+@inline _slice(r, x) = IdentityUnitRange(Base._range(first(r) + x, nothing, nothing, length(r)))
 
-const OffsetAxis = Union{Integer, UnitRange, Base.Slice{<:UnitRange}, Base.OneTo}
+const OffsetAxis = Union{Integer, UnitRange, Base.OneTo, IdentityUnitRange}
 function Base.similar(A::OffsetArray, ::Type{T}, dims::Dims) where T
     B = similar(parent(A), T, dims)
 end
@@ -186,6 +191,6 @@ printindices(io::IO, ind1, inds...) =
     (print(io, _unslice(ind1), ", "); printindices(io, inds...))
 printindices(io::IO, ind1) = print(io, _unslice(ind1))
 _unslice(x) = x
-_unslice(x::Base.Slice) = x.indices
+_unslice(x::IdentityUnitRange) = x.indices
 
 end # module

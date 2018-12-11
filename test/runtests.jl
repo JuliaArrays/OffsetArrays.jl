@@ -1,6 +1,7 @@
 using OffsetArrays
 using Test
 using DelimitedFiles
+using OffsetArrays: IdentityUnitRange
 
 @test isempty(detect_ambiguities(OffsetArrays, Base, Core))
 
@@ -42,8 +43,8 @@ y = OffsetArray(r, r)
 y = OffsetArray(r, (r,))
 @test axes(y) == (r,)
 
-y = OffsetArray{Float32}(undef, (Base.Slice(-1:1),))
-@test axes(y) === (Base.Slice(-1:1),)
+y = OffsetArray{Float32}(undef, (IdentityUnitRange(-1:1),))
+@test axes(y) === (IdentityUnitRange(-1:1),)
 
 A0 = [1 3; 2 4]
 A = OffsetArray(A0, (-1,2))                   # IndexLinear
@@ -104,7 +105,7 @@ Ac[0,3,1] = 11
 @test_throws BoundsError S[CartesianIndex(1,1),0]
 @test_throws BoundsError S[CartesianIndex(1,1),2]
 @test eachindex(A) == 1:4
-@test eachindex(S) == CartesianIndices(Base.Slice.((0:1,3:4)))
+@test eachindex(S) == CartesianIndices(IdentityUnitRange.((0:1,3:4)))
 
 # view
 S = view(A, :, 3)
@@ -112,13 +113,13 @@ S = view(A, :, 3)
 @test S[0] == 1
 @test S[1] == 2
 @test_throws BoundsError S[2]
-@test axes(S) === (Base.Slice(0:1),)
+@test axes(S) === (IdentityUnitRange(0:1),)
 S = view(A, 0, :)
 @test S == OffsetArray([1,3], (A.offsets[2],))
 @test S[3] == 1
 @test S[4] == 3
 @test_throws BoundsError S[1]
-@test axes(S) === (Base.Slice(3:4),)
+@test axes(S) === (IdentityUnitRange(3:4),)
 S = view(A, 0:0, 4)
 @test S == [3]
 @test S[1] == 3
@@ -137,7 +138,7 @@ S = view(A, :, :)
 @test S[0,4] == S[3] == 3
 @test S[1,4] == S[4] == 4
 @test_throws BoundsError S[1,1]
-@test axes(S) === Base.Slice.((0:1, 3:4))
+@test axes(S) === IdentityUnitRange.((0:1, 3:4))
 
 # iteration
 let a
@@ -178,10 +179,10 @@ B = similar(A, (3,4))
 @test axes(B) === (Base.OneTo(3), Base.OneTo(4))
 B = similar(A, (-3:3,1:4))
 @test isa(B, OffsetArray{Int,2})
-@test axes(B) === Base.Slice.((-3:3, 1:4))
+@test axes(B) === IdentityUnitRange.((-3:3, 1:4))
 B = similar(parent(A), (-3:3,1:4))
 @test isa(B, OffsetArray{Int,2})
-@test axes(B) === Base.Slice.((-3:3, 1:4))
+@test axes(B) === IdentityUnitRange.((-3:3, 1:4))
 @test isa([x for x in [1,2,3]], Vector{Int})
 @test similar(Array{Int}, (0:0, 0:0)) isa OffsetArray{Int, 2}
 @test similar(Array{Int}, (1, 1)) isa Matrix{Int}
@@ -191,13 +192,13 @@ B = similar(parent(A), (-3:3,1:4))
 B = reshape(A0, -10:-9, 9:10)
 @test isa(B, OffsetArray{Int,2})
 @test parent(B) === A0
-@test axes(B) == Base.Slice.((-10:-9, 9:10))
+@test axes(B) == IdentityUnitRange.((-10:-9, 9:10))
 B = reshape(A, -10:-9, 9:10)
 @test isa(B, OffsetArray{Int,2})
 @test pointer(parent(B)) === pointer(A0)
-@test axes(B) == Base.Slice.((-10:-9, 9:10))
+@test axes(B) == IdentityUnitRange.((-10:-9, 9:10))
 b = reshape(A, -7:-4)
-@test axes(b) == (Base.Slice(-7:-4),)
+@test axes(b) == (IdentityUnitRange(-7:-4),)
 @test isa(parent(b), Vector{Int})
 @test pointer(parent(b)) === pointer(parent(A))
 @test parent(b) == A0[:]
@@ -206,27 +207,27 @@ a = OffsetArray(rand(3,3,3), -1:1, 0:2, 3:5)
 b = reshape(a, Val(2))
 @test isa(b, OffsetArray{Float64,2})
 @test pointer(parent(b)) === pointer(parent(a))
-@test axes(b) == Base.Slice.((-1:1, 1:9))
+@test axes(b) == IdentityUnitRange.((-1:1, 1:9))
 b = reshape(a, Val(4))
 @test isa(b, OffsetArray{Float64,4})
 @test pointer(parent(b)) === pointer(parent(a))
-@test axes(b) == (axes(a)..., Base.Slice(1:1))
+@test axes(b) == (axes(a)..., IdentityUnitRange(1:1))
 
 # Indexing with OffsetArray axes
 i1 = OffsetArray([2,1], (-5,))
 i1 = OffsetArray([2,1], -5)
 b = A0[i1, 1]
-@test axes(b) === (Base.Slice(-4:-3),)
+@test axes(b) === (IdentityUnitRange(-4:-3),)
 @test b[-4] == 2
 @test b[-3] == 1
 b = A0[1,i1]
-@test axes(b) === (Base.Slice(-4:-3),)
+@test axes(b) === (IdentityUnitRange(-4:-3),)
 @test b[-4] == 3
 @test b[-3] == 1
 v = view(A0, i1, 1)
-@test axes(v) === (Base.Slice(-4:-3),)
+@test axes(v) === (IdentityUnitRange(-4:-3),)
 v = view(A0, 1:1, i1)
-@test axes(v) === (Base.OneTo(1), Base.Slice(-4:-3))
+@test axes(v) === (Base.OneTo(1), IdentityUnitRange(-4:-3))
 
 # logical indexing
 @test A[A .> 2] == [3,4]
