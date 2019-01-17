@@ -193,4 +193,39 @@ printindices(io::IO, ind1) = print(io, _unslice(ind1))
 _unslice(x) = x
 _unslice(x::IdentityUnitRange) = x.indices
 
+"""
+    no_offset_view(A)
+
+Return an `AbstractArray` that shares structure and has the same type and size as the
+argument, but has 1-based indexing. May just return the argument when applicable. Not
+exported.
+
+The default implementation uses `OffsetArrays`, but other types should use something more
+specific to remove a level of indirection when applicable.
+
+```jldoctest
+julia> O = OffsetArray(A, 0:1, -1:1)
+OffsetArray(::Array{Int64,2}, 0:1, -1:1) with eltype Int64 with indices 0:1×-1:1:
+ 1  3  5
+ 2  4  6
+
+julia> OffsetArrays.no_offset_view(O)[1,1] = -9
+-9
+
+julia> A
+2×3 Array{Int64,2}:
+ -9  3  5
+  2  4  6
+```
+"""
+function no_offset_view(A::AbstractArray{T,N}) where {T,N}
+    if Base.has_offset_axes(A)
+        OffsetArray{T}(A, ntuple(i -> firstindex(A, i):lastindex(A, i), N))
+    else
+        A
+    end
+end
+
+no_offset_view(A::OffsetArray) = no_offset_view(parent(A))
+
 end # module

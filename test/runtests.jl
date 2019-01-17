@@ -1,7 +1,7 @@
 using OffsetArrays
 using Test
 using DelimitedFiles
-using OffsetArrays: IdentityUnitRange
+using OffsetArrays: IdentityUnitRange, no_offset_view
 
 @test isempty(detect_ambiguities(OffsetArrays, Base, Core))
 
@@ -400,4 +400,11 @@ end
     @test OffsetVector(v, -2) == OffsetArray(v, -2)
     @test OffsetVector(v, -2:2) == OffsetArray(v, -2:2)
     @test typeof(OffsetVector{Float64}(undef, -2:2)) == typeof(OffsetArray{Float64}(undef, -2:2))
+end
+
+@testset "no offset view" begin
+    A = randn(3, 3)
+    O1 = OffsetArray(A, -1:1, 0:2)
+    O2 = OffsetArray(O1, -2:0, -3:(-1))
+    @test no_offset_view(O2) ≡ A
 end
