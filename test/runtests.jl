@@ -401,3 +401,14 @@ end
     @test OffsetVector(v, -2:2) == OffsetArray(v, -2:2)
     @test typeof(OffsetVector{Float64}(undef, -2:2)) == typeof(OffsetArray{Float64}(undef, -2:2))
 end
+
+@testset "no nesting" begin
+    A = randn(2, 3)
+    x = A[2, 2]
+    O1 = OffsetArray(A, -1:0, -1:1)
+    O2 = OffsetArray(O1, 0:1, 0:2)
+    @test parent(O1) ≡ parent(O2)
+    @test eltype(O1) ≡ eltype(O2)
+    O2[1, 1] = x + 1            # just a sanity check
+    @test A[2, 2] == x + 1
+end

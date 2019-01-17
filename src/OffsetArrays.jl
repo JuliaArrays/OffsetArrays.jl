@@ -58,6 +58,11 @@ end
 OffsetArray(A::AbstractArray{T,N}, inds::Vararg{AbstractUnitRange,N}) where {T,N} =
     OffsetArray(A, inds)
 
+# avoid a level of indirection when nesting OffsetArrays
+function OffsetArray(A::OffsetArray, inds::Vararg{AbstractUnitRange})
+    OffsetArray(parent(A), inds)
+end
+
 Base.IndexStyle(::Type{OA}) where {OA<:OffsetArray} = IndexStyle(parenttype(OA))
 parenttype(::Type{OffsetArray{T,N,AA}}) where {T,N,AA} = AA
 parenttype(A::OffsetArray) = parenttype(typeof(A))
