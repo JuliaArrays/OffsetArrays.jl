@@ -218,9 +218,9 @@ julia> A
   2  4  6
 ```
 """
-function no_offset_view(A::AbstractArray{T,N}) where {T,N}
+function no_offset_view(A::AbstractArray)
     if Base.has_offset_axes(A)
-        OffsetArray{T}(A, ntuple(i -> firstindex(A, i):lastindex(A, i), N))
+        OffsetArray(A, 1 .+ size(A))
     else
         A
     end

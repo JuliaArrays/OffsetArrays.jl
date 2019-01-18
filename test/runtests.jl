@@ -402,9 +402,33 @@ end
     @test typeof(OffsetVector{Float64}(undef, -2:2)) == typeof(OffsetArray{Float64}(undef, -2:2))
 end
 
+####
+#### type defined for testing no_offset_view
+####
+
+struct NegativeArray{T,N,S <: AbstractArray{T,N}} <: AbstractArray{T,N}
+    parent::S
+end
+
+Base.axes(A::NegativeArray) = map(n -> (-n):(-1), size(A.parent))
+
+Base.size(A::NegativeArray) = size(A.parent)
+
+function Base.getindex(A::NegativeArray{T,N}, I::Vararg{Int,N}) where {T,N}
+    getindex(A.parent, (I .+ size(A.parent) .+ 1)...)
+end
+
 @testset "no offset view" begin
+    # OffsetArray fallback
     A = randn(3, 3)
     O1 = OffsetArray(A, -1:1, 0:2)
     O2 = OffsetArray(O1, -2:0, -3:(-1))
     @test no_offset_view(O2) ≡ A
+
+    # generic fallback
+    A = collect(reshape(1:12, 3, 4))
+    N = NegativeArray(A)
+    @test N[-3, -4] == 1
+    V = no_offset_view(N)
+    @test collect(V) == A
 end
