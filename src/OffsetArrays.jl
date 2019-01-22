@@ -220,7 +220,7 @@ julia> A
 """
 function no_offset_view(A::AbstractArray)
     if Base.has_offset_axes(A)
-        OffsetArray(A, 1 .+ size(A))
+        OffsetArray(A, map(r->1-first(r), axes(A)))
     else
         A
     end
