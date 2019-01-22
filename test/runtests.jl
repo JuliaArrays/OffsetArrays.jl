@@ -2,6 +2,7 @@ using OffsetArrays
 using Test
 using DelimitedFiles
 using OffsetArrays: IdentityUnitRange, no_offset_view
+using CatIndices: BidirectionalVector
 
 @test isempty(detect_ambiguities(OffsetArrays, Base, Core))
 
@@ -431,4 +432,11 @@ end
     @test N[-3, -4] == 1
     V = no_offset_view(N)
     @test collect(V) == A
+
+    # bidirectional
+    B = BidirectionalVector([1, 2, 3])
+    pushfirst!(B, 0)
+    OB = OffsetArrays.no_offset_view(B)
+    @test axes(OB, 1) == 1:4
+    @test collect(OB) == 0:3
 end
