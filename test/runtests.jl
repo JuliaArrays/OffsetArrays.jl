@@ -440,3 +440,14 @@ end
     @test axes(OB, 1) == 1:4
     @test collect(OB) == 0:3
 end
+  
+@testset "no nesting" begin
+    A = randn(2, 3)
+    x = A[2, 2]
+    O1 = OffsetArray(A, -1:0, -1:1)
+    O2 = OffsetArray(O1, 0:1, 0:2)
+    @test parent(O1) ≡ parent(O2)
+    @test eltype(O1) ≡ eltype(O2)
+    O2[1, 1] = x + 1            # just a sanity check
+    @test A[2, 2] == x + 1
+end

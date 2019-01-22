@@ -58,6 +58,13 @@ end
 OffsetArray(A::AbstractArray{T,N}, inds::Vararg{AbstractUnitRange,N}) where {T,N} =
     OffsetArray(A, inds)
 
+# avoid a level of indirection when nesting OffsetArrays
+function OffsetArray(A::OffsetArray, inds::NTuple{N,AbstractUnitRange}) where {N}
+    OffsetArray(parent(A), inds)
+end
+OffsetArray(A::OffsetArray{T,0}, inds::Tuple{}) where {T} = OffsetArray{T,0,typeof(A)}(parent(A), ())
+OffsetArray(A::OffsetArray{T,N}, inds::Tuple{}) where {T,N} = error("this should never be called")
+
 Base.IndexStyle(::Type{OA}) where {OA<:OffsetArray} = IndexStyle(parenttype(OA))
 parenttype(::Type{OffsetArray{T,N,AA}}) where {T,N,AA} = AA
 parenttype(A::OffsetArray) = parenttype(typeof(A))
