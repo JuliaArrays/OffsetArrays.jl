@@ -94,6 +94,17 @@ Ac[0,3,1] = 11
 @test A[1, [4,3]] == S[1, [4,3]] == [4,2]
 @test A[:, :] == S[:, :] == A
 
+# Vector indexing with offset ranges
+r = OffsetArray(8:10, -1:1)
+r1 = r[0:1]
+@test r1 === 9:10
+r1 = (8:10)[OffsetArray(1:2, -5:-4)]
+@test axes(r1) === (IdentityUnitRange(-5:-4),)
+@test parent(r1) === 8:9
+r1 = OffsetArray(8:10, -1:1)[OffsetArray(0:1, -5:-4)]
+@test axes(r1) === (IdentityUnitRange(-5:-4),)
+@test parent(r1) === 9:10
+
 # CartesianIndexing
 @test A[CartesianIndex((0,3))] == S[CartesianIndex((0,3))] == 1
 @test A[CartesianIndex((0,3)),1] == S[CartesianIndex((0,3)),1] == 1

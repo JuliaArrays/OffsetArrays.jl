@@ -157,6 +157,16 @@ end
     val
 end
 
+### Special handling for AbstractRange
+
+const OffsetRange{T} = OffsetArray{T,1,<:AbstractRange{T}}
+
+Base.step(a::OffsetRange) = step(parent(a))
+
+Base.getindex(a::OffsetRange, r::OffsetRange) = OffsetArray(a[parent(r)], r.offsets)
+Base.getindex(a::OffsetRange, r::AbstractRange) = a.parent[r .- a.offsets[1]]
+Base.getindex(a::AbstractRange, r::OffsetRange) = OffsetArray(a[parent(r)], r.offsets)
+
 ### Convenience functions ###
 
 Base.fill(x, inds::Tuple{UnitRange,Vararg{UnitRange}}) =
