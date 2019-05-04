@@ -231,6 +231,9 @@ end
     @test summary(view(a, :, 5)) == "$(shownsz)view(OffsetArray(::Array{$(Int),2}, -1:0, 5:6), :, 5) with eltype $(Int) with indices -1:0"
     a = OffsetArray(reshape([1]))
     @test summary(a) == "0-dimensional OffsetArray(::Array{$(Int),0}) with eltype $(Int)"
+
+    show(io, OffsetArray(3:5, 0:2))
+    @test String(take!(io)) == "3:5 with indices 0:2"
 end
 
 @testset "readdlm/writedlm" begin

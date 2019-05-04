@@ -182,6 +182,13 @@ Base.getindex(a::AbstractRange, r::OffsetRange) = OffsetArray(a[parent(r)], r.of
 @inline @propagate_inbounds Base.getindex(r::LinRange, s::IIUR) =
     OffsetArray(r[s.indices], s)
 
+function Base.show(io::IO, r::OffsetRange)
+    show(io, r.parent)
+    o = r.offsets[1]
+    print(io, " with indices ", o+1:o+length(r))
+end
+Base.show(io::IO, ::MIME"text/plain", r::OffsetRange) = show(io, r)
+
 ### Convenience functions ###
 
 Base.fill(x, inds::Tuple{UnitRange,Vararg{UnitRange}}) =
