@@ -312,6 +312,12 @@ end
     @test axes(v) === (IdentityUnitRange(-4:-3),)
     v = view(A0, 1:1, i1)
     @test axes(v) === (Base.OneTo(1), IdentityUnitRange(-4:-3))
+
+    for r in (1:10, 1:1:10, StepRangeLen(1, 1, 10), LinRange(1, 10, 10))
+        for s in (IdentityUnitRange(2:3), OffsetArray(2:3, 2:3))
+            @test axes(r[s]) == axes(s)
+        end
+    end
 end
 
 @testset "logical indexing" begin

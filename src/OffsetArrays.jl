@@ -160,12 +160,27 @@ end
 ### Special handling for AbstractRange
 
 const OffsetRange{T} = OffsetArray{T,1,<:AbstractRange{T}}
+const IIUR = IdentityUnitRange{S} where S<:AbstractUnitRange{T} where T<:Integer
 
 Base.step(a::OffsetRange) = step(parent(a))
 
 Base.getindex(a::OffsetRange, r::OffsetRange) = OffsetArray(a[parent(r)], r.offsets)
 Base.getindex(a::OffsetRange, r::AbstractRange) = a.parent[r .- a.offsets[1]]
 Base.getindex(a::AbstractRange, r::OffsetRange) = OffsetArray(a[parent(r)], r.offsets)
+
+@inline @propagate_inbounds Base.getindex(r::UnitRange, s::IIUR) =
+    OffsetArray(r[s.indices], s)
+
+@inline @propagate_inbounds Base.getindex(r::StepRange, s::IIUR) =
+    OffsetArray(r[s.indices], s)
+
+@inline @propagate_inbounds Base.getindex(r::StepRangeLen{T,<:Base.TwicePrecision,<:Base.TwicePrecision}, s::IIUR) where T =
+    OffsetArray(r[s.indices], s)
+@inline @propagate_inbounds Base.getindex(r::StepRangeLen{T}, s::IIUR) where {T} =
+    OffsetArray(r[s.indices], s)
+
+@inline @propagate_inbounds Base.getindex(r::LinRange, s::IIUR) =
+    OffsetArray(r[s.indices], s)
 
 ### Convenience functions ###
 
