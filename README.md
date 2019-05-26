@@ -21,7 +21,7 @@ julia> y[-1,-7,-128,-5,-1,-3,-2,-1] += 5
 ```
 
 ## Example: Relativistic Notation
-Suppose we have a position vector `r = [:x, :y, :z]` which is naturally one-based, ie. `r[1] == :x`, `r[2] == :y`,  `r[3] == :z` and we also want to cosntruct a relativistic position vector which includes time as the 0th component. This can be done with OffsetArrays like 
+Suppose we have a position vector `r = [:x, :y, :z]` which is naturally one-based, ie. `r[1] == :x`, `r[2] == :y`,  `r[3] == :z` and we also want to construct a relativistic position vector which includes time as the 0th component. This can be done with OffsetArrays like 
 ```julia
 julia> using OffsetArrays
 
