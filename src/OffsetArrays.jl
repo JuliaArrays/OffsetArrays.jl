@@ -195,7 +195,13 @@ Base.fill(x, inds::Tuple{UnitRange,Vararg{UnitRange}}) =
     fill!(OffsetArray{typeof(x)}(undef, inds), x)
 @inline Base.fill(x, ind1::UnitRange, inds::UnitRange...) = fill(x, (ind1, inds...))
 
+
+### Some mutating functions defined only for OffsetVector ###
+
 Base.resize!(A::OffsetVector, nl::Integer) = (resize!(A.parent, nl); A)
+Base.push!(A::OffsetVector, x...) = (push!(A.parent, x...); A)
+Base.pop!(A::OffsetVector) = pop!(A.parent)
+Base.empty!(A::OffsetVector) = (empty!(A.parent); A)
 
 ### Low-level utilities ###
 
