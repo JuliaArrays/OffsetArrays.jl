@@ -12,7 +12,3 @@ julia:
 
 notifications:
     email: false
-
-after_success:
-  - julia -e 'Pkg.init(); run(`ln -s $(pwd()) $(Pkg.dir("OffsetArrays"))`); Pkg.pin("OffsetArrays"); Pkg.resolve()'
-  - julia -e 'using OffsetArrays; @assert isdefined(:OffsetArrays); @assert typeof(OffsetArrays) === Module'

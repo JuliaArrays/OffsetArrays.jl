@@ -554,3 +554,24 @@ end
     O2[1, 1] = x + 1            # just a sanity check
     @test A[2, 2] == x + 1
 end
+
+@testset "mutating functions for OffsetVector" begin
+    # push!
+    o = OffsetVector(Int[], -1)
+    @test push!(o) === o
+    @test axes(o, 1) == 0:-1
+    @test push!(o, 1) === o
+    @test axes(o, 1) == 0:0
+    @test o[end] == 1
+    @test push!(o, 2, 3) === o
+    @test axes(o, 1) == 0:2
+    @test o[end-1:end] == [2, 3]
+    # pop!
+    o = OffsetVector([1, 2, 3], -1)
+    @test pop!(o) == 3
+    @test axes(o, 1) == 0:1
+    # empty!
+    o = OffsetVector([1, 2, 3], -1)
+    @test empty!(o) === o
+    @test axes(o, 1) == 0:-1
+end
