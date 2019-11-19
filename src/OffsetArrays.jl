@@ -92,7 +92,7 @@ Base.axes1(A::OffsetArray{T,0}) where {T} = 1:1  # we only need to specialize th
 # Avoid the kw-arg on the range(r+x, length=length(r)) call in r .+ x
 @inline _slice(r, x) = IdentityUnitRange(Base._range(first(r) + x, nothing, nothing, length(r)))
 
-const OffsetAxis = Union{Integer, UnitRange, Base.OneTo, IdentityUnitRange}
+const OffsetAxis = Union{Integer, UnitRange, Base.OneTo, IdentityUnitRange, Colon}
 function Base.similar(A::OffsetArray, ::Type{T}, dims::Dims) where T
     B = similar(parent(A), T, dims)
 end
@@ -219,8 +219,10 @@ offset(offsets::Tuple{Vararg{Int}}, inds::Tuple{}) = error("inds cannot be short
 
 indexoffset(r::AbstractRange) = first(r) - 1
 indexoffset(i::Integer) = 0
+indexoffset(i::Colon) = 0
 indexlength(r::AbstractRange) = length(r)
 indexlength(i::Integer) = i
+indexlength(i::Colon) = Colon()
 
 @eval @deprecate $(Symbol("@unsafe")) $(Symbol("@inbounds"))
 
