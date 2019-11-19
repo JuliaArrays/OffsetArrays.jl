@@ -101,6 +101,7 @@ function Base.similar(A::AbstractArray, ::Type{T}, inds::Tuple{OffsetAxis,Vararg
     OffsetArray(B, map(indexoffset, inds))
 end
 
+Base.reshape(A::AbstractArray, inds::OffsetAxis...) = reshape(A, inds)
 Base.reshape(A::AbstractArray, inds::Tuple{OffsetAxis,Vararg{OffsetAxis}}) =
     OffsetArray(reshape(A, map(indexlength, inds)), map(indexoffset, inds))
 
