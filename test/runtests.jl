@@ -296,6 +296,9 @@ end
     @test isa(b, OffsetArray{Float64,4})
     @test pointer(parent(b)) === pointer(parent(a))
     @test axes(b) == (axes(a)..., IdentityUnitRange(1:1))
+
+    @test reshape(OffsetArray(-1:0, -1:0), :, 1) == reshape(-1:0, 2, 1)
+    @test reshape(OffsetArray(-1:2, -1:2), -2:-1, :) == reshape(-1:2, -2:-1, 2)
 end
 
 @testset "Indexing with OffsetArray axes" begin
