@@ -92,7 +92,7 @@ Base.axes1(A::OffsetArray{T,0}) where {T} = 1:1  # we only need to specialize th
 # Avoid the kw-arg on the range(r+x, length=length(r)) call in r .+ x
 @inline _slice(r, x) = IdentityUnitRange(Base._range(first(r) + x, nothing, nothing, length(r)))
 
-const OffsetAxis = Union{Integer, UnitRange, Base.OneTo, IdentityUnitRange}
+const OffsetAxis = Union{Integer, UnitRange, Base.OneTo, IdentityUnitRange, Colon}
 function Base.similar(A::OffsetArray, ::Type{T}, dims::Dims) where T
     B = similar(parent(A), T, dims)
 end
@@ -101,6 +101,7 @@ function Base.similar(A::AbstractArray, ::Type{T}, inds::Tuple{OffsetAxis,Vararg
     OffsetArray(B, map(indexoffset, inds))
 end
 
+Base.reshape(A::AbstractArray, inds::OffsetAxis...) = reshape(A, inds)
 Base.reshape(A::AbstractArray, inds::Tuple{OffsetAxis,Vararg{OffsetAxis}}) =
     OffsetArray(reshape(A, map(indexlength, inds)), map(indexoffset, inds))
 
@@ -111,6 +112,8 @@ Base.reshape(A::OffsetArray, inds::Tuple{OffsetAxis,Vararg{OffsetAxis}}) =
 # And for non-offset axes, we can just return a reshape of the parent directly
 Base.reshape(A::OffsetArray, inds::Tuple{Union{Integer,Base.OneTo},Vararg{Union{Integer,Base.OneTo}}}) = reshape(parent(A), inds)
 Base.reshape(A::OffsetArray, inds::Dims) = reshape(parent(A), inds)
+Base.reshape(A::OffsetArray, inds::Union{Int,Colon}...) = reshape(parent(A), inds)
+Base.reshape(A::OffsetArray, inds::Tuple{Vararg{Union{Int,Colon}}}) = reshape(parent(A), inds)
 
 Base.similar(::Type{T}, shape::Tuple{OffsetAxis,Vararg{OffsetAxis}}) where {T<:AbstractArray} =
     OffsetArray(T(undef, map(indexlength, shape)), map(indexoffset, shape))
@@ -217,8 +220,10 @@ offset(offsets::Tuple{Vararg{Int}}, inds::Tuple{}) = error("inds cannot be short
 
 indexoffset(r::AbstractRange) = first(r) - 1
 indexoffset(i::Integer) = 0
+indexoffset(i::Colon) = 0
 indexlength(r::AbstractRange) = length(r)
 indexlength(i::Integer) = i
+indexlength(i::Colon) = Colon()
 
 @eval @deprecate $(Symbol("@unsafe")) $(Symbol("@inbounds"))
 
