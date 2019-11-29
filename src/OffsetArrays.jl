@@ -278,4 +278,59 @@ end
 
 no_offset_view(A::OffsetArray) = no_offset_view(parent(A))
 
+
+####
+# work around for segfault in searchsorted*
+#  https://github.com/JuliaLang/julia/issues/33977
+####
+
+function Base.searchsorted(v::AbstractVector, x, ilo::T, ihi::T, o::Base.Ordering) where T<:Integer
+    u = T(1)
+    lo = ilo - u
+    hi = ihi + u
+    @inbounds while lo < hi - u
+        m = (lo + hi) ÷ 2
+        if Base.lt(o, v[m], x)
+            lo = m
+        elseif Base.lt(o, x, v[m])
+            hi = m
+        else
+            a = searchsortedfirst(v, x, max(lo,ilo), m, o)
+            b = searchsortedlast(v, x, m, min(hi,ihi), o)
+            return a : b
+        end
+    end
+    return (lo + 1) : (hi - 1)
+end
+
+function Base.searchsortedfirst(v::OffsetArray, x, lo::T, hi::T, o::Base.Ordering) where T<:Integer
+    u = T(1)
+    lo = lo - u
+    hi = hi + u
+    @inbounds while lo < hi - u
+        m = (lo + hi) ÷ 2
+        if Base.lt(o, v[m], x)
+            lo = m
+        else
+            hi = m
+        end
+    end
+    return hi
+end
+
+function Base.searchsortedlast(v::OffsetArray, x, lo::T, hi::T, o::Base.Ordering) where T<:Integer
+    u = T(1)
+    lo = lo - u
+    hi = hi + u
+    @inbounds while lo < hi - u
+        m = (lo + hi) ÷ 2
+        if Base.lt(o, x, v[m])
+            hi = m
+        else
+            lo = m
+        end
+    end
+    return lo
+end
+
 end # module
