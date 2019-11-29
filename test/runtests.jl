@@ -578,3 +578,22 @@ end
     @test empty!(o) === o
     @test axes(o, 1) == 0:-1
 end
+
+@testset "searchsorted (#85)" begin
+    o = OffsetVector([1,3,4,5],-2)
+    @test searchsortedfirst(o,-2) == -1
+    @test searchsortedfirst(o, 1) == -1
+    @test searchsortedfirst(o, 2) ==  0
+    @test searchsortedfirst(o, 5) ==  2
+    @test searchsortedfirst(o, 6) ==  3
+    @test searchsortedlast(o, -2) == -2
+    @test searchsortedlast(o,  1) == -1
+    @test searchsortedlast(o,  2) == -1
+    @test searchsortedlast(o,  5) ==  2
+    @test searchsortedlast(o,  6) ==  2  
+    @test searchsorted(o, -2) == -1:-2
+    @test searchsorted(o,  1) == -1:-1
+    @test searchsorted(o,  2) ==  0:-1
+    @test searchsorted(o,  5) ==  2:2
+    @test searchsorted(o,  6) ==  3:2      
+end
