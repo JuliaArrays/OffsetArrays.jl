@@ -284,7 +284,7 @@ no_offset_view(A::OffsetArray) = no_offset_view(parent(A))
 #  https://github.com/JuliaLang/julia/issues/33977
 ####
 
-function Base.searchsorted(v::AbstractVector, x, ilo::T, ihi::T, o::Base.Ordering) where T<:Integer
+function Base.searchsorted(v::OffsetArray, x, ilo::T, ihi::T, o::Base.Ordering) where T<:Integer
     u = T(1)
     lo = ilo - u
     hi = ihi + u
