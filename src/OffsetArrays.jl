@@ -112,6 +112,7 @@ Base.reshape(A::OffsetArray, inds::Tuple{OffsetAxis,Vararg{OffsetAxis}}) =
 # And for non-offset axes, we can just return a reshape of the parent directly
 Base.reshape(A::OffsetArray, inds::Tuple{Union{Integer,Base.OneTo},Vararg{Union{Integer,Base.OneTo}}}) = reshape(parent(A), inds)
 Base.reshape(A::OffsetArray, inds::Dims) = reshape(parent(A), inds)
+Base.reshape(A::OffsetArray, ::Colon) = A
 Base.reshape(A::OffsetArray, inds::Union{Int,Colon}...) = reshape(parent(A), inds)
 Base.reshape(A::OffsetArray, inds::Tuple{Vararg{Union{Int,Colon}}}) = reshape(parent(A), inds)
 
@@ -333,19 +334,19 @@ end
 
 if VERSION ≤ v"1.2"
     # ambiguity warnings in earlier versions
-    Base.searchsorted(v::OffsetArray, x, ilo::Int, ihi::Int, o::Base.Ordering) = 
+    Base.searchsorted(v::OffsetArray, x, ilo::Int, ihi::Int, o::Base.Ordering) =
         _safe_searchsorted(v, x, ilo, ihi, o)
-    Base.searchsortedfirst(v::OffsetArray, x, lo::Int, hi::Int, o::Base.Ordering) = 
+    Base.searchsortedfirst(v::OffsetArray, x, lo::Int, hi::Int, o::Base.Ordering) =
         _safe_searchsortedfirst(v, x, lo, hi, o)
-    Base.searchsortedlast(v::OffsetArray, x, lo::Int, hi::Int, o::Base.Ordering) = 
+    Base.searchsortedlast(v::OffsetArray, x, lo::Int, hi::Int, o::Base.Ordering) =
         _safe_searchsortedlast(v, x, lo, hi, o)
 end
 
-Base.searchsorted(v::OffsetArray, x, ilo::T, ihi::T, o::Base.Ordering) where T<:Integer = 
+Base.searchsorted(v::OffsetArray, x, ilo::T, ihi::T, o::Base.Ordering) where T<:Integer =
     _safe_searchsorted(v, x, ilo, ihi, o)
-Base.searchsortedfirst(v::OffsetArray, x, lo::T, hi::T, o::Base.Ordering) where T<:Integer = 
+Base.searchsortedfirst(v::OffsetArray, x, lo::T, hi::T, o::Base.Ordering) where T<:Integer =
     _safe_searchsortedfirst(v, x, lo, hi, o)
-Base.searchsortedlast(v::OffsetArray, x, lo::T, hi::T, o::Base.Ordering) where T<:Integer = 
+Base.searchsortedlast(v::OffsetArray, x, lo::T, hi::T, o::Base.Ordering) where T<:Integer =
     _safe_searchsortedlast(v, x, lo, hi, o)
 
 
