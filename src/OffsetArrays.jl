@@ -161,6 +161,9 @@ end
     val
 end
 
+# For fast broadcasting: ref https://discourse.julialang.org/t/why-is-there-a-performance-hit-on-broadcasting-with-offsetarrays/32194
+Base.dataids(A::OffsetArray) = Base.dataids(parent(A))
+
 ### Special handling for AbstractRange
 
 const OffsetRange{T} = OffsetArray{T,1,<:AbstractRange{T}}
