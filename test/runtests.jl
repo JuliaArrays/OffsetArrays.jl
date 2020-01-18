@@ -34,7 +34,12 @@ end
 
 @testset "undef, missing, and nothing constructors" begin
     y = OffsetArray{Float32}(undef, (IdentityUnitRange(-1:1),))
-    @test axes(y) === (IdentityUnitRange(-1:1),)
+    @test axes(y) == (IdentityUnitRange(-1:1),)
+    @test eltype(y) === Float32
+
+    y = OffsetArray{Float64}(undef, -1:1, -7:7, -128:512, -5:5, -1:1, -3:3, -2:2, -1:1)
+    @test axes(y) == (-1:1, -7:7, -128:512, -5:5, -1:1, -3:3, -2:2, -1:1)
+    @test eltype(y) === Float64
 
     for (T, t) in ((Missing, missing), (Nothing, nothing))
         @test !isassigned(OffsetArray{Union{T,Vector{Int}}}(undef, -1:1, -1:1), -1, -1)
@@ -44,20 +49,19 @@ end
     end
 end
 
-@testset "high dimensionality" begin
-    y = OffsetArray{Float64}(undef, -1:1, -7:7, -128:512, -5:5, -1:1, -3:3, -2:2, -1:1)
-    @test axes(y) == (-1:1, -7:7, -128:512, -5:5, -1:1, -3:3, -2:2, -1:1)
-    y[-1,-7,-128,-5,-1,-3,-2,-1] = 14
-    y[-1,-7,-128,-5,-1,-3,-2,-1] += 5
-    @test y[-1,-7,-128,-5,-1,-3,-2,-1] == 19
-end
-
 @testset "Offset range construction" begin
     r = -2:5
     y = OffsetArray(r, r)
     @test axes(y) == (r,)
     y = OffsetArray(r, (r,))
     @test axes(y) == (r,)
+end
+
+@testset "Axes supplied to constructor correspond to final result" begin
+    # Ref https://github.com/JuliaArrays/OffsetArrays.jl/pull/65#issuecomment-457181268
+    B = BidirectionalVector([1, 2, 3], -2)
+    A = OffsetArray(B, -1:1)
+    @test axes(A) == (IdentityUnitRange(-1:1),)
 end
 
 @testset "Traits" begin
@@ -97,6 +101,11 @@ end
     @test Ac[0,3] == 11
     @inbounds Ac[0,3,1] = 12
     @test Ac[0,3] == 12
+
+    y = OffsetArray{Float64}(undef, -1:1, -7:7, -128:512, -5:5, -1:1, -3:3, -2:2, -1:1)
+    y[-1,-7,-128,-5,-1,-3,-2,-1] = 14
+    y[-1,-7,-128,-5,-1,-3,-2,-1] += 5
+    @test y[-1,-7,-128,-5,-1,-3,-2,-1] == 19
 end
 
 @testset "Vector indexing" begin
@@ -124,10 +133,10 @@ end
     r1 = r[0:1]
     @test r1 === 9:10
     r1 = (8:10)[OffsetArray(1:2, -5:-4)]
-    @test axes(r1) === (IdentityUnitRange(-5:-4),)
+    @test axes(r1) == (IdentityUnitRange(-5:-4),)
     @test parent(r1) === 8:9
     r1 = OffsetArray(8:10, -1:1)[OffsetArray(0:1, -5:-4)]
-    @test axes(r1) === (IdentityUnitRange(-5:-4),)
+    @test axes(r1) == (IdentityUnitRange(-5:-4),)
     @test parent(r1) === 9:10
 end
 
@@ -159,13 +168,13 @@ end
     @test S[0] == 1
     @test S[1] == 2
     @test_throws BoundsError S[2]
-    @test axes(S) === (IdentityUnitRange(0:1),)
+    @test axes(S) == (IdentityUnitRange(0:1),)
     S = view(A, 0, :)
     @test S == OffsetArray([1,3], (A.offsets[2],))
     @test S[3] == 1
     @test S[4] == 3
     @test_throws BoundsError S[1]
-    @test axes(S) === (IdentityUnitRange(3:4),)
+    @test axes(S) == (IdentityUnitRange(3:4),)
     S = view(A, 0:0, 4)
     @test S == [3]
     @test S[1] == 3
@@ -184,7 +193,7 @@ end
     @test S[0,4] == S[3] == 3
     @test S[1,4] == S[4] == 4
     @test_throws BoundsError S[1,1]
-    @test axes(S) === IdentityUnitRange.((0:1, 3:4))
+    @test axes(S) == IdentityUnitRange.((0:1, 3:4))
 end
 
 @testset "iteration" begin
@@ -259,10 +268,10 @@ end
     @test axes(B) === (Base.OneTo(3), Base.OneTo(4))
     B = similar(A, (-3:3,1:4))
     @test isa(B, OffsetArray{Int,2})
-    @test axes(B) === IdentityUnitRange.((-3:3, 1:4))
+    @test axes(B) == IdentityUnitRange.((-3:3, 1:4))
     B = similar(parent(A), (-3:3,1:4))
     @test isa(B, OffsetArray{Int,2})
-    @test axes(B) === IdentityUnitRange.((-3:3, 1:4))
+    @test axes(B) == IdentityUnitRange.((-3:3, 1:4))
     @test isa([x for x in [1,2,3]], Vector{Int})
     @test similar(Array{Int}, (0:0, 0:0)) isa OffsetArray{Int, 2}
     @test similar(Array{Int}, (1, 1)) isa Matrix{Int}
@@ -307,17 +316,17 @@ end
     i1 = OffsetArray([2,1], (-5,))
     i1 = OffsetArray([2,1], -5)
     b = A0[i1, 1]
-    @test axes(b) === (IdentityUnitRange(-4:-3),)
+    @test axes(b) == (IdentityUnitRange(-4:-3),)
     @test b[-4] == 2
     @test b[-3] == 1
     b = A0[1,i1]
-    @test axes(b) === (IdentityUnitRange(-4:-3),)
+    @test axes(b) == (IdentityUnitRange(-4:-3),)
     @test b[-4] == 3
     @test b[-3] == 1
     v = view(A0, i1, 1)
-    @test axes(v) === (IdentityUnitRange(-4:-3),)
+    @test axes(v) == (IdentityUnitRange(-4:-3),)
     v = view(A0, 1:1, i1)
-    @test axes(v) === (Base.OneTo(1), IdentityUnitRange(-4:-3))
+    @test axes(v) == (Base.OneTo(1), IdentityUnitRange(-4:-3))
 
     for r in (1:10, 1:1:10, StepRangeLen(1, 1, 10), LinRange(1, 10, 10))
         for s in (IdentityUnitRange(2:3), OffsetArray(2:3, 2:3))
@@ -517,6 +526,13 @@ struct NegativeArray{T,N,S <: AbstractArray{T,N}} <: AbstractArray{T,N}
     parent::S
 end
 
+# Note: this defines the axes-of-the-axes to be OneTo.
+# In general this isn't recommended, because
+#    positionof(A, i, j, ...) == map(getindex, axes(A), (i, j, ...))
+# is quite desirable, and this requires that the axes be "identity" ranges, i.e.,
+# `r[i] == i`.
+# Nevertheless it's useful to test this on a "broken" implementation
+# to make sure we still get the right answer.
 Base.axes(A::NegativeArray) = map(n -> (-n):(-1), size(A.parent))
 
 Base.size(A::NegativeArray) = size(A.parent)
@@ -590,10 +606,10 @@ end
     @test searchsortedlast(o,  1) == -1
     @test searchsortedlast(o,  2) == -1
     @test searchsortedlast(o,  5) ==  2
-    @test searchsortedlast(o,  6) ==  2  
+    @test searchsortedlast(o,  6) ==  2
     @test searchsorted(o, -2) == -1:-2
     @test searchsorted(o,  1) == -1:-1
     @test searchsorted(o,  2) ==  0:-1
     @test searchsorted(o,  5) ==  2:2
-    @test searchsorted(o,  6) ==  3:2      
+    @test searchsorted(o,  6) ==  3:2
 end
