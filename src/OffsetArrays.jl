@@ -378,5 +378,8 @@ Base.searchsortedfirst(v::OffsetArray, x, lo::T, hi::T, o::Base.Ordering) where 
 Base.searchsortedlast(v::OffsetArray, x, lo::T, hi::T, o::Base.Ordering) where T<:Integer =
     _safe_searchsortedlast(v, x, lo, hi, o)
 
+if VERSION < v"1.1.0-DEV.783"
+    Base.copyfirst!(dest::OffsetArray, src::OffsetArray) = (maximum!(parent(dest), parent(src)); return dest)
+end
 
 end # module
