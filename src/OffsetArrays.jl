@@ -84,11 +84,24 @@ OffsetArray{T}(init::ArrayInitializer, inds::Vararg{AbstractUnitRange,N}) where 
 OffsetVector(A::AbstractVector, offset) = OffsetArray(A, offset)
 OffsetVector{T}(init::ArrayInitializer, inds::AbstractUnitRange) where {T} = OffsetArray{T}(init, inds)
 
-# # The next two are necessary for ambiguity resolution. Really, the
-# # second method should not be necessary.
-# OffsetArray(A::AbstractArray{T,0}, inds::Tuple{}) where {T} = OffsetArray{T,0,typeof(A)}(A, ())
-# OffsetArray(A::AbstractArray{T,N}, inds::Tuple{}) where {T,N} = error("this should never be called")
+"""
+    OffsetArray(A, indices...)
 
+Return an `AbstractArray` that shares element type and size with the first argument, but
+used the given `indices`, which are checked for compatible size.
+
+# Example
+
+```jldoctest
+julia> A = OffsetArray(reshape(1:6, 2, 3), 0:1, -1:1)
+OffsetArray(reshape(::UnitRange{Int64}, 2, 3), 0:1, -1:1) with eltype Int64 with indices 0:1×-1:1:
+ 1  3  5
+ 2  4  6
+
+julia> A[0, 1]
+5
+```
+"""
 function OffsetArray(A::AbstractArray{T,N}, inds::NTuple{N,AbstractUnitRange}) where {T,N}
     axparent = axes(A)
     lA = map(length, axparent)
