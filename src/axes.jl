@@ -53,22 +53,25 @@ has `r[3] == 3` and `r[4] == 4`, and `r[1]` would throw a `BoundsError`.
 In this latter case, a shift in the axes was needed because `Base.OneTo` ranges
 must start with value 1.
 
-In contrast, *conversion* preserves both the values and the indices, throwing an error
-when this is not achievable. For instance,
+!!! warning
 
-    r = convert(OffsetArrays.IdOffsetRange{Int,UnitRange{Int}}, 3:4)
+    In the future, *conversion* will preserve both the values and
+    the indices, throwing an error when this is not achievable. For instance,
 
-has `r[1] == 3` and `r[2] == 4` and would satisfy `r == 3:4`, whereas
+        r = convert(OffsetArrays.IdOffsetRange{Int,UnitRange{Int}}, 3:4)
 
-```jldoctest; setup=:(import OffsetArrays)
-julia> convert(OffsetArrays.IdOffsetRange{Int,Base.OneTo{Int}}, 3:4)
-ERROR: ArgumentError: first element must be 1, got 3
-```
+    has `r[1] == 3` and `r[2] == 4` and would satisfy `r == 3:4`, whereas
 
-where the error arises because the result could not have the same axes as the input.
+    ```
+    julia> convert(OffsetArrays.IdOffsetRange{Int,Base.OneTo{Int}}, 3:4)    # future behavior, not present behavior
+    ERROR: ArgumentError: first element must be 1, got 3
+    ```
 
-An important corollary is that `typeof(r1)(r2)` and `oftype(r1, r2)` behave differently:
-the first coerces `r2` to be of the type of `r1`, whereas the second converts.
+    where the error will arise because the result could not have the same axes as the input.
+
+    An important corollary is that `typeof(r1)(r2)` and `oftype(r1, r2)` will behave differently:
+    the first coerces `r2` to be of the type of `r1`, whereas the second converts.
+    Developers are urged to future-proof their code by choosing the behavior appropriate for each usage.
 """
 struct IdOffsetRange{T<:Integer,I<:AbstractUnitRange{T}} <: AbstractUnitRange{T}
     parent::I
@@ -100,13 +103,14 @@ function IdOffsetRange{T}(r::IdOffsetRange) where T<:Integer
 end
 IdOffsetRange(r::IdOffsetRange) = r
 
-# Conversion preserves both the values and the indexes, throwing an InexactError if this
-# is not possible.
-Base.convert(::Type{IdOffsetRange{T,I}}, r::IdOffsetRange{T,I}) where {T<:Integer,I<:AbstractUnitRange{T}} = r
-Base.convert(::Type{IdOffsetRange{T,I}}, r::IdOffsetRange) where {T<:Integer,I<:AbstractUnitRange{T}} =
-    IdOffsetRange{T,I}(convert(I, r.parent), r.offset)
-Base.convert(::Type{IdOffsetRange{T,I}}, r::AbstractUnitRange) where {T<:Integer,I<:AbstractUnitRange{T}} =
-    IdOffsetRange{T,I}(convert(I, r), 0)
+# TODO: uncomment these when Julia is ready
+# # Conversion preserves both the values and the indexes, throwing an InexactError if this
+# # is not possible.
+# Base.convert(::Type{IdOffsetRange{T,I}}, r::IdOffsetRange{T,I}) where {T<:Integer,I<:AbstractUnitRange{T}} = r
+# Base.convert(::Type{IdOffsetRange{T,I}}, r::IdOffsetRange) where {T<:Integer,I<:AbstractUnitRange{T}} =
+#     IdOffsetRange{T,I}(convert(I, r.parent), r.offset)
+# Base.convert(::Type{IdOffsetRange{T,I}}, r::AbstractUnitRange) where {T<:Integer,I<:AbstractUnitRange{T}} =
+#     IdOffsetRange{T,I}(convert(I, r), 0)
 
 offset_coerce(::Type{Base.OneTo{T}}, r::Base.OneTo) where T<:Integer = convert(Base.OneTo{T}, r), 0
 function offset_coerce(::Type{Base.OneTo{T}}, r::AbstractUnitRange) where T<:Integer
