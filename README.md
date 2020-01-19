@@ -49,11 +49,5 @@ OA[-1, 0] = 1
 OA[1, 4] = 15
 ```
 
-
-## Notes on supporting OffsetArrays
-
-There are several "tricks" that make it easier to support arrays with general indexes, see the [documentation](http://docs.julialang.org/en/latest/devdocs/offset-arrays/).
-
-
 [pkgeval-img]: https://juliaci.github.io/NanosoldierReports/pkgeval_badges/O/OffsetArrays.svg
 [pkgeval-url]: https://juliaci.github.io/NanosoldierReports/pkgeval_badges/report.html
