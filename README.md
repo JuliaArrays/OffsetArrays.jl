@@ -1,5 +1,6 @@
 # OffsetArrays.jl
 
+[![](https://img.shields.io/badge/docs-stable-blue.svg)](https://JuliaArrays.github.io/OffsetArrays.jl/stable)
 [![Build Status](https://travis-ci.org/JuliaArrays/OffsetArrays.jl.svg?branch=master)](https://travis-ci.org/JuliaArrays/OffsetArrays.jl)
 [![codecov.io](http://codecov.io/github/JuliaArrays/OffsetArrays.jl/coverage.svg?branch=master)](http://codecov.io/github/JuliaArrays/OffsetArrays.jl?branch=master)
 [![PkgEval][pkgeval-img]][pkgeval-url]
