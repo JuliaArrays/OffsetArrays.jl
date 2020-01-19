@@ -2,13 +2,18 @@
     ro = IdOffsetRange(r::AbstractUnitRange, offset=0)
 
 Construct an "identity offset range". Numerically, `collect(ro) == collect(r) .+ offset`,
-with the additional property that `axes(ro) = (ro,)`, which is where the "identity" comes from.
+with the additional property that `axes(ro, 1) = axes(r, 1) .+ offset`.
+When `r` starts at 1, then `ro[i] == i` and even `ro[ro] == ro`,
+i.e., it's the "identity," which is the origin of the "Id" in `IdOffsetRange`.
 
 # Examples
 
 The most common case is shifting a range that starts at 1 (either `1:n` or `Base.OneTo(n)`):
-```jldoctest
+```jldoctest; setup=:(import OffsetArrays)
 julia> ro = OffsetArrays.IdOffsetRange(1:3, -2)
+-1:1
+
+julia> axes(ro, 1)
 -1:1
 
 julia> ro[-1]
@@ -19,9 +24,12 @@ ERROR: BoundsError: attempt to access 3-element UnitRange{Int64} at index [5]
 ```
 
 If the range doesn't start at 1, the values may be different from the indices:
-```jldoctest
+```jldoctest; setup=:(import OffsetArrays)
 julia> ro = OffsetArrays.IdOffsetRange(11:13, -2)
 9:11
+
+julia> axes(ro, 1)     # 11:13 is indexed by 1:3, and the offset is also applied to the axes
+-1:1
 
 julia> ro[-1]
 9
@@ -35,11 +43,11 @@ ERROR: BoundsError: attempt to access 3-element UnitRange{Int64} at index [5]
 Construction/coercion preserves the (shifted) values of the input range, but may modify
 the indexes if required by the specified types. For example,
 
-   r = OffsetArrays.IdOffsetRange{Int,UnitRange{Int}}(3:4)
+    r = OffsetArrays.IdOffsetRange{Int,UnitRange{Int}}(3:4)
 
 has `r[1] == 3` and `r[2] == 4`, whereas
 
-   r = OffsetArrays.IdOffsetRange{Int,Base.OneTo{Int}}(3:4)
+    r = OffsetArrays.IdOffsetRange{Int,Base.OneTo{Int}}(3:4)
 
 has `r[3] == 3` and `r[4] == 4`, and `r[1]` would throw a `BoundsError`.
 In this latter case, a shift in the axes was needed because `Base.OneTo` ranges
@@ -52,12 +60,15 @@ when this is not achievable. For instance,
 
 has `r[1] == 3` and `r[2] == 4` and would satisfy `r == 3:4`, whereas
 
-```jldoctest
+```jldoctest; setup=:(import OffsetArrays)
 julia> convert(OffsetArrays.IdOffsetRange{Int,Base.OneTo{Int}}, 3:4)
 ERROR: ArgumentError: first element must be 1, got 3
 ```
 
 where the error arises because the result could not have the same axes as the input.
+
+An important corollary is that `typeof(r1)(r2)` and `oftype(r1, r2)` behave differently:
+the first coerces `r2` to be of the type of `r1`, whereas the second converts.
 """
 struct IdOffsetRange{T<:Integer,I<:AbstractUnitRange{T}} <: AbstractUnitRange{T}
     parent::I
@@ -131,6 +142,9 @@ end
 @propagate_inbounds Base.getindex(r::IdOffsetRange, i::Integer) = r.parent[i - r.offset] + r.offset
 @propagate_inbounds function Base.getindex(r::IdOffsetRange, s::AbstractUnitRange{<:Integer})
     return r.parent[s .- r.offset] .+ r.offset
+end
+@propagate_inbounds function Base.getindex(r::IdOffsetRange, s::IdOffsetRange)
+    return IdOffsetRange(r.parent[s .- r.offset], r.offset)
 end
 
 Base.show(io::IO, r::IdOffsetRange) = print(io, first(r), ':', last(r))

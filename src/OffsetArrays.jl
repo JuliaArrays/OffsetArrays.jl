@@ -52,9 +52,9 @@ used the given `indices`, which are checked for compatible size.
 
 # Example
 
-```jldoctest
+```jldoctest; setup=:(using OffsetArrays)
 julia> A = OffsetArray(reshape(1:6, 2, 3), 0:1, -1:1)
-OffsetArray(reshape(::UnitRange{Int64}, 2, 3), 0:1, -1:1) with eltype Int64 with indices 0:1×-1:1:
+2×3 OffsetArray(reshape(::UnitRange{Int64}, 2, 3), 0:1, -1:1) with eltype Int64 with indices 0:1×-1:1:
  1  3  5
  2  4  6
 
@@ -256,9 +256,11 @@ exported.
 The default implementation uses `OffsetArrays`, but other types should use something more
 specific to remove a level of indirection when applicable.
 
-```jldoctest
+```jldoctest; setup=:(using OffsetArrays)
+julia> A = [1 3 5; 2 4 6];
+
 julia> O = OffsetArray(A, 0:1, -1:1)
-OffsetArray(::Array{Int64,2}, 0:1, -1:1) with eltype Int64 with indices 0:1×-1:1:
+2×3 OffsetArray(::Array{Int64,2}, 0:1, -1:1) with eltype Int64 with indices 0:1×-1:1:
  1  3  5
  2  4  6
 
