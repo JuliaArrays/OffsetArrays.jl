@@ -9,47 +9,7 @@ end
 
 export OffsetArray, OffsetVector
 
-"""
-    ro = IdOffsetRange(r::AbstractUnitRange, offset)
-
-Construct an "identity offset range". Numerically, `collect(ro) == collect(r) .+ offset`,
-with the additional property that `axes(ro) = (ro,)`, which is where the "identity" comes from.
-"""
-struct IdOffsetRange{T<:Integer,I<:AbstractUnitRange{T}} <: AbstractUnitRange{T}
-    parent::I
-    offset::T
-end
-IdOffsetRange(r::AbstractUnitRange{T}, offset::Integer) where T =
-    IdOffsetRange{T,typeof(r)}(r, convert(T, offset))
-
-@inline Base.axes(r::IdOffsetRange) = (Base.axes1(r),)
-@inline Base.axes1(r::IdOffsetRange) = IdOffsetRange(Base.axes1(r.parent), r.offset)
-@inline Base.unsafe_indices(r::IdOffsetRange) = (r,)
-@inline Base.length(r::IdOffsetRange) = length(r.parent)
-
-function Base.iterate(r::IdOffsetRange)
-    ret = iterate(r.parent)
-    ret === nothing && return nothing
-    return (ret[1] + r.offset, ret[2])
-end
-function Base.iterate(r::IdOffsetRange, i) where T
-    ret = iterate(r.parent, i)
-    ret === nothing && return nothing
-    return (ret[1] + r.offset, ret[2])
-end
-
-@inline Base.first(r::IdOffsetRange) = first(r.parent) + r.offset
-@inline Base.last(r::IdOffsetRange) = last(r.parent) + r.offset
-
-@propagate_inbounds Base.getindex(r::IdOffsetRange, i::Integer) = r.parent[i - r.offset] + r.offset
-@propagate_inbounds function Base.getindex(r::IdOffsetRange, s::AbstractUnitRange{<:Integer})
-    return r.parent[s .- r.offset] .+ r.offset
-end
-
-Base.show(io::IO, r::IdOffsetRange) = print(io, first(r), ':', last(r))
-
-# Optimizations
-@inline Base.checkindex(::Type{Bool}, inds::IdOffsetRange, i::Real) = Base.checkindex(Bool, inds.parent, i - inds.offset)
+include("axes.jl")
 
 ## OffsetArray
 struct OffsetArray{T,N,AA<:AbstractArray} <: AbstractArray{T,N}
