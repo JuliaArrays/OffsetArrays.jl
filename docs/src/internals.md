@@ -106,3 +106,13 @@ julia> oa2[ax2[2]]
 ```
 
 `IdOffsetRange`s apply the offset both to the values and the indices of the range, and otherwise preserve the parent range.
+
+!!! warning
+
+    There are circumstances where constructing a specific type of `IdOffsetRange` cannot be supported without changing the axes of the range (see [`OffsetArrays.IdOffsetRange`](@ref).)
+    In the future, this package will distinguish between *construction*  and *conversion*:
+
+    - construction (aka, *coercion*) will always succeed, even if it has to change the axes of the result (Examples: `RangeType(rng)`, `typeof(rng1)(rng2)`)
+    - conversion will succeed only if it can preserve both the values and the axes (Examples: `convert(RangeType, rng)`, `oftype(rng1, rng2)`)
+
+    While these behave equivalently now (conversion currently performs coercion), developers are encouraged to "future-proof" their code by choosing the behavior appropriate for each usage.

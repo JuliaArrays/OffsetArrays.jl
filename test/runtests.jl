@@ -63,10 +63,14 @@ using CatIndices: BidirectionalVector
     @test typeof(r2) === typeof(rs)
     @test same_value(r2, 1:3)
     check_indexed_by(r2, 1:3)
-    @test_throws ArgumentError oftype(ro, rs)
+    # These two broken tests can be fixed by uncommenting the `convert` definitions
+    # in axes.jl, but unfortunately Julia may not quite be ready for this. (E.g. `reinterpretarray.jl`)
+    @test_broken try oftype(ro, rs); false catch err true end  # replace with line below
+    # @test_throws ArgumentError oftype(ro, rs)
     @test @inferred(oftype(ro, Base.OneTo(2))) === OffsetArrays.IdOffsetRange(Base.OneTo(2))
     @test @inferred(oftype(ro, 1:2)) === OffsetArrays.IdOffsetRange(Base.OneTo(2))
-    @test_throws ArgumentError oftype(ro, 3:4)
+    @test_broken try oftype(ro, 3:4); false catch err true end
+    # @test_throws ArgumentError oftype(ro, 3:4)
 end
 
 @testset "Single-entry arrays in dims 0:5" begin
