@@ -129,12 +129,12 @@ offset_coerce(::Type{I}, r::AbstractUnitRange) where I<:AbstractUnitRange{T} whe
 @inline Base.unsafe_indices(r::IdOffsetRange) = (r,)
 @inline Base.length(r::IdOffsetRange) = length(r.parent)
 
-function Base.iterate(r::IdOffsetRange)
+@inline function Base.iterate(r::IdOffsetRange)
     ret = iterate(r.parent)
     ret === nothing && return nothing
     return (ret[1] + r.offset, ret[2])
 end
-function Base.iterate(r::IdOffsetRange, i) where T
+@inline function Base.iterate(r::IdOffsetRange, i)
     ret = iterate(r.parent, i)
     ret === nothing && return nothing
     return (ret[1] + r.offset, ret[2])
