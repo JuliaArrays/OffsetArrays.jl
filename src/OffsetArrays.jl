@@ -73,8 +73,8 @@ OffsetArray(A::AbstractArray{T,N}, inds::Vararg{AbstractUnitRange,N}) where {T,N
     OffsetArray(A, inds)
 
 # avoid a level of indirection when nesting OffsetArrays
-function OffsetArray(A::OffsetArray, inds::NTuple{N,AbstractUnitRange}) where {N}
-    OffsetArray(parent(A), inds)
+function OffsetArray(A::OffsetArray, offsets::NTuple{N,Int}) where {N}
+    OffsetArray(parent(A), offsets .+ A.offsets)
 end
 OffsetArray(A::OffsetArray{T,0}, inds::Tuple{}) where {T} = OffsetArray(parent(A), ())
 # OffsetArray(A::OffsetArray{T,N}, inds::Tuple{}) where {T,N} = error("this should never be called")
