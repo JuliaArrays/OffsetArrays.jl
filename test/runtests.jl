@@ -124,6 +124,23 @@ end
     @test axes(y) == (r,)
 end
 
+@testset "OffsetArray of OffsetArray construction" begin
+    # guarantee no unnecessary nesting of `OffsetArray`s
+    r = -2:5
+    d = collect(r)
+    y = OffsetArray(d, r)
+
+    # range constructor
+    y0 = OffsetArray(y, 0:7)
+    @test y0[0] == r[1]
+    @test typeof(parent(y0)) <: Array
+
+    # offset constructor
+    y1 = OffsetArray(y, +2)
+    @test y1[0] == r[1]
+    @test typeof(parent(y1)) <: Array
+end
+
 @testset "Axes supplied to constructor correspond to final result" begin
     # Ref https://github.com/JuliaArrays/OffsetArrays.jl/pull/65#issuecomment-457181268
     B = BidirectionalVector([1, 2, 3], -2)
