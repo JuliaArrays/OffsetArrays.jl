@@ -128,6 +128,12 @@ offset_coerce(::Type{I}, r::AbstractUnitRange) where I<:AbstractUnitRange{T} whe
 @inline Base.axes1(r::IdOffsetRange) = IdOffsetRange(Base.axes1(r.parent), r.offset)
 @inline Base.unsafe_indices(r::IdOffsetRange) = (r,)
 @inline Base.length(r::IdOffsetRange) = length(r.parent)
+@inline function Base.compute_linindex(f, s, IP::Tuple, I::Tuple{IdOffsetRange, Vararg{Any}})
+    # issue 100
+    # IdOffsetRange doesn't contributes to offsets before the construction of SubArray
+    Δi =  1 - first(IP[1])
+    Base.compute_linindex(f + Δi*s, s*Base.unsafe_length(IP[1]), Base.tail(IP), Base.tail(I))
+end
 
 @inline function Base.iterate(r::IdOffsetRange)
     ret = iterate(r.parent)
