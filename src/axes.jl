@@ -124,6 +124,7 @@ end
 offset_coerce(::Type{I}, r::AbstractUnitRange) where I<:AbstractUnitRange{T} where T =
     convert(I, r), 0
 
+@inline Base.parent(r::IdOffsetRange) = r.parent
 @inline Base.axes(r::IdOffsetRange) = (Base.axes1(r),)
 @inline Base.axes1(r::IdOffsetRange) = IdOffsetRange(Base.axes1(r.parent), r.offset)
 @inline Base.unsafe_indices(r::IdOffsetRange) = (r,)
