@@ -34,6 +34,8 @@ using CatIndices: BidirectionalVector
     @test @inferred(OffsetArrays.IdOffsetRange{Int}(ro))   === ro
     @test @inferred(OffsetArrays.IdOffsetRange{Int16}(ro)) === OffsetArrays.IdOffsetRange(Base.OneTo(Int16(3)))
     @test @inferred(OffsetArrays.IdOffsetRange(ro))        === ro
+    @test parent(ro) === ro.parent
+    @test parent(rs) === rs.parent
     # construction/coercion preserves the values, altering the axes if needed
     r2 = @inferred(typeof(rs)(ro))
     @test typeof(r2) === typeof(rs)
