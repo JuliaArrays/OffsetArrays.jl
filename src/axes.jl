@@ -128,6 +128,9 @@ offset_coerce(::Type{I}, r::AbstractUnitRange) where I<:AbstractUnitRange{T} whe
 @inline Base.axes1(r::IdOffsetRange) = IdOffsetRange(Base.axes1(r.parent), r.offset)
 @inline Base.unsafe_indices(r::IdOffsetRange) = (r,)
 @inline Base.length(r::IdOffsetRange) = length(r.parent)
+# issue 100: IdOffsetRange as another index-preserving case shouldn't comtribute offsets
+@inline Base.compute_offset1(parent, stride1::Integer, dims::Tuple{Int}, inds::Tuple{IdOffsetRange}, I::Tuple) =
+    Base.compute_linindex(parent, I) - stride1*first(axes(parent, dims[1]))
 
 @inline function Base.iterate(r::IdOffsetRange)
     ret = iterate(r.parent)

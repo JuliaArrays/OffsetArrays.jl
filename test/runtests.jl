@@ -278,6 +278,37 @@ end
     @test S[1,4] == S[4] == 4
     @test_throws BoundsError S[1,1]
     @test axes(S) == IdentityUnitRange.((0:1, 3:4))
+    S = view(A, axes(A)...)
+    @test S == A
+    @test S[0,3] == S[1] == 1
+    @test S[1,3] == S[2] == 2
+    @test S[0,4] == S[3] == 3
+    @test S[1,4] == S[4] == 4
+    @test_throws BoundsError S[1,1]
+    @test axes(S) == OffsetArrays.IdOffsetRange.((0:1, 3:4))
+    # issue 100
+    S = view(A, axes(A, 1), 3)
+    @test S == A[:, 3]
+    @test S[0] == 1
+    @test S[1] == 2
+    @test_throws BoundsError S[length(S)]
+    @test axes(S) == (OffsetArrays.IdOffsetRange(0:1), )
+    # issue 100
+    S = view(A, 1, axes(A, 2))
+    @test S == A[1, :]
+    @test S[3] == 2
+    @test S[4] == 4
+    @test_throws BoundsError S[1]
+    @test axes(S) == (OffsetArrays.IdOffsetRange(3:4), )
+
+    A0 = collect(reshape(1:24, 2, 3, 4))
+    A = OffsetArray(A0, (-1,2,1))
+    S = view(A, axes(A, 1), 3:4, axes(A, 3))
+    @test S == A[:, 3:4, :]
+    @test S[0, 1, 2] == A[0, 3, 2]
+    @test S[0, 2, 2] == A[0, 4, 2]
+    @test S[1, 1, 2] == A[1, 3, 2]
+    @test axes(S) == (OffsetArrays.IdOffsetRange(0:1), Base.OneTo(2), OffsetArrays.IdOffsetRange(2:5))
 end
 
 @testset "iteration" begin
