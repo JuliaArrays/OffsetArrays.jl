@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>OffsetArrays.jl · OffsetArrays</title><link href="https://fonts.googleapis.com/css?family=Lato|Roboto+Mono" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.11.1/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="assets/documenter.js"></script><script src="siteinfo.js"></script><script src="../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-dark.css" data-theme-name="documenter-dark"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit">OffsetArrays</span></div><form class="docs-search" action="search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li class="is-active"><a class="tocitem" href>OffsetArrays.jl</a><ul class="internal"><li><a class="tocitem" href="#Usage-1"><span>Usage</span></a></li><li><a class="tocitem" href="#Example:-Relativistic-Notation-1"><span>Example: Relativistic Notation</span></a></li><li><a class="tocitem" href="#Example:-Polynomials-1"><span>Example: Polynomials</span></a></li></ul></li><li><a class="tocitem" href="internals/">For developers</a></li><li><a class="tocitem" href="reference/">Reference</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>OffsetArrays.jl</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>OffsetArrays.jl</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/JuliaArrays/OffsetArrays.jl/blob/master/docs/src/index.md" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="OffsetArrays.jl-1"><a class="docs-heading-anchor" href="#OffsetArrays.jl-1">OffsetArrays.jl</a><a class="docs-heading-anchor-permalink" href="#OffsetArrays.jl-1" title="Permalink"></a></h1><p>OffsetArrays provides Julia users with arrays that have arbitrary indices, similar to those found in some other programming languages like Fortran. Below is the basic usage found in the README, followed by a couple of short examples illustrating circumstances in which OffsetArrays can be useful. For a lengthier discussion, see <a href="https://julialang.org/blog/2017/04/offset-arrays/">this blog post</a>.</p><h2 id="Usage-1"><a class="docs-heading-anchor" href="#Usage-1">Usage</a><a class="docs-heading-anchor-permalink" href="#Usage-1" title="Permalink"></a></h2><p>You can construct such arrays as follows:</p><pre><code class="language-julia">OA = OffsetArray(A, axis1, axis2, ...)</code></pre><p>where you want <code>OA</code> to have axes <code>(axis1, axis2, ...)</code> and be indexed by values that fall within these axis ranges. Example:</p><pre><code class="language-julia">using OffsetArrays
+A = Float64.(reshape(1:15, 3, 5))
+println(&quot;Here is A:&quot;)
+display(A)
+OA = OffsetArray(A, -1:1, 0:4)    # OA will have axes (-1:1, 0:4)
+println(&quot;Here is OA:&quot;)
+display(OA)
+@show OA[-1,0] OA[1,4]</code></pre><p>gives the output</p><pre><code class="language-julia">here is A:
+3×5 Array{Float64,2}:
+ 1.0  4.0  7.0  10.0  13.0
+ 2.0  5.0  8.0  11.0  14.0
+ 3.0  6.0  9.0  12.0  15.0
+here is OA:
+3×5 OffsetArray(::Array{Float64,2}, -1:1, 0:4) with eltype Float64 with indices -1:1×0:4:
+ 1.0  4.0  7.0  10.0  13.0
+ 2.0  5.0  8.0  11.0  14.0
+ 3.0  6.0  9.0  12.0  15.0
+OA[-1, 0] = 1.0
+OA[1, 4] = 15.0</code></pre><p>OffsetArrays works for arbitrary dimensionality:</p><pre><code class="language-julia">julia&gt; using OffsetArrays
+
+julia&gt; y = OffsetArray{Float64}(undef, -1:1, -7:7, -128:512, -5:5, -1:1, -3:3, -2:2, -1:1);
+
+julia&gt; summary(y)
+&quot;OffsetArrays.OffsetArray{Float64,8,Array{Float64,8}} with indices -1:1×-7:7×-128:512×-5:5×-1:1×-3:3×-2:2×-1:1&quot;
+
+julia&gt; y[-1,-7,-128,-5,-1,-3,-2,-1] = 14
+14
+
+julia&gt; y[-1,-7,-128,-5,-1,-3,-2,-1] += 5
+19.0</code></pre><p>You can use <code>OffsetArrays.no_offset_view(A)</code> if you want to return a view of the data in <code>A</code> but where indexing starts at 1.</p><h2 id="Example:-Relativistic-Notation-1"><a class="docs-heading-anchor" href="#Example:-Relativistic-Notation-1">Example: Relativistic Notation</a><a class="docs-heading-anchor-permalink" href="#Example:-Relativistic-Notation-1" title="Permalink"></a></h2><p>Suppose we have a position vector <code>r = [:x, :y, :z]</code> which is naturally one-based, ie. <code>r[1] == :x</code>, <code>r[2] == :y</code>,  <code>r[3] == :z</code> and we also want to construct a relativistic position vector which includes time as the 0th component. This can be done with OffsetArrays like</p><pre><code class="language-julia-repl">julia&gt; using OffsetArrays
+
+julia&gt; r = [:x, :y, :z];
+
+julia&gt; x = OffsetVector([:t, r...], 0:3)
+4-element OffsetArray(::Array{Symbol,1}, 0:3) with eltype Symbol with indices 0:3:
+ :t
+ :x
+ :y
+ :z
+
+julia&gt; x[0]
+:t
+
+julia&gt; x[1:3]
+3-element Array{Symbol,1}:
+ :x
+ :y
+ :z</code></pre><h2 id="Example:-Polynomials-1"><a class="docs-heading-anchor" href="#Example:-Polynomials-1">Example: Polynomials</a><a class="docs-heading-anchor-permalink" href="#Example:-Polynomials-1" title="Permalink"></a></h2><p>Suppose one wants to represent the Laurent polynomial</p><pre><code class="language-none">6/x + 5 - 2*x + 3*x^2 + x^3</code></pre><p>in julia. The coefficients of this polynomial are a naturally <code>-1</code> based list, since the <code>n</code>th element of the list (counting from <code>-1</code>) <code>6, 5, -2, 3, 1</code> is the coefficient corresponding to the <code>n</code>th power of <code>x</code>. This Laurent polynomial can be evaluated at say <code>x = 2</code> as follows.</p><pre><code class="language-julia-repl">julia&gt; using OffsetArrays
+
+julia&gt; coeffs = OffsetVector([6, 5, -2, 3, 1], -1:3)
+5-element OffsetArray(::Array{Int64,1}, -1:3) with eltype Int64 with indices -1:3:
+  6
+  5
+ -2
+  3
+  1
+
+julia&gt; polynomial(x, coeffs) = sum(coeffs[n]*x^n for n in eachindex(coeffs))
+polynomial (generic function with 1 method)
+
+julia&gt; polynomial(2.0, coeffs)
+24.0</code></pre><p>Notice our use of the <code>eachindex</code> function which does not assume that the given array starts at <code>1</code>.</p></article><nav class="docs-footer"><a class="docs-footer-nextpage" href="internals/">For developers »</a></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Saturday 7 March 2020 07:12">Saturday 7 March 2020</span>. Using Julia version 1.3.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
