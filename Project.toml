@@ -1,6 +1,6 @@
 name = "OffsetArrays"
 uuid = "6fe1bfb0-de20-5000-8ca7-80f57d26f881"
-version = "1.0.3"
+version = "1.0.4"
 
 [compat]
 julia = "0.7, 1"
