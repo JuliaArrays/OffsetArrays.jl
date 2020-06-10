@@ -158,6 +158,14 @@ end
     return IdOffsetRange(r.parent[s .- r.offset], r.offset)
 end
 
+# offset-preserve broadcasting
+Broadcast.broadcasted(::Base.Broadcast.DefaultArrayStyle{1}, ::typeof(-), r::IdOffsetRange{T}, x::Integer) where T =
+    IdOffsetRange{T}(r.parent .- x, r.offset)
+Broadcast.broadcasted(::Base.Broadcast.DefaultArrayStyle{1}, ::typeof(+), r::IdOffsetRange{T}, x::Integer) where T =
+    IdOffsetRange{T}(r.parent .+ x, r.offset)
+Broadcast.broadcasted(::Base.Broadcast.DefaultArrayStyle{1}, ::typeof(+), x::Integer, r::IdOffsetRange{T}) where T =
+    IdOffsetRange{T}(x .+ r.parent, r.offset)
+
 Base.show(io::IO, r::IdOffsetRange) = print(io, first(r), ':', last(r))
 
 # Optimizations
