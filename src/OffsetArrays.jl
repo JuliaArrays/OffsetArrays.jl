@@ -126,15 +126,15 @@ function Base.similar(::Type{T}, shape::Tuple{OffsetAxis,Vararg{OffsetAxis}}) wh
 end
 
 Base.fill(v, inds::NTuple{N, Union{Integer, AbstractUnitRange}}) where {N} =
-    fill!(OffsetArray(Array{typeof(v), N}(undef, map(indexlength, inds)), map(indexoffset, inds)), v)
+    fill!(similar(Array{typeof(v)}, inds), v)
 Base.zeros(::Type{T}, inds::NTuple{N, Union{Integer, AbstractUnitRange}}) where {T, N} =
-    fill!(OffsetArray(Array{T, N}(undef, map(indexlength, inds)), map(indexoffset, inds)), zero(T))
+    fill!(similar(Array{T}, inds), zero(T))
 Base.ones(::Type{T}, inds::NTuple{N, Union{Integer, AbstractUnitRange}}) where {T, N} =
-    fill!(OffsetArray(Array{T, N}(undef, map(indexlength, inds)), map(indexoffset, inds)), one(T))
+    fill!(similar(Array{T}, inds), one(T))
 Base.trues(inds::NTuple{N, Union{Integer, AbstractUnitRange}}) where {N} =
-    fill!(OffsetArray(BitArray{N}(undef, map(indexlength, inds)), map(indexoffset, inds)), true)
+    fill!(similar(BitArray, inds), true)
 Base.falses(inds::NTuple{N, Union{Integer, AbstractUnitRange}}) where {N} =
-    fill!(OffsetArray(BitArray{N}(undef, map(indexlength, inds)), map(indexoffset, inds)), false)
+    fill!(similar(BitArray, inds), false)
 
 ## Indexing
 
