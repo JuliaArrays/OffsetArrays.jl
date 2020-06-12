@@ -125,15 +125,15 @@ function Base.similar(::Type{T}, shape::Tuple{OffsetAxis,Vararg{OffsetAxis}}) wh
     OffsetArray(P, map(offset, axes(P), shape))
 end
 
-Base.fill(v, inds::NTuple{N, Union{Integer, AbstractUnitRange}}) where {N} =
+Base.fill(v, inds::NTuple{N, Union{Integer, AbstractUnitRange{<:Integer}}}) where {N} =
     fill!(OffsetArray(Array{typeof(v), N}(undef, map(indexlength, inds)), map(indexoffset, inds)), v)
-Base.zeros(::Type{T}, inds::NTuple{N, Union{Integer, AbstractUnitRange}}) where {T, N} =
+Base.zeros(::Type{T}, inds::NTuple{N, Union{Integer, AbstractUnitRange{<:Integer}}}) where {T, N} =
     fill!(OffsetArray(Array{T, N}(undef, map(indexlength, inds)), map(indexoffset, inds)), zero(T))
-Base.ones(::Type{T}, inds::NTuple{N, Union{Integer, AbstractUnitRange}}) where {T, N} =
+Base.ones(::Type{T}, inds::NTuple{N, Union{Integer, AbstractUnitRange{<:Integer}}}) where {T, N} =
     fill!(OffsetArray(Array{T, N}(undef, map(indexlength, inds)), map(indexoffset, inds)), one(T))
-Base.trues(inds::NTuple{N, Union{Integer, AbstractUnitRange}}) where {N} =
+Base.trues(inds::NTuple{N, Union{Integer, AbstractUnitRange{<:Integer}}}) where {N} =
     fill!(OffsetArray(BitArray{N}(undef, map(indexlength, inds)), map(indexoffset, inds)), true)
-Base.falses(inds::NTuple{N, Union{Integer, AbstractUnitRange}}) where {N} =
+Base.falses(inds::NTuple{N, Union{Integer, AbstractUnitRange{<:Integer}}}) where {N} =
     fill!(OffsetArray(BitArray{N}(undef, map(indexlength, inds)), map(indexoffset, inds)), false)
 
 ## Indexing
@@ -209,9 +209,9 @@ Base.show(io::IO, ::MIME"text/plain", r::OffsetRange) = show(io, r)
 
 ### Convenience functions ###
 
-Base.fill(x, inds::Tuple{UnitRange,Vararg{UnitRange}}) =
+Base.fill(x, inds::Tuple{UnitRange{<:Integer},Vararg{UnitRange{<:Integer}}}) =
     fill!(OffsetArray{typeof(x)}(undef, inds), x)
-@inline Base.fill(x, ind1::UnitRange, inds::UnitRange...) = fill(x, (ind1, inds...))
+@inline Base.fill(x, ind1::UnitRange{<:Integer}, inds::UnitRange{<:Integer}...) = fill(x, (ind1, inds...))
 
 
 ### Some mutating functions defined only for OffsetVector ###
