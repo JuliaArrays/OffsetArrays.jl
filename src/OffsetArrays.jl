@@ -207,12 +207,6 @@ function Base.show(io::IO, r::OffsetRange)
 end
 Base.show(io::IO, ::MIME"text/plain", r::OffsetRange) = show(io, r)
 
-### Convenience functions ###
-
-Base.fill(x, inds::Tuple{UnitRange,Vararg{UnitRange}}) =
-    fill!(OffsetArray{typeof(x)}(undef, inds), x)
-@inline Base.fill(x, ind1::UnitRange, inds::UnitRange...) = fill(x, (ind1, inds...))
-
 
 ### Some mutating functions defined only for OffsetVector ###
 

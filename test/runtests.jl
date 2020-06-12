@@ -612,6 +612,14 @@ end
     B = fill(5, 1:3, -1:1)
     @test axes(B) == (1:3,-1:1)
     @test all(B.==5)
+
+    B = fill(5, (1:3, -1:1))
+    @test axes(B) == (1:3,-1:1)
+    @test all(B.==5)
+
+    B = fill(5, 3, -1:1)
+    @test axes(B) == (1:3,-1:1)
+    @test all(B.==5)
 end
 
 @testset "broadcasting" begin
