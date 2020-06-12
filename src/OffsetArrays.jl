@@ -92,8 +92,8 @@ Base.eachindex(::IndexLinear, A::OffsetVector)   = axes(A, 1)
 @inline Base.size(A::OffsetArray, d) = size(parent(A), d)
 
 @inline Base.axes(A::OffsetArray) = map(IdOffsetRange, axes(parent(A)), A.offsets)
-@inline Base.axes(A::OffsetArray, d) = d <= ndims(A) ? IdOffsetRange(axes(parent(A), d), A.offsets[d]) : Base.OneTo(1)
-@inline Base.axes1(A::OffsetArray{T,0}) where {T} = Base.OneTo(1)  # we only need to specialize this one
+@inline Base.axes(A::OffsetArray, d) = d <= ndims(A) ? IdOffsetRange(axes(parent(A), d), A.offsets[d]) : IdOffsetRange(Base.OneTo(1))
+@inline Base.axes1(A::OffsetArray{T,0}) where {T} = IdOffsetRange(Base.OneTo(1))  # we only need to specialize this one
 
 const OffsetAxis = Union{Integer, UnitRange, Base.OneTo, IdentityUnitRange, IdOffsetRange, Colon}
 Base.similar(A::OffsetArray, ::Type{T}, dims::Dims) where T =
