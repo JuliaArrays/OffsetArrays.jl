@@ -92,6 +92,7 @@ end
     @test axes(a) == ()
     @test ndims(a) == 0
     @test a[] == 3
+    @test a == OffsetArray(a, ())
 end
 
 @testset "OffsetVector constructors" begin
@@ -393,6 +394,9 @@ end
     @test similar(Array{Int}, (0:0, 0:0)) isa OffsetArray{Int, 2}
     @test similar(Array{Int}, (1, 1)) isa Matrix{Int}
     @test similar(Array{Int}, (Base.OneTo(1), Base.OneTo(1))) isa Matrix{Int}
+    B = similar(Array{Int}, (0:0, 3))
+    @test isa(B, OffsetArray{Int, 2})
+    @test axes(B) == (0:0, 1:3)
 end
 
 @testset "reshape" begin
