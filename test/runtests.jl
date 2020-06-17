@@ -73,6 +73,11 @@ using CatIndices: BidirectionalVector
     @test @inferred(oftype(ro, 1:2)) === OffsetArrays.IdOffsetRange(Base.OneTo(2))
     @test_broken try oftype(ro, 3:4); false catch err true end
     # @test_throws ArgumentError oftype(ro, 3:4)
+
+    # broadcasting behavior with scalars (issue #104)
+    r3 = (1 .+ OffsetArrays.IdOffsetRange(3:5, -1) .+ 1) .- 1
+    @test same_value(r3, 3:5)
+    check_indexed_by(r3, 0:2)
 end
 
 @testset "Single-entry arrays in dims 0:5" begin
