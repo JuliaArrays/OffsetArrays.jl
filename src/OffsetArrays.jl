@@ -157,18 +157,18 @@ end
     @boundscheck checkbounds(A, I...)
     J = @inbounds map(parentindex, axes(A), I)
     @inbounds parent(A)[J...] = val
-    val
+    A
 end
 
 @propagate_inbounds function Base.setindex!(A::OffsetVector, val, i::Int)
     @boundscheck checkbounds(A, i)
     @inbounds parent(A)[parentindex(Base.axes1(A), i)] = val
-    val
+    A
 end
 @propagate_inbounds function Base.setindex!(A::OffsetArray, val, i::Int)
     @boundscheck checkbounds(A, i)
     @inbounds parent(A)[i] = val
-    val
+    A
 end
 
 # For fast broadcasting: ref https://discourse.julialang.org/t/why-is-there-a-performance-hit-on-broadcasting-with-offsetarrays/32194
