@@ -160,7 +160,9 @@ end
     A0 = [1 3; 2 4]
     A = OffsetArray(A0, (-1,2))                   # IndexLinear
     S = OffsetArray(view(A0, 1:2, 1:2), (-1,2))   # IndexCartesian
+    @test axes(A) === axes(S)
     @test axes(A) == axes(S) == (0:1, 3:4)
+    @test axes(A, 1) === OffsetArrays.IdOffsetRange(Base.OneTo(2), -1)
     @test size(A) == size(A0)
     @test size(A, 1) == size(A0, 1)
     @test length(A) == length(A0)
