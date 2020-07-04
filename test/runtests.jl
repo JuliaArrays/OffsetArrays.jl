@@ -360,11 +360,11 @@ end
 
     a = OffsetArray([1 2; 3 4], -1:0, 5:6)
     shownsz = VERSION >= v"1.2.0-DEV.229" ? Base.dims2string(size(a))*' ' : ""
-    @test summary(a) == "$(shownsz)OffsetArray(::Array{$(Int),2}, -1:0, 5:6) with eltype $(Int) with indices -1:0×5:6"
+    @test summary(a) == "$(shownsz)OffsetArray(::$(typeof(parent(a))), -1:0, 5:6) with eltype $(Int) with indices -1:0×5:6"
     shownsz = VERSION >= v"1.2.0-DEV.229" ? Base.dims2string(size(view(a, :, 5)))*' ' : ""
-    @test summary(view(a, :, 5)) == "$(shownsz)view(OffsetArray(::Array{$(Int),2}, -1:0, 5:6), :, 5) with eltype $(Int) with indices -1:0"
+    @test summary(view(a, :, 5)) == "$(shownsz)view(OffsetArray(::$(typeof(parent(a))), -1:0, 5:6), :, 5) with eltype $(Int) with indices -1:0"
     a = OffsetArray(reshape([1]))
-    @test summary(a) == "0-dimensional OffsetArray(::Array{$(Int),0}) with eltype $(Int)"
+    @test summary(a) == "0-dimensional OffsetArray(::$(typeof(parent(a)))) with eltype $(Int)"
 
     show(io, OffsetArray(3:5, 0:2))
     @test String(take!(io)) == "3:5 with indices 0:2"
