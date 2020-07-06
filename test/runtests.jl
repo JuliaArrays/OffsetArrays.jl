@@ -200,6 +200,18 @@ end
     y[-1,-7,-128,-5,-1,-3,-2,-1] = 14
     y[-1,-7,-128,-5,-1,-3,-2,-1] += 5
     @test y[-1,-7,-128,-5,-1,-3,-2,-1] == 19
+
+    @testset "setindex!" begin
+        A = OffsetArray(ones(2,2), 1:2, 1:2)
+        @test setindex!(A, 2, 1, 1) === A
+        @test A[1,1] == 2
+        @test setindex!(A, 2, 1) === A
+        @test A[1] == 2
+
+        v = OffsetArray(ones(3), 4:6)
+        @test setindex!(A, 2, 4) === A
+        @test A[4] == 2
+    end
 end
 
 @testset "Vector indexing" begin
