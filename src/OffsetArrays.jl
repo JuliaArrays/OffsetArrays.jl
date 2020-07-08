@@ -240,6 +240,11 @@ printindices(io::IO, ind1) = print(io, _unslice(ind1))
 _unslice(x) = x
 _unslice(x::IdentityUnitRange) = x.indices
 
+function Base.replace_in_print_matrix(A::OffsetArray, i::Integer, j::Integer, s::AbstractString)
+    J = map(parentindex, axes(A), (i,j))
+    Base.replace_in_print_matrix(parent(A), J..., s)
+end
+
 """
     no_offset_view(A)
 

@@ -8,7 +8,8 @@ julia = "0.7, 1"
 [extras]
 CatIndices = "aafaddc9-749c-510e-ac4f-586e18779b91"
 DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["CatIndices", "DelimitedFiles", "Test"]
+test = ["CatIndices", "DelimitedFiles", "Test", "LinearAlgebra"]

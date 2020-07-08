@@ -3,6 +3,7 @@ using Test
 using DelimitedFiles
 using OffsetArrays: IdentityUnitRange, no_offset_view
 using CatIndices: BidirectionalVector
+using LinearAlgebra
 
 @test isempty(detect_ambiguities(OffsetArrays, Base, Core))
 
@@ -380,6 +381,13 @@ end
 
     show(io, OffsetArray(3:5, 0:2))
     @test String(take!(io)) == "3:5 with indices 0:2"
+
+    d = Diagonal([1,2,3])
+    Base.print_array(io, d)
+    s1 = String(take!(io))
+    Base.print_array(io, OffsetArray(d, -1:1, 3:5))
+    s2 = String(take!(io))
+    @test s1 == s2
 end
 
 @testset "readdlm/writedlm" begin
