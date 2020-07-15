@@ -416,6 +416,12 @@ end
     B = similar(Array{Int}, (0:0, 3))
     @test isa(B, OffsetArray{Int, 2})
     @test axes(B) == (0:0, 1:3)
+
+    @test_throws MethodError similar(A, (:,))
+    @test_throws MethodError similar(A, (: ,:))
+    @test_throws MethodError similar(A, (: ,2))
+    @test_throws MethodError similar(A, Float64, (: ,:))
+    @test_throws MethodError similar(A, Float64, (: ,2))
 end
 
 @testset "reshape" begin
