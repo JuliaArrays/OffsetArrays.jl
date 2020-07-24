@@ -95,14 +95,17 @@ Base.eachindex(::IndexLinear, A::OffsetVector)   = axes(A, 1)
 @inline Base.axes(A::OffsetArray, d) = d <= ndims(A) ? IdOffsetRange(axes(parent(A), d), A.offsets[d]) : IdOffsetRange(axes(parent(A), d))
 @inline Base.axes1(A::OffsetArray{T,0}) where {T} = IdOffsetRange(axes(parent(A), 1))  # we only need to specialize this one
 
-const OffsetAxis = Union{Integer, UnitRange, Base.OneTo, IdentityUnitRange, IdOffsetRange, Colon}
+const OffsetAxisKnownLength = Union{Integer, UnitRange, Base.OneTo, IdentityUnitRange, IdOffsetRange}
+
 Base.similar(A::OffsetArray, ::Type{T}, dims::Dims) where T =
     similar(parent(A), T, dims)
-function Base.similar(A::AbstractArray, ::Type{T}, inds::Tuple{OffsetAxis,Vararg{OffsetAxis}}) where T
+function Base.similar(A::AbstractArray, ::Type{T}, inds::Tuple{OffsetAxisKnownLength,Vararg{OffsetAxisKnownLength}}) where T
     B = similar(A, T, map(indexlength, inds))
     return OffsetArray(B, map(offset, axes(B), inds))
 end
 
+# reshape accepts a single colon
+const OffsetAxis = Union{OffsetAxisKnownLength, Colon}
 Base.reshape(A::AbstractArray, inds::OffsetAxis...) = reshape(A, inds)
 function Base.reshape(A::AbstractArray, inds::Tuple{OffsetAxis,Vararg{OffsetAxis}})
     AR = reshape(A, map(indexlength, inds))
