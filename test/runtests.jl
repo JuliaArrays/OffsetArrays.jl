@@ -185,10 +185,14 @@ end
     @test @inbounds(A[1,3]) == @inbounds(A[1,3,1]) == @inbounds(A[2]) == @inbounds(S[1,3]) == @inbounds(S[1,3,1]) == @inbounds(S[2]) == 2
     @test @inbounds(A[0,4]) == @inbounds(A[0,4,1]) == @inbounds(A[3]) == @inbounds(S[0,4]) == @inbounds(S[0,4,1]) == @inbounds(S[3]) == 3
     @test @inbounds(A[1,4]) == @inbounds(A[1,4,1]) == @inbounds(A[4]) == @inbounds(S[1,4]) == @inbounds(S[1,4,1]) == @inbounds(S[4]) == 4
-    @test_throws BoundsError A[1,1]
-    @test_throws BoundsError S[1,1]
-    @test_throws BoundsError A[0,3,2]
-    @test_throws BoundsError A[0,3,0]
+    @test_throws BoundsError(A, (1,1)) A[1,1]
+    @test_throws BoundsError(A, (1,1)) A[1,1] = 4
+    @test_throws BoundsError(S, (1,1)) S[1,1]
+    @test_throws BoundsError(S, (1,1)) S[1,1] = 4
+    @test_throws BoundsError(A, (0,3,2)) A[0,3,2]
+    @test_throws BoundsError(A, (0,3,2)) A[0,3,2] = 4
+    @test_throws BoundsError(A, (0,3,0)) A[0,3,0]
+    @test_throws BoundsError(A, (0,3,0)) A[0,3,0] = 4
     Ac = copy(A)
     Ac[0,3] = 10
     @test Ac[0,3] == 10

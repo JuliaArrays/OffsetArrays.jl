@@ -148,29 +148,32 @@ Base.falses(inds::NTuple{N, Union{Integer, AbstractUnitRange}}) where {N} =
 # and one obtains the result below.
 parentindex(r::IdOffsetRange, i) = i - r.offset
 
-@propagate_inbounds function Base.getindex(A::OffsetArray{T,N}, I::Vararg{Int,N}) where {T,N}
+@inline function Base.getindex(A::OffsetArray{T,N}, I::Vararg{Int,N}) where {T,N}
+    @boundscheck checkbounds(A, I...)
     J = map(parentindex, axes(A), I)
-    return parent(A)[J...]
+    @inbounds parent(A)[J...]
 end
 
-@propagate_inbounds Base.getindex(A::OffsetVector, i::Int) = parent(A)[parentindex(Base.axes1(A), i)]
+@inline function Base.getindex(A::OffsetVector, i::Int)
+    @boundscheck checkbounds(A, i)
+    @inbounds parent(A)[parentindex(Base.axes1(A), i)]
+end
 @propagate_inbounds Base.getindex(A::OffsetArray, i::Int)  = parent(A)[i]
 
-@propagate_inbounds function Base.setindex!(A::OffsetArray{T,N}, val, I::Vararg{Int,N}) where {T,N}
+@inline function Base.setindex!(A::OffsetArray{T,N}, val, I::Vararg{Int,N}) where {T,N}
     @boundscheck checkbounds(A, I...)
     J = @inbounds map(parentindex, axes(A), I)
     @inbounds parent(A)[J...] = val
     A
 end
 
-@propagate_inbounds function Base.setindex!(A::OffsetVector, val, i::Int)
+@inline function Base.setindex!(A::OffsetVector, val, i::Int)
     @boundscheck checkbounds(A, i)
     @inbounds parent(A)[parentindex(Base.axes1(A), i)] = val
     A
 end
 @propagate_inbounds function Base.setindex!(A::OffsetArray, val, i::Int)
-    @boundscheck checkbounds(A, i)
-    @inbounds parent(A)[i] = val
+    parent(A)[i] = val
     A
 end
 
