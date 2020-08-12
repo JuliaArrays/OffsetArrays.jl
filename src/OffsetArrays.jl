@@ -7,7 +7,7 @@ else
     using Base: IdentityUnitRange
 end
 
-export OffsetArray, OffsetVector
+export OffsetArray, OffsetMatrix, OffsetVector
 
 include("axes.jl")
 
@@ -17,6 +17,7 @@ struct OffsetArray{T,N,AA<:AbstractArray} <: AbstractArray{T,N}
     offsets::NTuple{N,Int}
 end
 OffsetVector{T,AA<:AbstractArray} = OffsetArray{T,1,AA}
+OffsetMatrix{T,AA<:AbstractArray} = OffsetArray{T,2,AA}
 
 ## OffsetArray constructors
 
@@ -43,6 +44,10 @@ OffsetArray{T}(init::ArrayInitializer, inds::Vararg{AbstractUnitRange,N}) where 
 # OffsetVector constructors
 OffsetVector(A::AbstractVector, offset) = OffsetArray(A, offset)
 OffsetVector{T}(init::ArrayInitializer, inds::AbstractUnitRange) where {T} = OffsetArray{T}(init, inds)
+
+# OffsetMatrix constructors
+OffsetMatrix(A::AbstractMatrix, offset1, offset2) = OffsetArray(A, offset1, offset2)
+OffsetMatrix{T}(init::ArrayInitializer, inds1::AbstractUnitRange, inds2::AbstractUnitRange) where {T} = OffsetArray{T}(init, inds1, inds2)
 
 """
     OffsetArray(A, indices...)
