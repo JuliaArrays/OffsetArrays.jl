@@ -108,6 +108,13 @@ end
     @test typeof(OffsetVector{Float64}(undef, -2:2)) == typeof(OffsetArray{Float64}(undef, -2:2))
 end
 
+@testset "OffsetMatrix constructors" begin
+    local v = rand(5, 3)
+    @test OffsetMatrix(v, -2, -1) == OffsetArray(v, -2, -1)
+    @test OffsetMatrix(v, -2:2, -1:1) == OffsetArray(v, -2:2, -1:1)
+    @test typeof(OffsetMatrix{Float64}(undef, -2:2, -1:1)) == typeof(OffsetArray{Float64}(undef, -2:2, -1:1))
+end
+
 @testset "undef, missing, and nothing constructors" begin
     y = OffsetArray{Float32}(undef, (IdentityUnitRange(-1:1),))
     @test axes(y) == (IdentityUnitRange(-1:1),)
