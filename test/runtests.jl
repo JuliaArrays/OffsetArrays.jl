@@ -335,6 +335,35 @@ end
     @test_throws BoundsError S[1]
     @test axes(S) == (OffsetArrays.IdOffsetRange(3:4), )
 
+    # issue 133
+    r = OffsetArrays.IdOffsetRange(1:2, -1)
+    v1 = view(A, r, 3)
+    @test v1[0] == 1
+    @test v1[1] == 2
+    @test axes(v1, 1) == axes(r, 1)
+    v2 = view(A, UnitRange(r), 3)
+    for (indflat, indoffset) in enumerate(r)
+        @test v1[indoffset] == v2[indflat]
+    end
+
+    # issue 133
+    r = OffsetArrays.IdOffsetRange(1:2, 2)
+    v1 = view(A, 1, r)
+    @test v1[3] == 2
+    @test v1[4] == 4
+    @test axes(v1, 1) == axes(r, 1)
+    v2 = view(A, 1, UnitRange(r))
+    for (indflat, indoffset) in enumerate(r)
+        @test v1[indoffset] == v2[indflat]
+    end
+
+    # issue 133
+    a12 = zeros(3:8, 3:4)
+    r = OffsetArrays.IdOffsetRange(Base.OneTo(3), 5)
+    a12[r, 4] .= 3
+    @test all(a12[r, 4] .== 3)
+    @test all(a12[UnitRange(r), 4] .== 3)
+
     A0 = collect(reshape(1:24, 2, 3, 4))
     A = OffsetArray(A0, (-1,2,1))
     S = view(A, axes(A, 1), 3:4, axes(A, 3))

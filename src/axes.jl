@@ -131,7 +131,7 @@ offset_coerce(::Type{I}, r::AbstractUnitRange) where I<:AbstractUnitRange{T} whe
 @inline Base.length(r::IdOffsetRange) = length(r.parent)
 # issue 100: IdOffsetRange as another index-preserving case shouldn't comtribute offsets
 @inline Base.compute_offset1(parent, stride1::Integer, dims::Tuple{Int}, inds::Tuple{IdOffsetRange}, I::Tuple) =
-    Base.compute_linindex(parent, I) - stride1*first(axes(parent, dims[1]))
+    Base.compute_linindex(parent, I) - stride1*first(inds[1])
 Base.reduced_index(i::IdOffsetRange) = typeof(i)(first(i):first(i))
 # Workaround for #92 on Julia < 1.4
 Base.reduced_index(i::IdentityUnitRange{<:IdOffsetRange}) = typeof(i)(first(i):first(i))
