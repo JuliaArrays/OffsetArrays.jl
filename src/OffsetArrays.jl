@@ -77,6 +77,17 @@ end
 OffsetArray(A::AbstractArray{T,N}, inds::Vararg{AbstractUnitRange,N}) where {T,N} =
     OffsetArray(A, inds)
 
+uncolonindices(A::AbstractArray{<:Any,N}, inds::NTuple{N,Any}) where {N} = uncolonindices(axes(A), inds)
+uncolonindices(ax::Tuple, inds::Tuple) = (first(inds), uncolonindices(tail(ax), tail(inds))...)
+uncolonindices(ax::Tuple, inds::Tuple{Colon, Vararg{Any}}) = (first(ax), uncolonindices(tail(ax), tail(inds))...)
+uncolonindices(::Tuple{}, ::Tuple{}) = ()
+
+function OffsetArray(A::AbstractArray{T,N}, inds::NTuple{N,Union{AbstractUnitRange, Colon}}) where {T,N}
+    OffsetArray(A, uncolonindices(A, inds))
+end
+OffsetArray(A::AbstractArray{T,N}, inds::Vararg{Union{AbstractUnitRange, Colon},N}) where {T,N} =
+    OffsetArray(A, uncolonindices(A, inds))
+
 # avoid a level of indirection when nesting OffsetArrays
 function OffsetArray(A::OffsetArray, offsets::NTuple{N,Int}) where {N}
     OffsetArray(parent(A), offsets .+ A.offsets)
