@@ -107,8 +107,7 @@ end
     @test OffsetVector(v, -2:2) == OffsetArray(v, -2:2)
     @test typeof(OffsetVector{Float64}(undef, -2:2)) == typeof(OffsetArray{Float64}(undef, -2:2))
 
-    @test OffsetVector(v, :) == OffsetArray(v, :)
-    @test OffsetVector(v, :) == OffsetArray(v, axes(v))
+    @test OffsetVector(v, :) == OffsetArray(v, (:,)) == OffsetArray(v, :) == OffsetArray(v, axes(v))
 end
 
 @testset "OffsetMatrix constructors" begin
@@ -117,8 +116,7 @@ end
     @test OffsetMatrix(v, -2:2, -1:1) == OffsetArray(v, -2:2, -1:1)
     @test typeof(OffsetMatrix{Float64}(undef, -2:2, -1:1)) == typeof(OffsetArray{Float64}(undef, -2:2, -1:1))
 
-    @test OffsetMatrix(v, :, :) == OffsetArray(v, :, :)
-    @test OffsetMatrix(v, :, :) == OffsetArray(v, axes(v))
+    @test OffsetMatrix(v, :, :) == OffsetArray(v, (:, :)) == OffsetArray(v, :, :) == OffsetArray(v, axes(v))
     @test OffsetMatrix(v, :, 2:4) == OffsetArray(v, axes(v,1), 2:4)
     @test OffsetMatrix(v, 3:7, :) == OffsetArray(v, 3:7, axes(v,2))
 end
