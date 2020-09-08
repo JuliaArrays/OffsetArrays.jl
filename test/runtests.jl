@@ -1,16 +1,14 @@
-using Test
+using OffsetArrays
+using OffsetArrays: IdentityUnitRange, no_offset_view
+using Test, Aqua
 using LinearAlgebra
 using DelimitedFiles
 using CatIndices: BidirectionalVector
 
-refambs = detect_ambiguities(Base, Core)
-
-using OffsetArrays
-using OffsetArrays: IdentityUnitRange, no_offset_view
-
-# make sure OffsetArrays doesn't contribute more ambiguities
-ambs = detect_ambiguities(OffsetArrays, Base, Core)
-@test length(setdiff(ambs, refambs)) == 0
+@testset "Project meta quality checks" begin
+    # Not checking compat section for test-only dependencies
+    Aqua.test_all(OffsetArrays; project_extras=true, deps_compat=true, stale_deps=true, project_toml_formatting=true)
+end
 
 @testset "IdOffsetRange" begin
     function same_value(r1, r2)
