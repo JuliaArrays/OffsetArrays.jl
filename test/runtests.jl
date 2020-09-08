@@ -1,11 +1,16 @@
-using OffsetArrays
 using Test
-using DelimitedFiles
-using OffsetArrays: IdentityUnitRange, no_offset_view
-using CatIndices: BidirectionalVector
 using LinearAlgebra
+using DelimitedFiles
+using CatIndices: BidirectionalVector
 
-@test isempty(detect_ambiguities(OffsetArrays, Base, Core))
+refambs = detect_ambiguities(Base, Core)
+
+using OffsetArrays
+using OffsetArrays: IdentityUnitRange, no_offset_view
+
+# make sure OffsetArrays doesn't contribute more ambiguities
+ambs = detect_ambiguities(OffsetArrays, Base, Core)
+@test length(setdiff(ambs, refambs)) == 0
 
 @testset "IdOffsetRange" begin
     function same_value(r1, r2)
