@@ -162,7 +162,7 @@ Base.falses(inds::NTuple{N, Union{Integer, AbstractUnitRange}}) where {N} =
 #   Δi = i - first(r)
 #   i′ = first(r.parent) + Δi
 # and one obtains the result below.
-parentindex(r::IdOffsetRange, i) = i - r.offset
+parentindex(r::IdOffsetRange, i) = i .- r.offset
 
 @inline function Base.getindex(A::OffsetArray{T,N}, I::Vararg{Int,N}) where {T,N}
     @boundscheck checkbounds(A, I...)
@@ -237,6 +237,21 @@ Base.push!(A::OffsetVector, x...) = (push!(A.parent, x...); A)
 Base.pop!(A::OffsetVector) = pop!(A.parent)
 Base.append!(A::OffsetVector, items) = (append!(A.parent, items); A)
 Base.empty!(A::OffsetVector) = (empty!(A.parent); A)
+
+function Base.insert!(A::OffsetVector, i::Integer, item)
+    insert!(A.parent, parentindex(Base.axes1(A), i), item)
+    A
+end
+
+function Base.deleteat!(A::OffsetVector, i::Integer)
+    deleteat!(A.parent, parentindex(Base.axes1(A), i))
+    A
+end
+
+function Base.deleteat!(A::OffsetVector, r::UnitRange{<:Integer})
+    deleteat!(A.parent, parentindex(axes(A)[1], r))
+    A
+end
 
 ### Low-level utilities ###
 

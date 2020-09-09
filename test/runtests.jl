@@ -835,6 +835,14 @@ end
     o = OffsetVector([1, 2, 3], -1)
     @test empty!(o) === o
     @test axes(o, 1) == 0:-1
+    # insert!
+    o = OffsetVector([4], 0:0)
+    @test insert!(o, 1, 2) == OffsetVector([4,2], 0:1)
+    @test insert!(o, 0, 1) == OffsetVector([1,4,2], 0:2)
+    # deleteat!
+    o = OffsetVector([10,11,12,13,14], 0:4)
+    @test deleteat!(o, 1:2) == OffsetVector([10,13,14], 0:2)
+    @test deleteat!(o, 0) == OffsetVector([13,14], 0:1)
 end
 
 @testset "searchsorted (#85)" begin
