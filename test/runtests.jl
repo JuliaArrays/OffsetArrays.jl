@@ -827,6 +827,10 @@ end
     o = OffsetVector([1, 2, 3], -1)
     @test pop!(o) == 3
     @test axes(o, 1) == 0:1
+    # append!
+    o = OffsetVector([1, 2, 3], -1)
+    append!(o, [4, 5])
+    @test axes(o, 1) == 0:4
     # empty!
     o = OffsetVector([1, 2, 3], -1)
     @test empty!(o) === o
