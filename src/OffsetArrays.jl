@@ -47,6 +47,7 @@ OffsetVector{T}(init::ArrayInitializer, inds::AbstractUnitRange) where {T} = Off
 
 # OffsetMatrix constructors
 OffsetMatrix(A::AbstractMatrix, offset1, offset2) = OffsetArray(A, offset1, offset2)
+OffsetMatrix(A::AbstractMatrix, I::CartesianIndices{2}) = OffsetArray(A, I)
 OffsetMatrix{T}(init::ArrayInitializer, inds1::AbstractUnitRange, inds2::AbstractUnitRange) where {T} = OffsetArray{T}(init, inds1, inds2)
 
 """
@@ -82,11 +83,62 @@ uncolonindices(ax::Tuple, inds::Tuple) = (first(inds), uncolonindices(tail(ax), 
 uncolonindices(ax::Tuple, inds::Tuple{Colon, Vararg{Any}}) = (first(ax), uncolonindices(tail(ax), tail(inds))...)
 uncolonindices(::Tuple{}, ::Tuple{}) = ()
 
-function OffsetArray(A::AbstractArray{T,N}, inds::NTuple{N,Union{AbstractUnitRange, Colon}}) where {T,N}
+function OffsetArray(A::AbstractArray{T,N}, inds::NTuple{N,Union{AbstractUnitRange, CartesianIndices{1}, Colon}}) where {T,N}
     OffsetArray(A, uncolonindices(A, inds))
 end
-OffsetArray(A::AbstractArray{T,N}, inds::Vararg{Union{AbstractUnitRange, Colon},N}) where {T,N} =
+OffsetArray(A::AbstractArray{T,N}, inds::Vararg{Union{AbstractUnitRange, CartesianIndices{1}, Colon},N}) where {T,N} =
     OffsetArray(A, uncolonindices(A, inds))
+
+# Specify offsets using CartesianIndices (issue #71)
+# Support a mix of AbstractUnitRanges and CartesianIndices{1}
+# Extract the range r from CartesianIndices((r,))
+function stripCartesianIndices(inds::Tuple{CartesianIndices{1},Vararg{Any}})
+    I = first(inds)
+    Ir = first(I.indices)
+    (Ir, stripCartesianIndices(tail(inds))...)
+end
+stripCartesianIndices(inds::Tuple)= (first(inds), stripCartesianIndices(tail(inds))...)
+stripCartesianIndices(::Tuple{}) = ()
+
+OffsetArray(A::AbstractArray{<:Any,N}, inds::NTuple{N,Union{CartesianIndices{1}, AbstractUnitRange}}) where {N} = 
+    OffsetArray(A, stripCartesianIndices(inds))
+OffsetArray(A::AbstractArray{<:Any,N}, inds::Vararg{Union{CartesianIndices{1}, AbstractUnitRange},N}) where {N} = 
+    OffsetArray(A, inds)
+
+# Support an arbitrary CartesianIndices alongside colons and ranges
+# The total number of indices should equal ndims(arr)
+# We split the CartesianIndices{N} into N CartesianIndices{1} indices to facilitate dispatch
+splitCartesianIndices(c::CartesianIndices{0}) = ()
+function splitCartesianIndices(c::CartesianIndices)
+    c1, ct = Base.IteratorsMD.split(c, Val(1))
+    (c1, splitCartesianIndices(ct)...)
+end
+function splitCartesianIndices(t::Tuple{CartesianIndices, Vararg{Any}})
+    (splitCartesianIndices(first(t))..., splitCartesianIndices(tail(t))...)
+end
+function splitCartesianIndices(t::Tuple)
+    (first(t), splitCartesianIndices(tail(t))...)
+end
+splitCartesianIndices(::Tuple{}) = ()
+
+function OffsetArray(A::AbstractArray, inds::Tuple{Vararg{Union{AbstractUnitRange, CartesianIndices, Colon}}})
+    OffsetArray(A, splitCartesianIndices(inds))
+end
+function OffsetArray(A::AbstractArray, inds::Vararg{Union{AbstractUnitRange, CartesianIndices, Colon}})
+    OffsetArray(A, inds)
+end
+
+# Add methods to initialize OffsetArrays using CartesianIndices (issue #71)
+function OffsetArray{T,N}(init::ArrayInitializer, inds::Tuple{Vararg{Union{AbstractUnitRange, CartesianIndices}}}) where {T,N}
+    indsN = stripCartesianIndices(splitCartesianIndices(inds))
+    OffsetArray{T,N}(init, indsN)
+end
+function OffsetArray{T}(init::ArrayInitializer, inds::Tuple{Vararg{Union{AbstractUnitRange, CartesianIndices}}}) where {T}
+    indsN = stripCartesianIndices(splitCartesianIndices(inds))
+    OffsetArray{T}(init, indsN)
+end
+OffsetArray{T,N}(init::ArrayInitializer, inds::Vararg{Union{AbstractUnitRange, CartesianIndices}}) where {T,N} = OffsetArray{T,N}(init, inds)
+OffsetArray{T}(init::ArrayInitializer, inds::Vararg{Union{AbstractUnitRange, CartesianIndices}}) where {T} = OffsetArray{T}(init, inds)
 
 # avoid a level of indirection when nesting OffsetArrays
 function OffsetArray(A::OffsetArray, offsets::NTuple{N,Int}) where {N}
