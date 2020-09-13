@@ -24,9 +24,10 @@ OffsetVector{T,AA<:AbstractArray} = OffsetArray{T,1,AA}
 OffsetMatrix{T,AA<:AbstractArray} = OffsetArray{T,2,AA}
 
 function overflow_check(r, offset::T) where T
-    throw_offseterror() = throw(ArgumentError("Boundary overflow detected: offset $offset should be smaller than $(typemax(T) - last(r))"))
     if offset > 0 && last(r) > typemax(T) - offset
-        throw_offseterror()
+        throw(ArgumentError("Boundary overflow detected: offset $offset should be equal or less than $(typemax(T) - last(r))"))
+    elseif offset < 0 && first(r) < typemin(T) - offset
+        throw(ArgumentError("Boundary overflow detected: offset $offset should be equal or greater than $(typemin(T) - first(r))"))
     end
 end
 ## OffsetArray constructors

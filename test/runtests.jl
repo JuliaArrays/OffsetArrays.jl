@@ -129,6 +129,10 @@ end
 
     @test axes(OffsetVector(v, typemax(Int)-length(v))) == (IdOffsetRange(axes(v)[1], typemax(Int)-length(v)), )
     @test_throws ArgumentError OffsetVector(v, typemax(Int)-length(v)+1)
+    ao = OffsetArray(v, typemin(Int))
+    @test_nowarn OffsetArray{Float64, 1, typeof(ao)}(ao, (-1, ))
+    @test_throws ArgumentError OffsetArray{Float64, 1, typeof(ao)}(ao, (-2, )) # inner Constructor
+    @test_throws ArgumentError OffsetArray(ao, (-2, )) # convinient constructor accumulate offsets
 end
 
 @testset "OffsetMatrix constructors" begin
