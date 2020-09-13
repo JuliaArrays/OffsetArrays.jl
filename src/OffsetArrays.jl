@@ -15,10 +15,20 @@ include("axes.jl")
 struct OffsetArray{T,N,AA<:AbstractArray} <: AbstractArray{T,N}
     parent::AA
     offsets::NTuple{N,Int}
+    function OffsetArray{T, N, AA}(parent::AA, offsets::NTuple{N, Int}) where {T, N, AA<:AbstractArray}
+        overflow_check.(axes(parent), offsets)
+        new{T, N, AA}(parent, offsets)
+    end
 end
 OffsetVector{T,AA<:AbstractArray} = OffsetArray{T,1,AA}
 OffsetMatrix{T,AA<:AbstractArray} = OffsetArray{T,2,AA}
 
+function overflow_check(r, offset::T) where T
+    throw_offseterror() = throw(ArgumentError("Boundary overflow detected: offset $offset should be smaller than $(typemax(T) - last(r))"))
+    if offset > 0 && last(r) > typemax(T) - offset
+        throw_offseterror()
+    end
+end
 ## OffsetArray constructors
 
 offset(axparent::AbstractUnitRange, ax::AbstractUnitRange) = first(ax) - first(axparent)
