@@ -94,7 +94,7 @@ OffsetArray(A::AbstractArray{T,N}, inds::Vararg{Union{AbstractUnitRange, Cartesi
 # Extract the range r from CartesianIndices((r,))
 function stripCartesianIndices(inds::Tuple{CartesianIndices{1},Vararg{Any}})
     I = first(inds)
-    Ir = first(I.indices)
+    Ir = convert(Tuple{AbstractUnitRange{Int}}, I) |> first
     (Ir, stripCartesianIndices(tail(inds))...)
 end
 stripCartesianIndices(inds::Tuple)= (first(inds), stripCartesianIndices(tail(inds))...)
