@@ -110,6 +110,15 @@ end
     @test OffsetVector(v, -2:2) == OffsetArray(v, -2:2)
     @test typeof(OffsetVector{Float64}(undef, -2:2)) == typeof(OffsetArray{Float64}(undef, -2:2))
 
+    # Issue #71
+    ov = OffsetVector(v, -2:2)
+    for T in [OffsetVector, OffsetArray]
+        if VERSION >= v"1.1"
+            @test ov == T(v, CartesianIndex(-2):CartesianIndex(2))
+        end
+        @test ov == T(v, CartesianIndices((-2:2,)))
+    end
+
     @test OffsetVector(v, :) == OffsetArray(v, (:,)) == OffsetArray(v, :) == OffsetArray(v, axes(v))
     @test axes(OffsetVector(v, :)) == axes(v)
 
@@ -124,6 +133,18 @@ end
     @test OffsetMatrix(v, -2:2, -1:1) == OffsetArray(v, -2:2, -1:1)
     @test typeof(OffsetMatrix{Float64}(undef, -2:2, -1:1)) == typeof(OffsetArray{Float64}(undef, -2:2, -1:1))
 
+    # Issue #71
+    m = OffsetMatrix(v, -2:2, -1:1)
+    for T in [OffsetMatrix, OffsetArray]
+        if VERSION >= v"1.1"
+            @test m == T(v, CartesianIndex(-2, -1):CartesianIndex(2, 1))
+            @test m == T(v, CartesianIndex(-2):CartesianIndex(2), CartesianIndex(-1):CartesianIndex(1))
+            @test m == T(v, -2:2, CartesianIndex(-1):CartesianIndex(1))
+            @test m == T(v, CartesianIndex(-2):CartesianIndex(2), -1:1)
+        end
+        @test m == T(v, CartesianIndices((-2:2, -1:1)))
+    end
+
     @test OffsetMatrix(v, :, :) == OffsetArray(v, (:, :)) == OffsetArray(v, :, :) == OffsetArray(v, axes(v))
     @test OffsetMatrix(v, :, 2:4) == OffsetArray(v, axes(v,1), 2:4)
     @test OffsetMatrix(v, 3:7, :) == OffsetArray(v, 3:7, axes(v,2))
@@ -134,6 +155,28 @@ end
     @test OffsetMatrix(w, :, 2:3) == OffsetArray(w, axes(w,1), 2:3)
     @test OffsetMatrix(w, 0:1, :) == OffsetArray(w, 0:1, axes(w,2))
     @test axes(OffsetArray(w, :, :)) == axes(w)
+
+    @test axes(OffsetMatrix(w, :, CartesianIndices((0:1,)))) == (3:4, 0:1)
+    @test axes(OffsetMatrix(w, CartesianIndices((0:1,)), :)) == (0:1, 5:6)
+end
+
+@testset "construct OffsetArray with CartesianIndices" begin
+    a = rand(2, 2, 2)
+    oa = OffsetArray(a, 0:1, 3:4, 2:3)
+    @test OffsetArray(a, CartesianIndices(axes(oa))) == oa
+    @test axes(OffsetArray(a, :, CartesianIndices((3:4, 2:3)))) == (1:2, 3:4, 2:3)
+    @test axes(OffsetArray(a, 10:11, CartesianIndices((3:4, 2:3)) )) == (10:11, 3:4, 2:3)
+    @test axes(OffsetArray(a, CartesianIndices((3:4, 2:3)), :)) == (3:4, 2:3, 1:2)
+    @test axes(OffsetArray(a, CartesianIndices((3:4, 2:3)), 10:11)) == (3:4, 2:3, 10:11)
+    @test axes(OffsetArray(a, :, :, CartesianIndices((3:4,)) )) == (1:2, 1:2, 3:4)
+    @test axes(OffsetArray(a, 10:11, :, CartesianIndices((3:4,)) )) == (10:11, 1:2, 3:4)
+    @test axes(OffsetArray(a, 10:11, 2:3, CartesianIndices((3:4,)) )) == (10:11, 2:3, 3:4)
+
+    # ignore empty CartesianIndices
+    @test OffsetArray(a, CartesianIndices(()), 0:1, :, 2:3) == OffsetArray(a, 0:1, :, 2:3)
+    @test OffsetArray(a, 0:1, CartesianIndices(()), :, 2:3) == OffsetArray(a, 0:1, :, 2:3)
+    @test OffsetArray(a, 0:1, :,  CartesianIndices(()), 2:3) == OffsetArray(a, 0:1, :, 2:3)
+    @test OffsetArray(a, 0:1, :, 2:3, CartesianIndices(())) == OffsetArray(a, 0:1, :, 2:3)
 end
 
 @testset "undef, missing, and nothing constructors" begin
@@ -151,6 +194,25 @@ end
         @test !isassigned(OffsetVector{Union{T,Vector{Int}}}(undef, -1:1), -1)
         @test OffsetVector{Union{T,Vector{Int}}}(t, -1:1)[-1] === t
     end
+
+    oa = OffsetArray{Float64,2}(undef, CartesianIndices((1:2, 3:4)))
+    @test axes(oa) == (1:2, 3:4)
+    @test eltype(oa) == Float64
+    oa = OffsetArray{Float64,2}(undef, 1:2, CartesianIndices((3:4,)))
+    @test axes(oa) == (1:2, 3:4)
+    @test eltype(oa) == Float64
+    oa = OffsetArray{Float64,2}(undef, (1:2, CartesianIndices((3:4,))))
+    @test axes(oa) == (1:2, 3:4)
+    @test eltype(oa) == Float64
+    oa = OffsetArray{Float64}(undef, CartesianIndices((1:2, 3:4)))
+    @test axes(oa) == (1:2, 3:4)
+    @test eltype(oa) == Float64
+    oa = OffsetArray{Float64}(undef, 1:2, CartesianIndices((3:4,)))
+    @test axes(oa) == (1:2, 3:4)
+    @test eltype(oa) == Float64
+    oa = OffsetArray{Float64}(undef, (1:2, CartesianIndices((3:4,))))
+    @test axes(oa) == (1:2, 3:4)
+    @test eltype(oa) == Float64
 end
 
 @testset "Offset range construction" begin
