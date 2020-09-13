@@ -502,15 +502,32 @@ end
     a = OffsetArray(reshape([1]))
     @test summary(a) == "0-dimensional OffsetArray(::$(typeof(parent(a)))) with eltype $(Int)"
 
+    a = OffsetArray([1 2; 3 4], -1:0, 5:6)
+    io = IOBuffer()
+    show(io, axes(a, 1))
+    @test String(take!(io)) == "OffsetArrays.IdOffsetRange(-1:0)"
+    show(io, axes(a, 2))
+    @test String(take!(io)) == "OffsetArrays.IdOffsetRange(5:6)"
+
+    @test Base.inds2string(axes(a)) == Base.inds2string(map(UnitRange, axes(a)))
+
     show(io, OffsetArray(3:5, 0:2))
     @test String(take!(io)) == "3:5 with indices 0:2"
 
     d = Diagonal([1,2,3])
     Base.print_array(io, d)
     s1 = String(take!(io))
-    Base.print_array(io, OffsetArray(d, -1:1, 3:5))
+    od = OffsetArray(d, -1:1, 3:5)
+    Base.print_array(io, od)
     s2 = String(take!(io))
     @test s1 == s2
+
+    @test Base.replace_in_print_matrix(od, -1, 3, " ") == Base.replace_in_print_matrix(d, 1, 1, " ")
+    @test Base.replace_in_print_matrix(od, -1, 4, " ") == Base.replace_in_print_matrix(d, 1, 2, " ")
+
+    v = rand(3)
+    ov = OffsetArray(v, (-2,))
+    @test Base.replace_in_print_matrix(ov, -1, 1, " ") == Base.replace_in_print_matrix(v, 1, 1, " ")
 end
 
 @testset "readdlm/writedlm" begin

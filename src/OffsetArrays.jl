@@ -299,21 +299,19 @@ indexlength(r::AbstractRange) = length(r)
 indexlength(i::Integer) = i
 indexlength(i::Colon) = Colon()
 
+# These functions keep the summary compact
+function Base.inds2string(inds::Tuple{Vararg{Union{IdOffsetRange, IdentityUnitRange{<:IdOffsetRange}}}})
+    Base.inds2string(map(UnitRange, inds))
+end
+Base.showindices(io::IO, ind1::IdOffsetRange, inds::IdOffsetRange...) = Base.showindices(io, map(UnitRange, (ind1, inds...))...)
+    
 function Base.showarg(io::IO, a::OffsetArray, toplevel)
     print(io, "OffsetArray(")
     Base.showarg(io, parent(a), false)
-    if ndims(a) > 0
-        print(io, ", ")
-        printindices(io, axes(a)...)
-    end
+    Base.showindices(io, axes(a)...)
     print(io, ')')
     toplevel && print(io, " with eltype ", eltype(a))
 end
-printindices(io::IO, ind1, inds...) =
-    (print(io, _unslice(ind1), ", "); printindices(io, inds...))
-printindices(io::IO, ind1) = print(io, _unslice(ind1))
-_unslice(x) = x
-_unslice(x::IdentityUnitRange) = x.indices
 
 function Base.replace_in_print_matrix(A::OffsetArray{<:Any,2}, i::Integer, j::Integer, s::AbstractString)
     J = map(parentindex, axes(A), (i,j))
