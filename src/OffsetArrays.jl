@@ -1,7 +1,6 @@
 module OffsetArrays
 
 using Base: Indices, tail, @propagate_inbounds
-import Base: (*), convert, promote_rule
 
 @static if !isdefined(Base, :IdentityUnitRange)
     const IdentityUnitRange = Base.Slice
@@ -406,28 +405,23 @@ end
 
 no_offset_view(A::OffsetArray) = no_offset_view(parent(A))
 
-
 # Quick hack for matrix multiplication.
 # Ideally, one would instead improve LinearAlgebra's support of custom indexing.
-function (*)(A::OffsetMatrix, B::OffsetMatrix)
+function Base.:(*)(A::OffsetMatrix, B::OffsetMatrix)
     matmult_check_axes(A, B)
-    C = OffsetArray(parent(A) * parent(B), (axes(A,1), axes(B,2)))
+    C = parent(A) * parent(B)
+    OffsetArray{eltype(C), 2, typeof(C)}(C, (A.offsets[1], B.offsets[2]))
 end
 
-function (*)(A::OffsetMatrix, B::OffsetVector)
+function Base.:(*)(A::OffsetMatrix, B::OffsetVector)
     matmult_check_axes(A, B)
-    C = OffsetArray(parent(A) * parent(B), axes(A,1))
+    C = parent(A) * parent(B)
+    OffsetArray{eltype(C), 1, typeof(C)}(C, (A.offsets[1], ))
 end
-matmult_check_axes(A, B) = axes(A, 2) == axes(B, 1) || error("axes(A,2) must equal axes(B,1)")
-
-(*)(A::OffsetMatrix, B::AbstractMatrix) = A * OffsetArray(B)
-(*)(A::OffsetMatrix, B::AbstractVector) = A * OffsetArray(B)
-(*)(A::AbstractMatrix, B::OffsetArray) = OffsetArray(A) * B
-(*)(A::AbstractVector, B::OffsetArray) = OffsetArray(A) * B
-
-# An alternative to the above four methods would be to use promote_rule, but it doesn't get invoked
-# promote_rule(::Type{A1}, ::Type{A2}) where A1<:AbstractArray{<:Any,N}  where A2<:OffsetArray{<:Any,N,A3} where {N,A3} = OffsetArray{eltype(promote_type(A1, A3)), N, promote_type(A1, A3)}
-
+function matmult_check_axes(A, B)
+    axes(A, 2) === axes(B, 1) || axes(A, 2) == axes(B, 1) || 
+        error("axes(A,2) = $(UnitRange(axes(A,2))) does not equal axes(B,1) = $(UnitRange(axes(B,1)))")
+end
 
 ####
 # work around for segfault in searchsorted*

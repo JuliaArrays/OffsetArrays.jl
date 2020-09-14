@@ -946,3 +946,34 @@ end
     @test searchsorted(o,  5) ==  2:2
     @test searchsorted(o,  6) ==  3:2
 end
+
+@testset "Matrix multiplication" begin
+    a = [1 2; 3 4]
+    v = [5, 6]
+    oa = OffsetArray(a, (2, 2))
+    ov = OffsetVector(v, (2,))
+
+    @test parent(oa * oa) == a * a
+    @test axes(oa * oa) == axes(oa)
+
+    @test parent(oa * ov) == a * v
+    @test axes(oa * ov) == (axes(oa, 1),)
+
+    @test parent(ones(2, 2:3) * ones(2:3, 3:5)) == ones(2, 2) * ones(2, 3)
+    @test axes(ones(2, 2:3) * ones(2:3, 3:5)) == (1:2, 3:5)
+
+    @test parent(ones(2, 2:3) * ones(2:3)) == ones(2, 2) * ones(2)
+    @test axes(ones(2, 2:3) * ones(2:3)) == (1:2,)
+
+    # One-based arrays
+    oa2 = OffsetArray(a, axes(a))
+    @test oa2 * a == a * a
+    @test a * oa2 == a * a
+
+    @test oa2 * v == a * v
+    @test v' * oa2 == v' * a
+
+    @test_throws Exception zeros(2, 2:3) * zeros(2:4, 2)
+    @test_throws Exception zeros(2, 2:3) * zeros(3:4, 2)
+    @test_throws Exception zeros(2, 2:3) * zeros(2:4)
+end
