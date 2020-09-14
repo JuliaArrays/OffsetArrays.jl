@@ -1,5 +1,6 @@
 using OffsetArrays
 using OffsetArrays: IdentityUnitRange, no_offset_view
+using OffsetArrays: IdOffsetRange
 using Test, Aqua
 using LinearAlgebra
 using DelimitedFiles
@@ -125,6 +126,13 @@ end
     w = zeros(5:6)
     @test OffsetVector(w, :) == OffsetArray(w, (:,)) == OffsetArray(w, :) == OffsetArray(w, axes(w))
     @test axes(OffsetVector(w, :)) == axes(w)
+
+    @test axes(OffsetVector(v, typemax(Int)-length(v))) == (IdOffsetRange(axes(v)[1], typemax(Int)-length(v)), )
+    @test_throws ArgumentError OffsetVector(v, typemax(Int)-length(v)+1)
+    ao = OffsetArray(v, typemin(Int))
+    @test_nowarn OffsetArray{Float64, 1, typeof(ao)}(ao, (-1, ))
+    @test_throws ArgumentError OffsetArray{Float64, 1, typeof(ao)}(ao, (-2, )) # inner Constructor
+    @test_throws ArgumentError OffsetArray(ao, (-2, )) # convinient constructor accumulate offsets
 end
 
 @testset "OffsetMatrix constructors" begin
@@ -158,6 +166,10 @@ end
 
     @test axes(OffsetMatrix(w, :, CartesianIndices((0:1,)))) == (3:4, 0:1)
     @test axes(OffsetMatrix(w, CartesianIndices((0:1,)), :)) == (0:1, 5:6)
+
+    @test axes(OffsetMatrix(v, typemax(Int)-size(v, 1), 0)) == (IdOffsetRange(axes(v)[1], typemax(Int)-size(v, 1)), axes(v, 2))
+    @test_throws ArgumentError OffsetMatrix(v, typemax(Int)-size(v,1)+1, 0)
+    @test_throws ArgumentError OffsetMatrix(v, 0, typemax(Int)-size(v, 2)+1)
 end
 
 @testset "construct OffsetArray with CartesianIndices" begin
