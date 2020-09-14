@@ -69,8 +69,12 @@ used the given `indices`, which are checked for compatible size.
 
 # Example
 
+There are two types of `indices`: integers and ranges-like types.
+
+Integers are recognized as offsets, where `0` means no offsets are applied:
+
 ```jldoctest; setup=:(using OffsetArrays)
-julia> A = OffsetArray(reshape(1:6, 2, 3), 0:1, -1:1)
+julia> A = OffsetArray(reshape(1:6, 2, 3), -1, -2)
 2×3 OffsetArray(reshape(::UnitRange{Int64}, 2, 3), 0:1, -1:1) with eltype Int64 with indices 0:1×-1:1:
  1  3  5
  2  4  6
@@ -78,6 +82,34 @@ julia> A = OffsetArray(reshape(1:6, 2, 3), 0:1, -1:1)
 julia> A[0, 1]
 5
 ```
+
+Examples of range-like types are: `Colon()`(aka `:`), `UnitRange`(e.g, `-1:2`), and
+`CartesianIndices`.
+
+```jldoctest; setup=:(using OffsetArrays)
+julia> OffsetArray(reshape(1:6, 2, 3), 0:1, -1:1)
+2×3 OffsetArray(reshape(::UnitRange{Int64}, 2, 3), 0:1, -1:1) with eltype Int64 with indices 0:1×-1:1:
+ 1  3  5
+ 2  4  6
+
+julia> OffsetArray(reshape(1:6, 2, 3), :, -1:1) # : as a placeholder means no offset is applied at this dimension
+2×3 OffsetArray(reshape(::UnitRange{Int64}, 2, 3), 1:2, -1:1) with eltype Int64 with indices 1:2×-1:1:
+ 1  3  5
+ 2  4  6
+
+julia> OffsetArray(reshape(1:6, 2, 3), CartesianIndex(0, -1):CartesianIndex(1, 1))
+2×3 OffsetArray(reshape(::UnitRange{Int64}, 2, 3), 0:1, -1:1) with eltype Int64 with indices 0:1×-1:1:
+ 1  3  5
+ 2  4  6
+```
+
+Integers and range-like types can't be used interchangebly:
+
+```julia
+julia> OffsetArray(reshape(1:6, 2, 3), 0, -1:1)
+ERROR: [...]
+```
+
 """
 function OffsetArray(A::AbstractArray{T,N}, inds::NTuple{N,AbstractUnitRange}) where {T,N}
     axparent = axes(A)
@@ -347,7 +379,7 @@ specific to remove a level of indirection when applicable.
 julia> A = [1 3 5; 2 4 6];
 
 julia> O = OffsetArray(A, 0:1, -1:1)
-2×3 OffsetArray(::Array{Int64,2}, 0:1, -1:1) with eltype Int64 with indices 0:1×-1:1:
+2×3 OffsetArray(::Matrix{Int64}, 0:1, -1:1) with eltype Int64 with indices 0:1×-1:1:
  1  3  5
  2  4  6
 
@@ -355,7 +387,7 @@ julia> OffsetArrays.no_offset_view(O)[1,1] = -9
 -9
 
 julia> A
-2×3 Array{Int64,2}:
+2×3 Matrix{Int64}:
  -9  3  5
   2  4  6
 ```

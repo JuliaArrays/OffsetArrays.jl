@@ -23,30 +23,24 @@ fall within these axis ranges. Example:
 
 ```julia
 using OffsetArrays
-A = reshape(1:15, 3, 5)
-println("here is A:")
-display(A)
-OA = OffsetArray(A, -1:1, 0:4)    # OA will have axes (-1:1, 0:4)
-println("here is OA:")
-display(OA)
-@show OA[-1,0] OA[1,4]
-```
+julia> A = Float64.(reshape(1:15, 3, 5))
+3×5 Matrix{Float64}:
+ 1.0  4.0  7.0  10.0  13.0
+ 2.0  5.0  8.0  11.0  14.0
+ 3.0  6.0  9.0  12.0  15.0
 
-which prints out
+julia> OA = OffsetArray(A, -1:1, 0:4) # OA will have axes (-1:1, 0:4)
+3×5 OffsetArray(::Matrix{Float64}, -1:1, 0:4) with eltype Float64 with indices -1:1×0:4:
+ 1.0  4.0  7.0  10.0  13.0
+ 2.0  5.0  8.0  11.0  14.0
+ 3.0  6.0  9.0  12.0  15.0
 
-```
-here is A:
-3×5 reshape(::UnitRange{Int64}, 3, 5) with eltype Int64:
- 1  4  7  10  13
- 2  5  8  11  14
- 3  6  9  12  15
-here is OA:
-OffsetArray(reshape(::UnitRange{Int64}, 3, 5), -1:1, 0:4) with eltype Int64 with indices -1:1×0:4:
- 1  4  7  10  13
- 2  5  8  11  14
- 3  6  9  12  15
-OA[-1, 0] = 1
-OA[1, 4] = 15
+julia> OA = OffsetArray(A, CartesianIndex(-1, 0):CartesianIndex(1, 4))
+3×5 OffsetArray(::Matrix{Float64}, -1:1, 0:4) with eltype Float64 with indices -1:1×0:4:
+[...]
+
+julia> OA[-1,0], OA[1,4]
+(1.0, 15.0)
 ```
 
 [pkgeval-img]: https://juliaci.github.io/NanosoldierReports/pkgeval_badges/O/OffsetArrays.svg
