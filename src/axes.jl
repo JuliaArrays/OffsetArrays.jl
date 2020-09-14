@@ -11,10 +11,10 @@ i.e., it's the "identity," which is the origin of the "Id" in `IdOffsetRange`.
 The most common case is shifting a range that starts at 1 (either `1:n` or `Base.OneTo(n)`):
 ```jldoctest; setup=:(import OffsetArrays)
 julia> ro = OffsetArrays.IdOffsetRange(1:3, -2)
--1:1
+OffsetArrays.IdOffsetRange(-1:1)
 
 julia> axes(ro, 1)
--1:1
+OffsetArrays.IdOffsetRange(-1:1)
 
 julia> ro[-1]
 -1
@@ -26,10 +26,10 @@ ERROR: BoundsError: attempt to access 3-element UnitRange{Int64} at index [5]
 If the range doesn't start at 1, the values may be different from the indices:
 ```jldoctest; setup=:(import OffsetArrays)
 julia> ro = OffsetArrays.IdOffsetRange(11:13, -2)
-9:11
+OffsetArrays.IdOffsetRange(9:11)
 
 julia> axes(ro, 1)     # 11:13 is indexed by 1:3, and the offset is also applied to the axes
--1:1
+OffsetArrays.IdOffsetRange(-1:1)
 
 julia> ro[-1]
 9

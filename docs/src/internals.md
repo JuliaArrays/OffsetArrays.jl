@@ -7,7 +7,7 @@ The majority of cases can be handled with these tips:
 - replace `1:length(A)` with `eachindex(A)`, or if you need an integer index with `LinearIndices(A)`
 - replace explicit allocations like `Array{Int}(undef, size(B))` with `similar(Array{Int}, axes(B))`
 
-More information can be found in [Julia's developer documentation](https://docs.julialang.org/en/v1.0/devdocs/offset-arrays/).
+More information can be found in [Julia's developer documentation](https://docs.julialang.org/en/v1/devdocs/offset-arrays/).
 The most subtle issues tend to arise around the axes, and further detail specific to
 OffsetArrays.jl follows below.
 
@@ -19,12 +19,12 @@ with an index offset:
 
 ```jldoctest oa; setup=:(using OffsetArrays)
 julia> oa = OffsetArray([1 2; 3 4], 0:1, 5:6)
-2×2 OffsetArray(::Array{Int64,2}, 0:1, 5:6) with eltype Int64 with indices 0:1×5:6:
+2×2 OffsetArray(::Matrix{Int64}, 0:1, 5:6) with eltype Int64 with indices 0:1×5:6:
  1  2
  3  4
 
 julia> parent(oa)
-2×2 Array{Int64,2}:
+2×2 Matrix{Int64}:
  1  2
  3  4
 
@@ -39,61 +39,48 @@ indexes and then returns the value in the parent.
 
 ## The axes of OffsetArrays
 
-```jldoctest oa
-julia> axes(oa)
-(0:1, 5:6)
-```
-
-This looks straightforward, but if you dive deeper you'll notice some complexities:
+The internal of offset computing is achieved by [`IdOffsetRange`](@ref OffsetArrays.IdOffsetRange)
+type:
 
 ```jldoctest oa
 julia> ax = axes(oa, 2)
-5:6
-
-julia> typeof(ax)
-OffsetArrays.IdOffsetRange{Int64,Base.OneTo{Int64}}
-
-julia> ax[1]
-ERROR: BoundsError: attempt to access 2-element Base.OneTo{Int64} at index [-3]
-Stacktrace:
- [1] throw_boundserror(::Base.OneTo{Int64}, ::Int64) at ./abstractarray.jl:538
- [2] getindex at ./range.jl:625 [inlined]
- [3] getindex(::OffsetArrays.IdOffsetRange{Int64,Base.OneTo{Int64}}, ::Int64) at /home/tim/.julia/dev/OffsetArrays/src/axes.jl:139
- [4] top-level scope at none:0
-
-julia> ax[5]
-5
+OffsetArrays.IdOffsetRange(5:6)
 ```
 
-The axes are of type [`OffsetArrays.IdOffsetRange`](@ref).
-`IdOffsetRange`s are essentially OffsetArrays specialized for ranges, with the additional
-property that they tend to be their own axes:
+This has a similar design to `Base.IdentityUnitRange` that `ax[x] == x` always holds.
 
 ```jldoctest oa
-julia> ax
-5:6
+julia> ax[5]
+5
+julia> ax[1]
+ERROR: BoundsError: attempt to access 2-element Base.OneTo{Int64} at index [-3]
+[...]
+```
 
+This property makes sure that they tend to be their own axes:
+
+```jldoctest oa
 julia> axes(ax)
-(5:6,)
+(OffsetArrays.IdOffsetRange(5:6),)
 
 julia> axes(ax[ax])
-(5:6,)
+(OffsetArrays.IdOffsetRange(5:6),)
 ```
 
 This example of indexing is [idempotent](https://en.wikipedia.org/wiki/Idempotence).
 This is a useful characteristic for ensuring the "fundamental axiom" of generalized indexing,
-that `a[rng][i] == a[rng[i]]`:
+that `a[ax][i] == a[ax[i]]`:
 
 ```jldoctest; setup=:(using OffsetArrays)
 julia> oa2 = OffsetArray([5, 10, 15, 20], 0:3)
-4-element OffsetArray(::Array{Int64,1}, 0:3) with eltype Int64 with indices 0:3:
+4-element OffsetArray(::Vector{Int64}, 0:3) with eltype Int64 with indices 0:3:
   5
  10
  15
  20
 
 julia> ax2 = axes(oa2, 1)
-0:3
+OffsetArrays.IdOffsetRange(0:3)
 
 julia> oa2[2]
 15
@@ -116,3 +103,43 @@ julia> oa2[ax2[2]]
     - conversion will succeed only if it can preserve both the values and the axes (Examples: `convert(RangeType, rng)`, `oftype(rng1, rng2)`)
 
     While these behave equivalently now (conversion currently performs coercion), developers are encouraged to "future-proof" their code by choosing the behavior appropriate for each usage.
+
+## Caveats
+
+Because `IdOffsetRange` behaves quite differently to the normal `UnitRange` type, there are some
+cases that you should be aware of, especially when you are working with multi-dimensional arrays.
+
+One such cases is `getindex`:
+
+```jldoctest getindex; setup = :(using OffsetArrays)
+julia> Ao = zeros(-3:3, -3:3); Ao[:] .= 1:49;
+
+julia> Ao[-3:0, :] |> axes # the first dimension does not preserve offsets
+(OffsetArrays.IdOffsetRange(1:4), OffsetArrays.IdOffsetRange(-3:3))
+
+julia> Ao[-3:0, -3:3] |> axes # neither dimensions preserve offsets
+(Base.OneTo(4), Base.OneTo(7))
+
+julia> Ao[axes(Ao)...] |> axes # offsets are preserved
+(OffsetArrays.IdOffsetRange(-3:3), OffsetArrays.IdOffsetRange(-3:3))
+
+julia> Ao[:] |> axes # This is linear indexing
+(Base.OneTo(49),)
+```
+
+Note that if you pass a `UnitRange`, the offsets in corresponding dimension will not be preserved.
+This might look weird at first, but since it follows the `a[ax][i] == a[ax[i]]` rule, it is not a
+bug.
+
+```jldoctest getindex
+julia> I = -3:0; # UnitRange always starts at index 1
+
+julia> Ao[I, 0][1] == Ao[I[1], 0]
+true
+
+julia> ax = axes(Ao, 1) # ax starts at index -3
+OffsetArrays.IdOffsetRange(-3:3)
+
+julia> Ao[ax, 0][1] == Ao[ax[1], 0]
+true
+```
