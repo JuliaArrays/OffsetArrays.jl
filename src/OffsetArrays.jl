@@ -11,6 +11,7 @@ export OffsetArray, OffsetMatrix, OffsetVector
 
 include("axes.jl")
 include("utils.jl")
+include("origin.jl")
 
 # Technically we know the length of CartesianIndices but we need to convert it first, so here we
 # don't put it in OffsetAxisKnownLength.
@@ -25,7 +26,7 @@ const ArrayInitializer = Union{UndefInitializer, Missing, Nothing}
 Return an `AbstractArray` that shares element type and size with the first argument, but
 used the given `indices`, which are checked for compatible size.
 
-# Example
+# Example: offsets
 
 There are two types of `indices`: integers and ranges-like types.
 
@@ -67,6 +68,25 @@ Integers and range-like types can't be used interchangebly:
 julia> OffsetArray(reshape(1:6, 2, 3), 0, -1:1)
 ERROR: [...]
 ```
+
+# Example: origin
+
+[`OffsetArrays.Origin`](@ref) can be used to directly specify the origin of the output OffsetArray.
+
+```jldoctest; setup=:(using OffsetArrays)
+julia> a = [1 2; 3 4];
+
+julia> OffsetArray(a, OffsetArrays.Origin(0, 1))
+2×2 OffsetArray(::$(Array{Int64,2}), 0:1, 1:2) with eltype Int64 with indices 0:1×1:2:
+ 1  2
+ 3  4
+
+julia> OffsetArray(a, OffsetArrays.Origin(0)) # short notation for `Origin(0, ..., 0)`
+2×2 OffsetArray(::$(Array{Int64, 2}), 0:1, 0:1) with eltype Int64 with indices 0:1×0:1:
+ 1  2
+ 3  4
+```
+
 
 """
 struct OffsetArray{T,N,AA<:AbstractArray} <: AbstractArray{T,N}
@@ -115,6 +135,8 @@ for FT in (:OffsetArray, :OffsetVector, :OffsetMatrix)
         $FT(A, indsN)
     end
     @eval $FT(A::AbstractArray{T}, inds::Vararg{OffsetAxis,N}) where {T, N} = $FT(A, inds)
+
+    @eval $FT(A::AbstractArray, origin::Origin) = OffsetArray(A, origin(A))
 end
 
 # array initialization
