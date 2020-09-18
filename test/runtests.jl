@@ -614,6 +614,23 @@ end
 
     @test reshape(OffsetArray(-1:0, -1:0), :, 1) == reshape(-1:0, 2, 1)
     @test reshape(OffsetArray(-1:2, -1:2), -2:-1, :) == reshape(-1:2, -2:-1, 2)
+
+    @test reshape(OffsetArray(-1:0, -1:0), :) == OffsetArray(-1:0, -1:0)
+    @test reshape(A, :) == reshape(A0, :)
+
+    # julialang/julia #33614
+    A = OffsetArray(-1:0, (-2,))
+    @test reshape(A, :) === A
+    Arsc = reshape(A, :, 1)
+    Arss = reshape(A, 2, 1)
+    @test Arsc[1,1] == Arss[1,1] == -1
+    @test Arsc[2,1] == Arss[2,1] == 0
+    @test_throws BoundsError Arsc[0,1]
+    @test_throws BoundsError Arss[0,1]
+    A = OffsetArray([-1,0], (-2,))
+    Arsc = reshape(A, :, 1)
+    Arsc[1,1] = 5
+    @test first(A) == 5
 end
 
 @testset "Indexing with OffsetArray axes" begin
