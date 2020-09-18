@@ -24,12 +24,17 @@ OffsetVector{T,AA<:AbstractArray} = OffsetArray{T,1,AA}
 OffsetMatrix{T,AA<:AbstractArray} = OffsetArray{T,2,AA}
 
 function overflow_check(r, offset::T) where T
+    # This gives some performance boost https://github.com/JuliaLang/julia/issues/33273
+    throw_upper_overflow_error() = throw(ArgumentError("Boundary overflow detected: offset $offset should be equal or less than $(typemax(T) - last(r))"))
+    throw_lower_overflow_error() = throw(ArgumentError("Boundary overflow detected: offset $offset should be equal or greater than $(typemin(T) - first(r))"))
+
     if offset > 0 && last(r) > typemax(T) - offset
-        throw(ArgumentError("Boundary overflow detected: offset $offset should be equal or less than $(typemax(T) - last(r))"))
+        throw_upper_overflow_error()
     elseif offset < 0 && first(r) < typemin(T) - offset
-        throw(ArgumentError("Boundary overflow detected: offset $offset should be equal or greater than $(typemin(T) - first(r))"))
+        throw_lower_overflow_error()
     end
 end
+
 ## OffsetArray constructors
 
 offset(axparent::AbstractUnitRange, ax::AbstractUnitRange) = first(ax) - first(axparent)
