@@ -16,29 +16,6 @@ _uncolonindices(ax::Tuple, inds::Tuple) = (first(inds), _uncolonindices(tail(ax)
 _uncolonindices(ax::Tuple, inds::Tuple{Colon, Vararg{Any}}) = (first(ax), _uncolonindices(tail(ax), tail(inds))...)
 _uncolonindices(::Tuple{}, ::Tuple{}) = ()
 
-# Specify offsets using CartesianIndices (issue #71)
-# Support a mix of AbstractUnitRanges and CartesianIndices{1}
-# Extract the range r from CartesianIndices((r,))
-function _stripCartesianIndices(inds::Tuple{CartesianIndices{1},Vararg{Any}})
-    I = first(inds)
-    Ir = convert(Tuple{AbstractUnitRange{Int}}, I) |> first
-    (Ir, _stripCartesianIndices(tail(inds))...)
-end
-_stripCartesianIndices(inds::Tuple)= (first(inds), _stripCartesianIndices(tail(inds))...)
-_stripCartesianIndices(::Tuple{}) = ()
-
-# Support an arbitrary CartesianIndices alongside colons and ranges
-# The total number of indices should equal ndims(arr)
-# We split the CartesianIndices{N} into N CartesianIndices{1} indices to facilitate dispatch
-_splitCartesianIndices(c::CartesianIndices{0}) = ()
-function _splitCartesianIndices(c::CartesianIndices)
-    c1, ct = Base.IteratorsMD.split(c, Val(1))
-    (c1, _splitCartesianIndices(ct)...)
-end
-function _splitCartesianIndices(t::Tuple{CartesianIndices, Vararg{Any}})
-    (_splitCartesianIndices(first(t))..., _splitCartesianIndices(tail(t))...)
-end
-function _splitCartesianIndices(t::Tuple)
-    (first(t), _splitCartesianIndices(tail(t))...)
-end
-_splitCartesianIndices(::Tuple{}) = ()
+_expandCartesianIndices(inds::Tuple{<:CartesianIndices, Vararg{Any}}) = (convert(Tuple{Vararg{AbstractUnitRange{Int}}}, inds[1])..., _expandCartesianIndices(Base.tail(inds))...)
+_expandCartesianIndices(inds::Tuple{Any,Vararg{Any}}) = (inds[1], _expandCartesianIndices(Base.tail(inds))...)
+_expandCartesianIndices(::Tuple{}) = ()
