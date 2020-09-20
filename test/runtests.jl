@@ -6,6 +6,12 @@ using LinearAlgebra
 using DelimitedFiles
 using CatIndices: BidirectionalVector
 
+# https://github.com/JuliaLang/julia/pull/29440
+if VERSION < v"1.1.0-DEV.389"
+    Base.:(:)(I::CartesianIndex{N}, J::CartesianIndex{N}) where N =
+        CartesianIndices(map((i,j) -> i:j, Tuple(I), Tuple(J)))
+end
+
 @testset "Project meta quality checks" begin
     # Not checking compat section for test-only dependencies
     Aqua.test_all(OffsetArrays; project_extras=true, deps_compat=true, stale_deps=true, project_toml_formatting=true)
@@ -85,178 +91,271 @@ end
     check_indexed_by(r3, 0:2)
 end
 
-@testset "Single-entry arrays in dims 0:5" begin
-    for n = 0:5
-        for z in (OffsetArray(ones(Int,ntuple(d->1,n)), ntuple(x->x-1,n)),
-                  fill!(OffsetArray{Float64}(undef, ntuple(x->x:x, n)), 1),
-                  fill!(OffsetArray{Float64}(undef, ntuple(x->x:x, n)...), 1),
-                  fill!(OffsetArray{Float64,n}(undef, ntuple(x->x:x, n)), 1),
-                  fill!(OffsetArray{Float64,n}(undef, ntuple(x->x:x, n)...), 1))
-            @test length(LinearIndices(z)) == 1
-            @test axes(z) == ntuple(x->x:x, n)
-            @test z[1] == 1
+@testset "Constructors" begin
+    @testset "0-dimensional array" begin
+        for n = 0:5
+            for z in (OffsetArray(ones(Int,ntuple(d->1,n)), ntuple(x->x-1,n)),
+                    fill!(OffsetArray{Float64}(undef, ntuple(x->x:x, n)), 1),
+                    fill!(OffsetArray{Float64}(undef, ntuple(x->x:x, n)...), 1),
+                    fill!(OffsetArray{Float64,n}(undef, ntuple(x->x:x, n)), 1),
+                    fill!(OffsetArray{Float64,n}(undef, ntuple(x->x:x, n)...), 1))
+                @test length(LinearIndices(z)) == 1
+                @test axes(z) == ntuple(x->x:x, n)
+                @test z[1] == 1
+            end
+        end
+        a0 = reshape([3])
+        a = OffsetArray(a0)
+        @test axes(a) == ()
+        @test ndims(a) == 0
+        @test a[] == 3
+        @test a == OffsetArray(a, ())
+    end
+
+    @testset "OffsetVector" begin
+        # initialization
+        for inds in [(4, ), (Base.OneTo(4), ), (1:4, ), (CartesianIndex(1):CartesianIndex(4), ), (IdentityUnitRange(1:4), )]
+            # test indices API
+            a = OffsetVector{Float64}(undef, inds)
+            @test eltype(a) === Float64
+            @test axes(a) === axes(OffsetVector{Float64}(undef, inds...)) === axes(OffsetArray{Float64, 1}(undef, inds))
+            @test axes(a) === (IdOffsetRange(Base.OneTo(4), 0), )
+            @test a.offsets === (0, )
+            @test axes(a.parent) == (Base.OneTo(4), )
+
+            a = OffsetVector{Nothing}(nothing, inds)
+            @test eltype(a) === Nothing
+            @test axes(a) === axes(OffsetVector{Nothing}(nothing, inds...)) === axes(OffsetArray{Nothing, 1}(nothing, inds))
+            @test axes(a) === (IdOffsetRange(Base.OneTo(4), 0), )
+
+            a = OffsetVector{Missing}(missing, inds)
+            @test eltype(a) === Missing
+            @test axes(a) === axes(OffsetVector{Missing}(missing, inds...)) === axes(OffsetArray{Missing, 1}(missing, inds))
+            @test axes(a) === (IdOffsetRange(Base.OneTo(4), 0), )
+        end
+
+        for inds in [(-1:2, ), (CartesianIndex(-1):CartesianIndex(2), ), (IdentityUnitRange(-1:2), )]
+            # test offsets
+            a = OffsetVector{Float64}(undef, inds)
+            ax = (IdOffsetRange(Base.OneTo(4), -2), )
+            @test a.offsets === (-2, )
+            @test axes(a.parent) == (Base.OneTo(4), )
+            @test axes(a) === ax
+            a = OffsetVector{Nothing}(nothing, inds)
+            @test axes(a) === ax
+            a = OffsetVector{Missing}(missing, inds)
+            @test axes(a) === ax
+
+            for (T, t) in [(Nothing, nothing), (Missing, missing)]
+                a = OffsetVector{Union{T, Vector{Int}}}(undef, inds)
+                @test !isassigned(a, -1)
+                @test eltype(a) === Union{T, Vector{Int}}
+                @test axes(a) === ax
+
+                a = OffsetVector{Union{T, Vector{Int}}}(t, inds)
+                @test a[-1] === t
+            end
+        end
+        @test_throws Union{ArgumentError, ErrorException} OffsetVector{Float64}(undef, -2) # only positive number works
+
+        # convenient constructors
+        a = rand(4)
+        for inds in [(-2, ), (-1:2, ), (CartesianIndex(-1):CartesianIndex(2), ), (IdentityUnitRange(-1:2), )]
+            oa1 = OffsetVector(a, inds...)
+            oa2 = OffsetVector(a, inds)
+            oa3 = OffsetArray(a, inds...)
+            oa4 = OffsetArray(a, inds)
+            @test oa1 === oa2 === oa3 === oa4
+            @test axes(oa1) === (IdOffsetRange(Base.OneTo(4), -2), )
+            @test parent(oa1) === a
+            @test oa1.offsets === (-2, )
+        end
+
+        oa = OffsetArray(a, :)
+        @test oa === OffsetArray(a, (:, )) === OffsetArray(a, axes(a)) === OffsetVector(a, :) === OffsetVector(a, axes(a))
+        @test oa == a
+        @test axes(oa) == axes(a)
+        @test axes(oa) !== axes(a)
+
+        # nested offset array
+        a = rand(4)
+        oa = OffsetArray(a, -1)
+        for inds in [(1, ), (1:4, ), (CartesianIndex(1):CartesianIndex(4), ), (IdentityUnitRange(1:4), )]
+            ooa = OffsetArray(oa, inds)
+            @test typeof(parent(ooa)) <: Vector
+            @test ooa === OffsetArray(oa, inds...) === OffsetVector(oa, inds) === OffsetVector(oa, inds...)
+            @test ooa == a
+            @test axes(ooa) == axes(a)
+            @test axes(ooa) !== axes(a)
+        end
+
+        # overflow bounds check
+        v = rand(5)
+        @test axes(OffsetVector(v, typemax(Int)-length(v))) == (IdOffsetRange(axes(v)[1], typemax(Int)-length(v)), )
+        @test_throws ArgumentError OffsetVector(v, typemax(Int)-length(v)+1)
+        ao = OffsetArray(v, typemin(Int))
+        @test_nowarn OffsetArray{Float64, 1, typeof(ao)}(ao, (-1, ))
+        @test_throws ArgumentError OffsetArray{Float64, 1, typeof(ao)}(ao, (-2, )) # inner Constructor
+        @test_throws ArgumentError OffsetArray(ao, (-2, )) # convinient constructor accumulate offsets
+    end
+
+    @testset "OffsetMatrix" begin
+        # initialization
+        for inds in [
+                (4, 3),
+                (Base.OneTo(4), Base.OneTo(3)),
+                (1:4, 1:3),
+                (CartesianIndex(1, 1):CartesianIndex(4, 3), ),
+                (CartesianIndex(1):CartesianIndex(4), CartesianIndex(1):CartesianIndex(3)),
+                (IdentityUnitRange(1:4), IdentityUnitRange(1:3))
+        ]
+            # test API
+            a = OffsetMatrix{Float64}(undef, inds)
+            ax = (IdOffsetRange(Base.OneTo(4), 0), IdOffsetRange(Base.OneTo(3), 0))
+            @test eltype(a) === Float64
+            @test axes(a) === axes(OffsetMatrix{Float64}(undef, inds...)) === axes(OffsetArray{Float64, 2}(undef, inds)) === axes(OffsetArray{Float64, 2}(undef, inds...))
+            @test axes(a) === ax
+            @test a.offsets === (0, 0)
+            @test axes(a.parent) == (Base.OneTo(4), Base.OneTo(3))
+
+            a = OffsetMatrix{Nothing}(nothing, inds)
+            @test eltype(a) === Nothing
+            @test axes(a) === axes(OffsetMatrix{Nothing}(nothing, inds...)) === axes(OffsetArray{Nothing, 2}(nothing, inds)) === axes(OffsetArray{Nothing, 2}(nothing, inds...))
+            @test axes(a) === ax
+
+            a = OffsetMatrix{Missing}(missing, inds)
+            @test eltype(a) === Missing
+            @test axes(a) === axes(OffsetMatrix{Missing}(missing, inds...)) === axes(OffsetArray{Missing, 2}(missing, inds)) === axes(OffsetArray{Missing, 2}(missing, inds...))
+            @test axes(a) === ax
+        end
+        @test_throws Union{ArgumentError, ErrorException} OffsetMatrix{Float64}(undef, 2, -2) # only positive numbers works
+
+        for inds in [
+                (-1:2, 0:2),
+                (CartesianIndex(-1, 0):CartesianIndex(2, 2), ),
+                (-1:2, CartesianIndex(0):CartesianIndex(2)),
+                (CartesianIndex(-1):CartesianIndex(2), CartesianIndex(0):CartesianIndex(2)),
+                (IdentityUnitRange(-1:2), 0:2)
+            ]
+            # test offsets
+            a = OffsetMatrix{Float64}(undef, inds)
+            ax = (IdOffsetRange(Base.OneTo(4), -2), IdOffsetRange(Base.OneTo(3), -1))
+            @test a.offsets === (-2, -1)
+            @test axes(a.parent) == (Base.OneTo(4), Base.OneTo(3))
+            @test axes(a) === ax
+            a = OffsetMatrix{Nothing}(nothing, inds)
+            @test axes(a) === ax
+            a = OffsetMatrix{Missing}(missing, inds)
+            @test axes(a) === ax
+
+            for (T, t) in [(Nothing, nothing), (Missing, missing)]
+                a = OffsetMatrix{Union{T, Vector{Int}}}(undef, inds)
+                @test !isassigned(a, -1, 0)
+                @test eltype(a) === Union{T, Vector{Int}}
+                @test axes(a) === ax
+
+                a = OffsetMatrix{Union{T, Vector{Int}}}(t, inds)
+                @test a[-1, 0] === t
+            end
+        end
+
+        # convenient constructors
+        a = rand(4, 3)
+        for inds in [
+            (-1:2, 0:2),
+            (CartesianIndex(-1, 0):CartesianIndex(2, 2), ),
+            (-1:2, CartesianIndex(0):CartesianIndex(2)),
+            (CartesianIndex(-1):CartesianIndex(2), CartesianIndex(0):CartesianIndex(2)),
+            (IdentityUnitRange(-1:2), 0:2)
+        ]
+            ax = (IdOffsetRange(Base.OneTo(4), -2), IdOffsetRange(Base.OneTo(3), -1))
+            oa1 = OffsetMatrix(a, inds...)
+            oa2 = OffsetMatrix(a, inds)
+            oa3 = OffsetArray(a, inds...)
+            oa4 = OffsetArray(a, inds)
+            @test oa1 === oa2 === oa3 === oa4
+            @test axes(oa1) === ax
+            @test parent(oa1) === a
+            @test oa1.offsets === (-2, -1)
+        end
+        oa = OffsetArray(a, :, axes(a, 2))
+        @test oa === OffsetArray(a, (axes(oa, 1), :)) === OffsetArray(a, axes(a)) === OffsetMatrix(a, (axes(oa, 1), :)) === OffsetMatrix(a, axes(a))
+        @test oa == a
+        @test axes(oa) == axes(a)
+        @test axes(oa) !== axes(a)
+
+        oa = OffsetMatrix(a, :, 2:4)
+        @test oa === OffsetMatrix(a, axes(a, 1), 2:4) === OffsetMatrix(a, (axes(oa, 1), 2:4))
+
+        # nested offset array
+        a = rand(4, 3)
+        oa = OffsetArray(a, -1, -2)
+        for inds in [
+            (1, 2),
+            (1:4, 1:3),
+            (CartesianIndex(1, 1):CartesianIndex(4, 3), ),
+            (1:4, CartesianIndex(1):CartesianIndex(3)),
+            (CartesianIndex(1):CartesianIndex(4), CartesianIndex(1):CartesianIndex(3)),
+            (IdentityUnitRange(1:4), 1:3)
+        ]
+            ooa = OffsetArray(oa, inds)
+            @test ooa === OffsetArray(oa, inds...) === OffsetMatrix(oa, inds) === OffsetMatrix(oa, inds...)
+            @test typeof(parent(ooa)) <: Matrix
+            @test ooa == a
+            @test axes(ooa) == axes(a)
+            @test axes(ooa) !== axes(a)
+        end
+
+        # overflow bounds check
+        a = rand(4, 3)
+        @test axes(OffsetMatrix(a, typemax(Int)-size(a, 1), 0)) == (IdOffsetRange(axes(a)[1], typemax(Int)-size(a, 1)), axes(a, 2))
+        @test_throws ArgumentError OffsetMatrix(a, typemax(Int)-size(a,1)+1, 0)
+        @test_throws ArgumentError OffsetMatrix(a, 0, typemax(Int)-size(a, 2)+1)
+    end
+
+    # no need to duplicate the 2D case here,
+    # only add some special test cases
+    @testset "OffsetArray" begin
+        a = rand(2, 2, 2)
+        oa = OffsetArray(a, 0:1, 3:4, 2:3)
+        @test OffsetArray(a, CartesianIndices(axes(oa))) == oa
+        @test axes(OffsetArray(a, :, CartesianIndices((3:4, 2:3)))) == (1:2, 3:4, 2:3)
+        @test axes(OffsetArray(a, 10:11, CartesianIndices((3:4, 2:3)) )) == (10:11, 3:4, 2:3)
+        @test axes(OffsetArray(a, CartesianIndices((3:4, 2:3)), :)) == (3:4, 2:3, 1:2)
+        @test axes(OffsetArray(a, CartesianIndices((3:4, 2:3)), 10:11)) == (3:4, 2:3, 10:11)
+        @test axes(OffsetArray(a, :, :, CartesianIndices((3:4,)) )) == (1:2, 1:2, 3:4)
+        @test axes(OffsetArray(a, 10:11, :, CartesianIndices((3:4,)) )) == (10:11, 1:2, 3:4)
+        @test axes(OffsetArray(a, 10:11, 2:3, CartesianIndices((3:4,)) )) == (10:11, 2:3, 3:4)
+
+        # ignore empty CartesianIndices
+        @test OffsetArray(a, CartesianIndices(()), 0:1, :, 2:3) == OffsetArray(a, 0:1, :, 2:3)
+        @test OffsetArray(a, 0:1, CartesianIndices(()), :, 2:3) == OffsetArray(a, 0:1, :, 2:3)
+        @test OffsetArray(a, 0:1, :,  CartesianIndices(()), 2:3) == OffsetArray(a, 0:1, :, 2:3)
+        @test OffsetArray(a, 0:1, :, 2:3, CartesianIndices(())) == OffsetArray(a, 0:1, :, 2:3)
+
+        indices = (-1:1, -7:7, -1:2, -5:5, -1:1, -3:3, -2:2, -1:1)
+        y = OffsetArray{Float64}(undef, indices...);
+        @test axes(y) === axes(OffsetArray{Float64}(undef, indices))
+        @test axes(y) === axes(OffsetArray{Float64, length(indices)}(undef, indices...))
+        @test axes(y) == (-1:1, -7:7, -1:2, -5:5, -1:1, -3:3, -2:2, -1:1)
+        @test eltype(y) === Float64
+
+        @test_throws DimensionMismatch OffsetArray{Float64, 2}(undef, indices)
+        @test_throws DimensionMismatch OffsetArray(y, indices[1:2])
+    end
+
+    @testset "Offset range construction" begin
+        r = -2:5
+        for AT in [OffsetArray, OffsetVector]
+            y = AT(r, r)
+            @test axes(y) == (r,)
+            @test step(y) == step(r)
+            y = AT(r, (r,))
+            @test axes(y) == (r,)
+            y = AT(r, CartesianIndices((r, )))
+            @test axes(y) == (r, )
         end
     end
-    a0 = reshape([3])
-    a = OffsetArray(a0)
-    @test axes(a) == ()
-    @test ndims(a) == 0
-    @test a[] == 3
-    @test a == OffsetArray(a, ())
-end
-
-@testset "OffsetVector constructors" begin
-    local v = rand(5)
-    @test OffsetVector(v, -2) == OffsetArray(v, -2)
-    @test OffsetVector(v, -2:2) == OffsetArray(v, -2:2)
-    @test typeof(OffsetVector{Float64}(undef, -2:2)) == typeof(OffsetArray{Float64}(undef, -2:2))
-
-    # Issue #71
-    ov = OffsetVector(v, -2:2)
-    for T in [OffsetVector, OffsetArray]
-        if VERSION >= v"1.1"
-            @test ov == T(v, CartesianIndex(-2):CartesianIndex(2))
-        end
-        @test ov == T(v, CartesianIndices((-2:2,)))
-    end
-
-    @test OffsetVector(v, :) == OffsetArray(v, (:,)) == OffsetArray(v, :) == OffsetArray(v, axes(v))
-    @test axes(OffsetVector(v, :)) == axes(v)
-
-    w = zeros(5:6)
-    @test OffsetVector(w, :) == OffsetArray(w, (:,)) == OffsetArray(w, :) == OffsetArray(w, axes(w))
-    @test axes(OffsetVector(w, :)) == axes(w)
-
-    @test axes(OffsetVector(v, typemax(Int)-length(v))) == (IdOffsetRange(axes(v)[1], typemax(Int)-length(v)), )
-    @test_throws ArgumentError OffsetVector(v, typemax(Int)-length(v)+1)
-    ao = OffsetArray(v, typemin(Int))
-    @test_nowarn OffsetArray{Float64, 1, typeof(ao)}(ao, (-1, ))
-    @test_throws ArgumentError OffsetArray{Float64, 1, typeof(ao)}(ao, (-2, )) # inner Constructor
-    @test_throws ArgumentError OffsetArray(ao, (-2, )) # convinient constructor accumulate offsets
-end
-
-@testset "OffsetMatrix constructors" begin
-    local v = rand(5, 3)
-    @test OffsetMatrix(v, -2, -1) == OffsetArray(v, -2, -1)
-    @test OffsetMatrix(v, -2:2, -1:1) == OffsetArray(v, -2:2, -1:1)
-    @test typeof(OffsetMatrix{Float64}(undef, -2:2, -1:1)) == typeof(OffsetArray{Float64}(undef, -2:2, -1:1))
-
-    # Issue #71
-    m = OffsetMatrix(v, -2:2, -1:1)
-    for T in [OffsetMatrix, OffsetArray]
-        if VERSION >= v"1.1"
-            @test m == T(v, CartesianIndex(-2, -1):CartesianIndex(2, 1))
-            @test m == T(v, CartesianIndex(-2):CartesianIndex(2), CartesianIndex(-1):CartesianIndex(1))
-            @test m == T(v, -2:2, CartesianIndex(-1):CartesianIndex(1))
-            @test m == T(v, CartesianIndex(-2):CartesianIndex(2), -1:1)
-        end
-        @test m == T(v, CartesianIndices((-2:2, -1:1)))
-    end
-
-    @test OffsetMatrix(v, :, :) == OffsetArray(v, (:, :)) == OffsetArray(v, :, :) == OffsetArray(v, axes(v))
-    @test OffsetMatrix(v, :, 2:4) == OffsetArray(v, axes(v,1), 2:4)
-    @test OffsetMatrix(v, 3:7, :) == OffsetArray(v, 3:7, axes(v,2))
-    @test axes(OffsetArray(v, :, :)) == axes(v)
-
-    w = zeros(3:4, 5:6)
-    @test OffsetMatrix(w, :, :) == OffsetArray(w, (:, :)) == OffsetArray(w, :, :) == OffsetArray(w, axes(w))
-    @test OffsetMatrix(w, :, 2:3) == OffsetArray(w, axes(w,1), 2:3)
-    @test OffsetMatrix(w, 0:1, :) == OffsetArray(w, 0:1, axes(w,2))
-    @test axes(OffsetArray(w, :, :)) == axes(w)
-
-    @test axes(OffsetMatrix(w, :, CartesianIndices((0:1,)))) == (3:4, 0:1)
-    @test axes(OffsetMatrix(w, CartesianIndices((0:1,)), :)) == (0:1, 5:6)
-
-    @test axes(OffsetMatrix(v, typemax(Int)-size(v, 1), 0)) == (IdOffsetRange(axes(v)[1], typemax(Int)-size(v, 1)), axes(v, 2))
-    @test_throws ArgumentError OffsetMatrix(v, typemax(Int)-size(v,1)+1, 0)
-    @test_throws ArgumentError OffsetMatrix(v, 0, typemax(Int)-size(v, 2)+1)
-end
-
-@testset "construct OffsetArray with CartesianIndices" begin
-    a = rand(2, 2, 2)
-    oa = OffsetArray(a, 0:1, 3:4, 2:3)
-    @test OffsetArray(a, CartesianIndices(axes(oa))) == oa
-    @test axes(OffsetArray(a, :, CartesianIndices((3:4, 2:3)))) == (1:2, 3:4, 2:3)
-    @test axes(OffsetArray(a, 10:11, CartesianIndices((3:4, 2:3)) )) == (10:11, 3:4, 2:3)
-    @test axes(OffsetArray(a, CartesianIndices((3:4, 2:3)), :)) == (3:4, 2:3, 1:2)
-    @test axes(OffsetArray(a, CartesianIndices((3:4, 2:3)), 10:11)) == (3:4, 2:3, 10:11)
-    @test axes(OffsetArray(a, :, :, CartesianIndices((3:4,)) )) == (1:2, 1:2, 3:4)
-    @test axes(OffsetArray(a, 10:11, :, CartesianIndices((3:4,)) )) == (10:11, 1:2, 3:4)
-    @test axes(OffsetArray(a, 10:11, 2:3, CartesianIndices((3:4,)) )) == (10:11, 2:3, 3:4)
-
-    # ignore empty CartesianIndices
-    @test OffsetArray(a, CartesianIndices(()), 0:1, :, 2:3) == OffsetArray(a, 0:1, :, 2:3)
-    @test OffsetArray(a, 0:1, CartesianIndices(()), :, 2:3) == OffsetArray(a, 0:1, :, 2:3)
-    @test OffsetArray(a, 0:1, :,  CartesianIndices(()), 2:3) == OffsetArray(a, 0:1, :, 2:3)
-    @test OffsetArray(a, 0:1, :, 2:3, CartesianIndices(())) == OffsetArray(a, 0:1, :, 2:3)
-end
-
-@testset "undef, missing, and nothing constructors" begin
-    y = OffsetArray{Float32}(undef, (IdentityUnitRange(-1:1),))
-    @test axes(y) == (IdentityUnitRange(-1:1),)
-    @test eltype(y) === Float32
-
-    y = OffsetArray{Float64}(undef, -1:1, -7:7, -1:2, -5:5, -1:1, -3:3, -2:2, -1:1)
-    @test axes(y) == (-1:1, -7:7, -1:2, -5:5, -1:1, -3:3, -2:2, -1:1)
-    @test eltype(y) === Float64
-
-    for (T, t) in ((Missing, missing), (Nothing, nothing))
-        @test !isassigned(OffsetArray{Union{T,Vector{Int}}}(undef, -1:1, -1:1), -1, -1)
-        @test OffsetArray{Union{T,Vector{Int}}}(t, -1:1, -1:1)[-1, -1] === t
-        @test !isassigned(OffsetVector{Union{T,Vector{Int}}}(undef, -1:1), -1)
-        @test OffsetVector{Union{T,Vector{Int}}}(t, -1:1)[-1] === t
-    end
-
-    oa = OffsetArray{Float64,2}(undef, CartesianIndices((1:2, 3:4)))
-    @test axes(oa) == (1:2, 3:4)
-    @test eltype(oa) == Float64
-    oa = OffsetArray{Float64,2}(undef, 1:2, CartesianIndices((3:4,)))
-    @test axes(oa) == (1:2, 3:4)
-    @test eltype(oa) == Float64
-    oa = OffsetArray{Float64,2}(undef, (1:2, CartesianIndices((3:4,))))
-    @test axes(oa) == (1:2, 3:4)
-    @test eltype(oa) == Float64
-    oa = OffsetArray{Float64}(undef, CartesianIndices((1:2, 3:4)))
-    @test axes(oa) == (1:2, 3:4)
-    @test eltype(oa) == Float64
-    oa = OffsetArray{Float64}(undef, 1:2, CartesianIndices((3:4,)))
-    @test axes(oa) == (1:2, 3:4)
-    @test eltype(oa) == Float64
-    oa = OffsetArray{Float64}(undef, (1:2, CartesianIndices((3:4,))))
-    @test axes(oa) == (1:2, 3:4)
-    @test eltype(oa) == Float64
-end
-
-@testset "Offset range construction" begin
-    r = -2:5
-    y = OffsetArray(r, r)
-    @test axes(y) == (r,)
-    @test step(y) == step(r)
-    y = OffsetArray(r, (r,))
-    @test axes(y) == (r,)
-
-    s = -2:2:4
-    r = 5:8
-    y = OffsetArray(s, r)
-    @test axes(y) == (r,)
-    @test step(y) == step(s)
-end
-
-@testset "OffsetArray of OffsetArray construction" begin
-    # guarantee no unnecessary nesting of `OffsetArray`s
-    r = -2:5
-    d = collect(r)
-    y = OffsetArray(d, r)
-
-    # range constructor
-    y0 = OffsetArray(y, 0:7)
-    @test y0[0] == r[1]
-    @test typeof(parent(y0)) <: Array
-
-    # offset constructor
-    y1 = OffsetArray(y, +2)
-    @test y1[0] == r[1]
-    @test typeof(parent(y1)) <: Array
 end
 
 @testset "Axes supplied to constructor correspond to final result" begin
@@ -390,6 +489,32 @@ end
     @test_throws BoundsError S[CartesianIndex(1,1),2]
     @test eachindex(A) == 1:4
     @test eachindex(S) == CartesianIndices(IdentityUnitRange.((0:1,3:4)))
+end
+
+@testset "IdentityUnitRange indexing" begin
+    # 155
+    a = OffsetVector(3:4, 2:3)
+    ax = IdentityUnitRange(2:3)
+    @test a[ax[2]] == a[ax][2]
+
+    s = -2:2:4
+    r = 5:8
+    y = OffsetArray(s, r)
+    @test axes(y) == (r,)
+    @test step(y) == step(s)
+
+    a = OffsetVector(3:4, 10:11)
+    ax = OffsetArrays.IdOffsetRange(5:6, 5)
+    @test axes(a[ax]) == axes(ax)
+    for i in axes(ax,1)
+        @test a[ax[i]] == a[ax][i]
+    end
+
+    ax = IdentityUnitRange(10:11)
+    @test axes(a[ax]) == axes(ax)
+    for i in axes(ax,1)
+        @test a[ax[i]] == a[ax][i]
+    end
 end
 
 @testset "view" begin
