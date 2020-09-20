@@ -306,6 +306,9 @@ const IIUR = IdentityUnitRange{S} where S<:AbstractUnitRange{T} where T<:Integer
 Base.step(a::OffsetRange) = step(parent(a))
 
 Base.getindex(a::OffsetRange, r::OffsetRange) = OffsetArray(a[parent(r)], r.offsets)
+function Base.getindex(a::OffsetRange, r::IdOffsetRange)
+    OffsetArray(a.parent[r.parent .+ (r.offset - a.offsets[1])], r.offset)
+end
 Base.getindex(a::OffsetRange, r::AbstractRange) = a.parent[r .- a.offsets[1]]
 Base.getindex(a::AbstractRange, r::OffsetRange) = OffsetArray(a[parent(r)], r.offsets)
 

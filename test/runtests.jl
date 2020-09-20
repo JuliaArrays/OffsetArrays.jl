@@ -351,6 +351,13 @@ end
     r1 = OffsetArray(8:10, -1:1)[OffsetArray(0:1, -5:-4)]
     @test axes(r1) == (IdentityUnitRange(-5:-4),)
     @test parent(r1) === 9:10
+
+    a = OffsetVector(3:4, 10:11)
+    ax = OffsetArrays.IdOffsetRange(5:6, 5)
+    @test axes(a[ax]) == axes(ax)
+    for i in axes(ax,1)
+        @test a[ax[i]] == a[ax][i]
+    end
 end
 
 @testset "CartesianIndexing" begin
