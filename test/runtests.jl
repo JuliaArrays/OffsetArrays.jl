@@ -196,8 +196,8 @@ end
     @test axes(y) == (IdentityUnitRange(-1:1),)
     @test eltype(y) === Float32
 
-    y = OffsetArray{Float64}(undef, -1:1, -7:7, -128:512, -5:5, -1:1, -3:3, -2:2, -1:1)
-    @test axes(y) == (-1:1, -7:7, -128:512, -5:5, -1:1, -3:3, -2:2, -1:1)
+    y = OffsetArray{Float64}(undef, -1:1, -7:7, -1:2, -5:5, -1:1, -3:3, -2:2, -1:1)
+    @test axes(y) == (-1:1, -7:7, -1:2, -5:5, -1:1, -3:3, -2:2, -1:1)
     @test eltype(y) === Float64
 
     for (T, t) in ((Missing, missing), (Nothing, nothing))
@@ -303,10 +303,10 @@ end
     @inbounds Ac[0,3,1] = 12
     @test Ac[0,3] == 12
 
-    y = OffsetArray{Float64}(undef, -1:1, -7:7, -128:512, -5:5, -1:1, -3:3, -2:2, -1:1)
-    y[-1,-7,-128,-5,-1,-3,-2,-1] = 14
-    y[-1,-7,-128,-5,-1,-3,-2,-1] += 5
-    @test y[-1,-7,-128,-5,-1,-3,-2,-1] == 19
+    y = OffsetArray{Float64}(undef, -1:1, -7:7, -3:-1, -5:5, -1:1, -3:3, -2:2, -1:1)
+    y[-1,-7,-3,-5,-1,-3,-2,-1] = 14
+    y[-1,-7,-3,-5,-1,-3,-2,-1] += 5
+    @test y[-1,-7,-3,-5,-1,-3,-2,-1] == 19
 
     @testset "setindex!" begin
         A = OffsetArray(ones(2,2), 1:2, 1:2)
