@@ -305,12 +305,14 @@ const IIUR = IdentityUnitRange{S} where S<:AbstractUnitRange{T} where T<:Integer
 
 Base.step(a::OffsetRange) = step(parent(a))
 
-Base.getindex(a::OffsetRange, r::OffsetRange) = OffsetArray(a[parent(r)], r.offsets)
-function Base.getindex(a::OffsetRange, r::IdOffsetRange)
+@propagate_inbounds Base.getindex(a::OffsetRange, r::OffsetRange) = OffsetArray(a[parent(r)], r.offsets)
+@propagate_inbounds function Base.getindex(a::OffsetRange, r::IdOffsetRange)
     OffsetArray(a.parent[r.parent .+ (r.offset - a.offsets[1])], r.offset)
 end
-Base.getindex(a::OffsetRange, r::AbstractRange) = a.parent[r .- a.offsets[1]]
-Base.getindex(a::AbstractRange, r::OffsetRange) = OffsetArray(a[parent(r)], r.offsets)
+@propagate_inbounds Base.getindex(r::OffsetRange, s::IIUR) =
+    OffsetArray(r[s.indices], s)
+@propagate_inbounds Base.getindex(a::OffsetRange, r::AbstractRange) = a.parent[r .- a.offsets[1]]
+@propagate_inbounds Base.getindex(a::AbstractRange, r::OffsetRange) = OffsetArray(a[parent(r)], r.offsets)
 
 @propagate_inbounds Base.getindex(r::UnitRange, s::IIUR) =
     OffsetArray(r[s.indices], s)
@@ -318,12 +320,13 @@ Base.getindex(a::AbstractRange, r::OffsetRange) = OffsetArray(a[parent(r)], r.of
 @propagate_inbounds Base.getindex(r::StepRange, s::IIUR) =
     OffsetArray(r[s.indices], s)
 
-@inline @propagate_inbounds Base.getindex(r::StepRangeLen{T,<:Base.TwicePrecision,<:Base.TwicePrecision}, s::IIUR) where T =
-    OffsetArray(r[s.indices], s)
-@inline @propagate_inbounds Base.getindex(r::StepRangeLen{T}, s::IIUR) where {T} =
+@propagate_inbounds Base.getindex(r::StepRangeLen{T,<:Base.TwicePrecision,<:Base.TwicePrecision}, s::IIUR) where T =
     OffsetArray(r[s.indices], s)
 
-@inline @propagate_inbounds Base.getindex(r::LinRange, s::IIUR) =
+@propagate_inbounds Base.getindex(r::StepRangeLen{T}, s::IIUR) where {T} =
+    OffsetArray(r[s.indices], s)
+
+@propagate_inbounds Base.getindex(r::LinRange, s::IIUR) =
     OffsetArray(r[s.indices], s)
 
 function Base.show(io::IO, r::OffsetRange)

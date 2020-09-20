@@ -358,6 +358,12 @@ end
     for i in axes(ax,1)
         @test a[ax[i]] == a[ax][i]
     end
+
+    ax = IdentityUnitRange(10:11)
+    @test axes(a[ax]) == axes(ax)
+    for i in axes(ax,1)
+        @test a[ax[i]] == a[ax][i]
+    end
 end
 
 @testset "CartesianIndexing" begin
