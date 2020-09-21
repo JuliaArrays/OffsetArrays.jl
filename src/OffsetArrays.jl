@@ -1,6 +1,7 @@
 module OffsetArrays
 
 using Base: Indices, tail, @propagate_inbounds
+
 @static if !isdefined(Base, :IdentityUnitRange)
     const IdentityUnitRange = Base.Slice
 else
@@ -50,10 +51,12 @@ OffsetArray(A::AbstractArray{T,N}, offsets::Vararg{Int,N}) where {T,N} =
     OffsetArray(A, offsets)
 OffsetArray(A::AbstractArray{T,0}) where {T} = OffsetArray(A, ())
 
+# Create an uninitialized OffsetArray with given element type
 const ArrayInitializer = Union{UndefInitializer, Missing, Nothing}
 OffsetArray{T,N}(init::ArrayInitializer, inds::Indices{N}) where {T,N} =
     OffsetArray(Array{T,N}(init, map(indexlength, inds)), map(indexoffset, inds))
 OffsetArray{T}(init::ArrayInitializer, inds::Indices{N}) where {T,N} = OffsetArray{T,N}(init, inds)
+# Same thing, but taking multiple args for offsets/indices
 OffsetArray{T,N}(init::ArrayInitializer, inds::Vararg{AbstractUnitRange,N}) where {T,N} = OffsetArray{T,N}(init, inds)
 OffsetArray{T}(init::ArrayInitializer, inds::Vararg{AbstractUnitRange,N}) where {T,N} = OffsetArray{T,N}(init, inds)
 
@@ -415,6 +418,23 @@ end
 
 no_offset_view(A::OffsetArray) = no_offset_view(parent(A))
 
+# Quick hack for matrix multiplication.
+# Ideally, one would instead improve LinearAlgebra's support of custom indexing.
+function Base.:(*)(A::OffsetMatrix, B::OffsetMatrix)
+    matmult_check_axes(A, B)
+    C = parent(A) * parent(B)
+    OffsetArray{eltype(C), 2, typeof(C)}(C, (A.offsets[1], B.offsets[2]))
+end
+
+function Base.:(*)(A::OffsetMatrix, B::OffsetVector)
+    matmult_check_axes(A, B)
+    C = parent(A) * parent(B)
+    OffsetArray{eltype(C), 1, typeof(C)}(C, (A.offsets[1], ))
+end
+function matmult_check_axes(A, B)
+    axes(A, 2) === axes(B, 1) || axes(A, 2) == axes(B, 1) || 
+        error("axes(A,2) = $(UnitRange(axes(A,2))) does not equal axes(B,1) = $(UnitRange(axes(B,1)))")
+end
 
 ####
 # work around for segfault in searchsorted*
