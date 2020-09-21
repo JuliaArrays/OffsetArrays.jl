@@ -1,6 +1,6 @@
 module OffsetArrays
 
-using Base: Indices, tail, @propagate_inbounds
+using Base: tail, @propagate_inbounds
 @static if !isdefined(Base, :IdentityUnitRange)
     const IdentityUnitRange = Base.Slice
 else
@@ -15,8 +15,8 @@ include("origin.jl")
 
 # Technically we know the length of CartesianIndices but we need to convert it first, so here we
 # don't put it in OffsetAxisKnownLength.
-const OffsetAxisKnownLength = Union{Integer, AbstractUnitRange, IdOffsetRange}
-const OffsetAxis = Union{OffsetAxisKnownLength, CartesianIndices, Colon}
+const OffsetAxisKnownLength = Union{Integer, AbstractUnitRange}
+const OffsetAxis = Union{OffsetAxisKnownLength, Colon}
 const ArrayInitializer = Union{UndefInitializer, Missing, Nothing}
 
 ## OffsetArray
@@ -51,7 +51,7 @@ julia> OffsetArray(reshape(1:6, 2, 3), 0:1, -1:1)
  1  3  5
  2  4  6
 
-julia> OffsetArray(reshape(1:6, 2, 3), :, -1:1) # : as a placeholder means no offset is applied at this dimension
+julia> OffsetArray(reshape(1:6, 2, 3), :, -1:1) # : as a placeholder to indicate that no offset is to be applied to this dimension
 2×3 OffsetArray(reshape(::UnitRange{$Int}, 2, 3), 1:2, -1:1) with eltype $Int with indices 1:2×-1:1:
  1  3  5
  2  4  6
@@ -123,54 +123,71 @@ function overflow_check(r, offset::T) where T
         throw_lower_overflow_error()
     end
 end
+
+function OffsetArray(A::AbstractArray, offsets::Tuple{Vararg{Integer}})
+    _checkindices(A, offsets, "offsets")
+    OffsetArray{eltype(A), ndims(A), typeof(A)}(A, offsets)
+end
+# Nested OffsetArrays may strip off the layer and collate the offsets
+function OffsetArray(A::OffsetArray, offsets::Tuple{Vararg{Integer}})
+    _checkindices(A, offsets, "offsets")
+    OffsetArray(parent(A), A.offsets .+ offsets)
+end
+
+for (FT, ND) in ((:OffsetVector, :1), (:OffsetMatrix, :2))
+    @eval function $FT(A::AbstractArray{<:Any,$ND}, offsets::Tuple{Vararg{Integer}})
+        _checkindices(A, offsets, "offsets")
+        OffsetArray{eltype(A), $ND, typeof(A)}(A, offsets)
+    end
+    @eval function $FT(A::OffsetArray{<:Any,$ND}, offsets::Tuple{Vararg{Integer}})
+        _checkindices(A, offsets, "offsets")
+        $FT(parent(A), A.offsets .+ offsets)
+    end
+    FTstr = string(FT)
+    @eval function $FT(A::AbstractArray, offsets::Tuple{Vararg{Integer}})
+        throw(ArgumentError($FTstr*" requires a "*string($ND)*"D array"))
+    end
+end
+
 ## OffsetArray constructors
-
 for FT in (:OffsetArray, :OffsetVector, :OffsetMatrix)
-    # The only route out to inner constructor
-    @eval function $FT(A::AbstractArray{T, N}, offsets::NTuple{N, Integer}) where {T, N}
-        ndims(A) == N || throw(DimensionMismatch("The number of offsets $(N) should equal ndims(A) = $(ndims(A))"))
-        OffsetArray{T, ndims(A), typeof(A)}(A, offsets)
+    # In general, indices get converted to AbstractUnitRanges.
+    # CartesianIndices{N} get converted to N ranges
+    @eval function $FT(A::AbstractArray, inds::Tuple)
+        $FT(A, _toAbstractUnitRanges(to_indices(A, axes(A), inds)))
     end
-    # nested OffsetArrays
-    @eval $FT(A::OffsetArray{T, N}, offsets::NTuple{N, Integer}) where {T,N} = $FT(parent(A), A.offsets .+ offsets)
-    # convert ranges to offsets
-    @eval function $FT(A::AbstractArray{T}, inds::NTuple{N,OffsetAxisKnownLength}) where {T,N}
-        axparent = axes(A)
-        lA = map(length, axparent)
-        lI = map(length, inds)
-        lA == lI || throw(DimensionMismatch("supplied axes do not agree with the size of the array (got size $lA for the array and $lI for the indices"))
-        $FT(A, map(_offset, axparent, inds)) 
-    end
-    # lower CartesianIndices and Colon
-    @eval function $FT(A::AbstractArray{T}, inds::NTuple{N, OffsetAxis}) where {T, N}
-        indsN = _uncolonindices(A, _expandCartesianIndices(inds))
-        $FT(A, indsN)
-    end
-    @eval $FT(A::AbstractArray{T}, inds::Vararg{OffsetAxis,N}) where {T, N} = $FT(A, inds)
 
-    @eval $FT(A::AbstractArray, origin::Origin) = OffsetArray(A, origin(A))
+    @eval $FT(A::AbstractArray, inds::Vararg) = $FT(A, inds)
+
+    # convert ranges to offsets
+    @eval function $FT(A::AbstractArray, inds::Tuple{AbstractUnitRange,Vararg{AbstractUnitRange}})
+        _checkindices(A, inds, "indices")
+        throw_dimerr(lA, lI) = throw(DimensionMismatch("supplied axes do not agree with the size of the array (got size $lA for the array and $lI for the indices"))
+        lA = size(A)
+        lI = map(length, inds)
+        lA == lI || throw_dimerr(lA, lI)
+        $FT(A, map(_offset, axes(A), inds)) 
+    end
+
+    @eval $FT(A::AbstractArray, origin::Origin) = $FT(A, origin(A))
 end
 
 # array initialization
-function OffsetArray{T,N}(init::ArrayInitializer, inds::NTuple{N, OffsetAxisKnownLength}) where {T,N}
+function OffsetArray{T,N}(init::ArrayInitializer, inds::Tuple{Vararg{OffsetAxisKnownLength}}) where {T,N}
+    _checkindices(N, inds, "indices")
     AA = Array{T,N}(init, map(_indexlength, inds))
     OffsetArray{T, N, typeof(AA)}(AA, map(_indexoffset, inds))
 end
-function OffsetArray{T, N}(init::ArrayInitializer, inds::NTuple{NT, Union{OffsetAxisKnownLength, CartesianIndices}}) where {T, N, NT}
-    # NT is probably not the actual dimension of the array; CartesianIndices might contain multiple dimensions
-    indsN = _expandCartesianIndices(inds)
-    length(indsN) == N || throw(DimensionMismatch("The number of offsets $(length(indsN)) should equal ndims(A) = $N"))
-    OffsetArray{T, N}(init, indsN)
+function OffsetArray{T, N}(init::ArrayInitializer, inds::Tuple) where {T, N}
+    OffsetArray{T, N}(init, _toAbstractUnitRanges(inds))
 end
-OffsetArray{T,N}(init::ArrayInitializer, inds::Union{OffsetAxisKnownLength, CartesianIndices}...) where {T,N} = OffsetArray{T,N}(init, inds)
+OffsetArray{T,N}(init::ArrayInitializer, inds::Vararg) where {T,N} = OffsetArray{T,N}(init, inds)
 
 OffsetArray{T}(init::ArrayInitializer, inds::NTuple{N, OffsetAxisKnownLength}) where {T,N} = OffsetArray{T,N}(init, inds)
-function OffsetArray{T}(init::ArrayInitializer, inds::NTuple{N, Union{OffsetAxisKnownLength, CartesianIndices}}) where {T, N}
-    # N is probably not the actual dimension of the array; CartesianIndices might contain multiple dimensions
-    indsN = _expandCartesianIndices(inds)
-    OffsetArray{T, length(indsN)}(init, indsN)
+function OffsetArray{T}(init::ArrayInitializer, inds::Tuple) where {T}
+    OffsetArray{T}(init, _toAbstractUnitRanges(inds))
 end
-OffsetArray{T}(init::ArrayInitializer, inds::Union{OffsetAxisKnownLength, CartesianIndices}...) where {T} = OffsetArray{T}(init, inds)
+OffsetArray{T}(init::ArrayInitializer, inds::Vararg) where {T} = OffsetArray{T}(init, inds)
 
 Base.IndexStyle(::Type{OA}) where {OA<:OffsetArray} = IndexStyle(parenttype(OA))
 parenttype(::Type{OffsetArray{T,N,AA}}) where {T,N,AA} = AA

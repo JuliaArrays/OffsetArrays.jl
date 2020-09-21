@@ -143,3 +143,28 @@ OffsetArrays.IdOffsetRange(-3:3)
 julia> Ao[ax, 0][1] == Ao[ax[1], 0]
 true
 ```
+
+## Using custom axis types
+
+While a wide variety of `AbstractUnitRange`s provided by `Base` may be used as indices to construct an `OffsetArray`, at times it might be convenient to define custom types. The `OffsetArray` constructor accepts any type that may be converted to an `AbstractUnitRange`. This proceeds through a two-step process. Let's assume that the constructor called is `OffsetArray(A, indstup)`, where `indstup` is a `Tuple` of indices.
+
+1. In the first step, the constructor calls `to_indices(A, axes(A), indstup)` to lower `indstup` to a `Tuple` of `AbstractUnitRange`s. This step converts --- among other things --- `Colon`s to axis ranges. Custom types may extend `Base.to_indices(A, axes(A), indstup)` with the desired conversion of `indstup` to `Tuple{Vararg{AbstractUnitRange{Int}}}` if this is feasible.
+
+2. In the second step, the result of the previous step is passed to `OffsetArrays._toAbstractUnitRanges`. This step is only necessary if the previous step didn't return a `Tuple` of `AbstractUnitRange`s. This step allows an additional customization option: a type may be converted either to a single `AbstractUnitRange{Int}`, or to a `Tuple` of them. A custom type might specify which of these two behaviours is desired by extending [`OffsetArrays.AxisConversionStyle`](@ref). An example of a type that is acted upon at this stage is `CartesianIndices`, which is converted to a `Tuple` of `AbstractUnitRange`s.
+
+For example, here is a custom type that leads to zero-based indexing:
+
+```jldoctest; setup = :(using OffsetArrays)
+julia> struct ZeroBasedIndexing end
+
+julia> Base.to_indices(A, inds, ::Tuple{ZeroBasedIndexing}) = map(x -> 0:length(x)-1, inds)
+
+julia> a = zeros(3, 3);
+
+julia> oa = OffsetArray(a, ZeroBasedIndexing());
+
+julia> axes(oa)
+(OffsetArrays.IdOffsetRange(0:2), OffsetArrays.IdOffsetRange(0:2))
+```
+
+Note that zero-based indexing may also be achieved using [`OffsetArrays.Origin`](@ref).

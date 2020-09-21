@@ -56,7 +56,7 @@ Base.require_one_based_indexing(OA)
 ```
 
 [`OffsetArrays.Origin`](@ref) can be convenient if you want to directly specify the origin of the output
-OffsetArray, it will automatically compute the needed offsets. For example:
+OffsetArray, it will automatically compute the corresponding offsets. For example:
 
 ```@repl index
 OffsetArray(A, OffsetArrays.Origin(-1, -1))
