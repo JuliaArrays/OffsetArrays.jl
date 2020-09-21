@@ -114,7 +114,7 @@ for FT in (:OffsetArray, :OffsetVector, :OffsetMatrix)
         indsN = _uncolonindices(A, _expandCartesianIndices(inds))
         $FT(A, indsN)
     end
-    @eval $FT(A::AbstractArray{T}, inds...) where {T, N} = $FT(A, inds)
+    @eval $FT(A::AbstractArray{T}, inds::Vararg{OffsetAxis,N}) where {T, N} = $FT(A, inds)
 end
 
 # array initialization
@@ -128,7 +128,7 @@ function OffsetArray{T, N}(init::ArrayInitializer, inds::NTuple{NT, Union{Offset
     length(indsN) == N || throw(DimensionMismatch("The number of offsets $(length(indsN)) should equal ndims(A) = $N"))
     OffsetArray{T, N}(init, indsN)
 end
-OffsetArray{T,N}(init::ArrayInitializer, inds...) where {T,N} = OffsetArray{T,N}(init, inds)
+OffsetArray{T,N}(init::ArrayInitializer, inds::Union{OffsetAxisKnownLength, CartesianIndices}...) where {T,N} = OffsetArray{T,N}(init, inds)
 
 OffsetArray{T}(init::ArrayInitializer, inds::NTuple{N, OffsetAxisKnownLength}) where {T,N} = OffsetArray{T,N}(init, inds)
 function OffsetArray{T}(init::ArrayInitializer, inds::NTuple{N, Union{OffsetAxisKnownLength, CartesianIndices}}) where {T, N}
@@ -136,7 +136,7 @@ function OffsetArray{T}(init::ArrayInitializer, inds::NTuple{N, Union{OffsetAxis
     indsN = _expandCartesianIndices(inds)
     OffsetArray{T, length(indsN)}(init, indsN)
 end
-OffsetArray{T}(init::ArrayInitializer, inds...) where {T} = OffsetArray{T}(init, inds)
+OffsetArray{T}(init::ArrayInitializer, inds::Union{OffsetAxisKnownLength, CartesianIndices}...) where {T} = OffsetArray{T}(init, inds)
 
 Base.IndexStyle(::Type{OA}) where {OA<:OffsetArray} = IndexStyle(parenttype(OA))
 parenttype(::Type{OffsetArray{T,N,AA}}) where {T,N,AA} = AA
