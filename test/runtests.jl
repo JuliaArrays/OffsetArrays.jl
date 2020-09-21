@@ -231,8 +231,15 @@ end
     r = -2:5
     y = OffsetArray(r, r)
     @test axes(y) == (r,)
+    @test step(y) == step(r)
     y = OffsetArray(r, (r,))
     @test axes(y) == (r,)
+
+    s = -2:2:4
+    r = 5:8
+    y = OffsetArray(s, r)
+    @test axes(y) == (r,)
+    @test step(y) == step(s)
 end
 
 @testset "OffsetArray of OffsetArray construction" begin
@@ -664,7 +671,7 @@ end
     v = view(A0, 1:1, i1)
     @test axes(v) == (Base.OneTo(1), IdentityUnitRange(-4:-3))
 
-    for r in (1:10, 1:1:10, StepRangeLen(1, 1, 10), LinRange(1, 10, 10))
+    for r in (1:10, 1:1:10, StepRangeLen(1, 1, 10), LinRange(1, 10, 10), 0.1:0.2:0.9)
         for s in (IdentityUnitRange(2:3), OffsetArray(2:3, 2:3))
             @test axes(r[s]) == axes(s)
         end

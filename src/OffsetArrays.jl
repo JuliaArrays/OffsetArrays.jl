@@ -320,6 +320,7 @@ end
 @propagate_inbounds Base.getindex(r::StepRange, s::IIUR) =
     OffsetArray(r[s.indices], s)
 
+# this method is needed for ambiguity resolution
 @propagate_inbounds Base.getindex(r::StepRangeLen{T,<:Base.TwicePrecision,<:Base.TwicePrecision}, s::IIUR) where T =
     OffsetArray(r[s.indices], s)
 
