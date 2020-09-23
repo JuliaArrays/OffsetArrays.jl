@@ -20,7 +20,7 @@ julia> ro[-1]
 -1
 
 julia> ro[3]
-ERROR: BoundsError: attempt to access 3-element UnitRange{Int64} at index [5]
+ERROR: BoundsError: attempt to access 3-element UnitRange{$Int} at index [5]
 ```
 
 If the range doesn't start at 1, the values may be different from the indices:
@@ -35,7 +35,7 @@ julia> ro[-1]
 9
 
 julia> ro[3]
-ERROR: BoundsError: attempt to access 3-element UnitRange{Int64} at index [5]
+ERROR: BoundsError: attempt to access 3-element UnitRange{$Int} at index [5]
 ```
 
 # Extended help

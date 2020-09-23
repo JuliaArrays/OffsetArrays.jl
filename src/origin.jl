@@ -13,12 +13,12 @@ The `origin` of an array is defined as the index of its first element, i.e., `fi
 julia> a = [1 2; 3 4];
 
 julia> OffsetArray(a, OffsetArrays.Origin(0, 1))
-2×2 OffsetArray(::$(Array{Int64,2}), 0:1, 1:2) with eltype Int64 with indices 0:1×1:2:
+2×2 OffsetArray(::$(Array{Int,2}), 0:1, 1:2) with eltype $Int with indices 0:1×1:2:
  1  2
  3  4
 
 julia> OffsetArray(a, OffsetArrays.Origin(0)) # short notation for `Origin(0, 0)`
-2×2 OffsetArray(::$(Array{Int64, 2}), 0:1, 0:1) with eltype Int64 with indices 0:1×0:1:
+2×2 OffsetArray(::$(Array{Int, 2}), 0:1, 0:1) with eltype $Int with indices 0:1×0:1:
  1  2
  3  4
 ```
