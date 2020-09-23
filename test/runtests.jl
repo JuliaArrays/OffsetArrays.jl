@@ -92,7 +92,7 @@ end
 end
 
 @testset "Constructors" begin
-    @testset "0-dimensional array" begin
+    @testset "Single-entry arrays in dims 0:5" begin
         for n = 0:5
             for z in (OffsetArray(ones(Int,ntuple(d->1,n)), ntuple(x->x-1,n)),
                     fill!(OffsetArray{Float64}(undef, ntuple(x->x:x, n)), 1),
@@ -109,7 +109,9 @@ end
         @test axes(a) == ()
         @test ndims(a) == 0
         @test a[] == 3
-        @test a == OffsetArray(a, ())
+        @test a === OffsetArray(a, ())
+        @test_throws DimensionMismatch OffsetArray(a, 0)
+        @test_throws DimensionMismatch OffsetArray(a0, 0)
     end
 
     @testset "OffsetVector" begin

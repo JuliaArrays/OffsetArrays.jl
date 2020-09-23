@@ -95,12 +95,12 @@ end
 
 for FT in (:OffsetArray, :OffsetVector, :OffsetMatrix)
     # The only route out to inner constructor
-    @eval function $FT(A::AbstractArray{T}, offsets::NTuple{N, Integer}) where {T, N}
+    @eval function $FT(A::AbstractArray{T, N}, offsets::NTuple{N, Integer}) where {T, N}
         ndims(A) == N || throw(DimensionMismatch("The number of offsets $(N) should equal ndims(A) = $(ndims(A))"))
         OffsetArray{T, ndims(A), typeof(A)}(A, offsets)
     end
     # nested OffsetArrays
-    @eval $FT(A::OffsetArray{T}, offsets::NTuple{N, Integer}) where {T,N} = $FT(parent(A), A.offsets .+ offsets)
+    @eval $FT(A::OffsetArray{T, N}, offsets::NTuple{N, Integer}) where {T,N} = $FT(parent(A), A.offsets .+ offsets)
     # convert ranges to offsets
     @eval function $FT(A::AbstractArray{T}, inds::NTuple{N,OffsetAxisKnownLength}) where {T,N}
         axparent = axes(A)
