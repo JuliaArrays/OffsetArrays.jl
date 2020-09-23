@@ -1,9 +1,10 @@
 # OffsetArrays.jl
 
-[![](https://img.shields.io/badge/docs-stable-blue.svg)](https://JuliaArrays.github.io/OffsetArrays.jl/stable)
-[![Build Status](https://travis-ci.org/JuliaArrays/OffsetArrays.jl.svg?branch=master)](https://travis-ci.org/JuliaArrays/OffsetArrays.jl)
-[![codecov.io](http://codecov.io/github/JuliaArrays/OffsetArrays.jl/coverage.svg?branch=master)](http://codecov.io/github/JuliaArrays/OffsetArrays.jl?branch=master)
-[![PkgEval][pkgeval-img]][pkgeval-url]
+[![][action-img]][action-url]
+[![][pkgeval-img]][pkgeval-url]
+[![][codecov-img]][codecov-url]
+[![][docs-stable-img]][docs-stable-url]
+[![][docs-dev-img]][docs-dev-url]
 
 
 OffsetArrays provides Julia users with arrays that have arbitrary
@@ -43,5 +44,18 @@ julia> OA[-1,0], OA[1,4]
 (1.0, 15.0)
 ```
 
+<!-- badges -->
+
 [pkgeval-img]: https://juliaci.github.io/NanosoldierReports/pkgeval_badges/O/OffsetArrays.svg
 [pkgeval-url]: https://juliaci.github.io/NanosoldierReports/pkgeval_badges/report.html
+
+[action-img]: https://github.com/JuliaArrays/OffsetArrays.jl/workflows/Unit%20test/badge.svg
+[action-url]: https://github.com/JuliaArrays/OffsetArrays.jl/actions
+
+[codecov-img]: https://codecov.io/github/JuliaArrays/OffsetArrays.jl/coverage.svg?branch=master
+[codecov-url]: https://codecov.io/gh/JuliaArrays/OffsetArrays.jl
+
+[docs-stable-img]: https://img.shields.io/badge/docs-stable-blue.svg
+[docs-stable-url]: https://juliaarrays.github.io/OffsetArrays.jl/stable/
+[docs-dev-img]: https://img.shields.io/badge/docs-dev-blue.svg
+[docs-dev-url]: https://juliaarrays.github.io/OffsetArrays.jl/dev/
