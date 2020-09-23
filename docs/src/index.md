@@ -55,6 +55,15 @@ Base.require_one_based_indexing(ans)
 Base.require_one_based_indexing(OA)
 ```
 
+[`OffsetArrays.Origin`](@ref) can be convenient if you want to directly specify the origin of the output
+OffsetArray, it will automatically compute the needed offsets. For example:
+
+```@repl index
+OffsetArray(A, OffsetArrays.Origin(-1, -1))
+OffsetArray(OA, OffsetArrays.Origin(-1, -1))
+```
+
+
 ## Example: Relativistic Notation
 
 Suppose we have a position vector `r = [:x, :y, :z]` which is naturally one-based, ie. `r[1] == :x`, `r[2] == :y`,  `r[3] == :z` and we also want to construct a relativistic position vector which includes time as the 0th component. This can be done with OffsetArrays like

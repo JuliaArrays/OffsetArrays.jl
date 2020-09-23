@@ -1112,3 +1112,5 @@ end
     @test searchsorted(o,  5) ==  2:2
     @test searchsorted(o,  6) ==  3:2
 end
+
+include("origin.jl")
