@@ -345,7 +345,7 @@ specific to remove a level of indirection when applicable.
 julia> A = [1 3 5; 2 4 6];
 
 julia> O = OffsetArray(A, 0:1, -1:1)
-2×3 OffsetArray(::Matrix{Int64}, 0:1, -1:1) with eltype Int64 with indices 0:1×-1:1:
+2×3 OffsetArray(::$(Matrix{Int64}), 0:1, -1:1) with eltype Int64 with indices 0:1×-1:1:
  1  3  5
  2  4  6
 
@@ -353,7 +353,7 @@ julia> OffsetArrays.no_offset_view(O)[1,1] = -9
 -9
 
 julia> A
-2×3 Matrix{Int64}:
+2×3 $(Matrix{Int64}):
  -9  3  5
   2  4  6
 ```
