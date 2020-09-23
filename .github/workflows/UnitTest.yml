@@ -14,6 +14,9 @@ jobs:
   test:
     runs-on: ${{ matrix.os }}
     strategy:
+      # allow-failure is not supported yet
+      # https://github.com/actions/toolkit/issues/399
+      fail-fast: false
       matrix:
         julia-version: ['1.0', '1', 'nightly']
         os: [ubuntu-latest, windows-latest, macOS-latest]
