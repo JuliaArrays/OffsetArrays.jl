@@ -120,7 +120,7 @@ end
             # test indices API
             a = OffsetVector{Float64}(undef, inds)
             @test eltype(a) === Float64
-            @test axes(a) === axes(OffsetVector{Float64}(undef, inds...)) === axes(OffsetArray{Float64, 1}(undef, inds))
+            @test axes(a) === axes(OffsetVector{Float64}(undef, inds...)) === axes(OffsetArray{Float64, 1}(undef, inds)) === axes(OffsetArray{Float64}(undef, inds))
             @test axes(a) === (IdOffsetRange(Base.OneTo(4), 0), )
             @test a.offsets === (0, )
             @test axes(a.parent) == (Base.OneTo(4), )
@@ -216,7 +216,7 @@ end
             a = OffsetMatrix{Float64}(undef, inds)
             ax = (IdOffsetRange(Base.OneTo(4), 0), IdOffsetRange(Base.OneTo(3), 0))
             @test eltype(a) === Float64
-            @test axes(a) === axes(OffsetMatrix{Float64}(undef, inds...)) === axes(OffsetArray{Float64, 2}(undef, inds)) === axes(OffsetArray{Float64, 2}(undef, inds...))
+            @test axes(a) === axes(OffsetMatrix{Float64}(undef, inds...)) === axes(OffsetArray{Float64, 2}(undef, inds)) === axes(OffsetArray{Float64, 2}(undef, inds...)) === axes(OffsetArray{Float64}(undef, inds))
             @test axes(a) === ax
             @test a.offsets === (0, 0)
             @test axes(a.parent) == (Base.OneTo(4), Base.OneTo(3))
