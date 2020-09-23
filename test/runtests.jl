@@ -209,6 +209,7 @@ end
                 (1:4, 1:3),
                 (CartesianIndex(1, 1):CartesianIndex(4, 3), ),
                 (CartesianIndex(1):CartesianIndex(4), CartesianIndex(1):CartesianIndex(3)),
+                (CartesianIndex(1):CartesianIndex(4), 1:3),
                 (IdentityUnitRange(1:4), IdentityUnitRange(1:3))
         ]
             # test API
@@ -237,6 +238,7 @@ end
                 (CartesianIndex(-1, 0):CartesianIndex(2, 2), ),
                 (-1:2, CartesianIndex(0):CartesianIndex(2)),
                 (CartesianIndex(-1):CartesianIndex(2), CartesianIndex(0):CartesianIndex(2)),
+                (CartesianIndex(-1):CartesianIndex(2), 0:2),
                 (IdentityUnitRange(-1:2), 0:2)
             ]
             # test offsets
