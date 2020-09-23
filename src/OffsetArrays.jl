@@ -97,7 +97,19 @@ struct OffsetArray{T,N,AA<:AbstractArray} <: AbstractArray{T,N}
         new{T, N, AA}(parent, offsets)
     end
 end
+
+"""
+    OffsetVector(v, index)
+
+Type alias and convenience constructor for one-dimensional [`OffsetArray`](@ref)s.
+"""
 const OffsetVector{T,AA<:AbstractArray} = OffsetArray{T,1,AA}
+
+"""
+    OffsetMatrix(A, index1, index2)
+
+Type alias and convenience constructor for two-dimensional [`OffsetArray`](@ref)s.
+"""
 const OffsetMatrix{T,AA<:AbstractArray} = OffsetArray{T,2,AA}
 
 function overflow_check(r, offset::T) where T
