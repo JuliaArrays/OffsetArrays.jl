@@ -34,7 +34,7 @@ Integers are recognized as offsets, where `0` means no offsets are applied:
 
 ```jldoctest; setup=:(using OffsetArrays)
 julia> A = OffsetArray(reshape(1:6, 2, 3), -1, -2)
-2×3 OffsetArray(reshape(::UnitRange{Int64}, 2, 3), 0:1, -1:1) with eltype Int64 with indices 0:1×-1:1:
+2×3 OffsetArray(reshape(::UnitRange{$Int}, 2, 3), 0:1, -1:1) with eltype $Int with indices 0:1×-1:1:
  1  3  5
  2  4  6
 
@@ -47,17 +47,17 @@ Examples of range-like types are: `Colon()`(aka `:`), `UnitRange`(e.g, `-1:2`), 
 
 ```jldoctest; setup=:(using OffsetArrays)
 julia> OffsetArray(reshape(1:6, 2, 3), 0:1, -1:1)
-2×3 OffsetArray(reshape(::UnitRange{Int64}, 2, 3), 0:1, -1:1) with eltype Int64 with indices 0:1×-1:1:
+2×3 OffsetArray(reshape(::UnitRange{$Int}, 2, 3), 0:1, -1:1) with eltype $Int with indices 0:1×-1:1:
  1  3  5
  2  4  6
 
 julia> OffsetArray(reshape(1:6, 2, 3), :, -1:1) # : as a placeholder means no offset is applied at this dimension
-2×3 OffsetArray(reshape(::UnitRange{Int64}, 2, 3), 1:2, -1:1) with eltype Int64 with indices 1:2×-1:1:
+2×3 OffsetArray(reshape(::UnitRange{$Int}, 2, 3), 1:2, -1:1) with eltype $Int with indices 1:2×-1:1:
  1  3  5
  2  4  6
 
 julia> OffsetArray(reshape(1:6, 2, 3), CartesianIndex(0, -1):CartesianIndex(1, 1))
-2×3 OffsetArray(reshape(::UnitRange{Int64}, 2, 3), 0:1, -1:1) with eltype Int64 with indices 0:1×-1:1:
+2×3 OffsetArray(reshape(::UnitRange{$Int}, 2, 3), 0:1, -1:1) with eltype $Int with indices 0:1×-1:1:
  1  3  5
  2  4  6
 ```
@@ -77,12 +77,12 @@ ERROR: [...]
 julia> a = [1 2; 3 4];
 
 julia> OffsetArray(a, OffsetArrays.Origin(0, 1))
-2×2 OffsetArray(::$(Array{Int64,2}), 0:1, 1:2) with eltype Int64 with indices 0:1×1:2:
+2×2 OffsetArray(::$(Array{Int,2}), 0:1, 1:2) with eltype $Int with indices 0:1×1:2:
  1  2
  3  4
 
 julia> OffsetArray(a, OffsetArrays.Origin(0)) # short notation for `Origin(0, ..., 0)`
-2×2 OffsetArray(::$(Array{Int64, 2}), 0:1, 0:1) with eltype Int64 with indices 0:1×0:1:
+2×2 OffsetArray(::$(Array{Int, 2}), 0:1, 0:1) with eltype $Int with indices 0:1×0:1:
  1  2
  3  4
 ```
@@ -357,7 +357,7 @@ specific to remove a level of indirection when applicable.
 julia> A = [1 3 5; 2 4 6];
 
 julia> O = OffsetArray(A, 0:1, -1:1)
-2×3 OffsetArray(::Matrix{Int64}, 0:1, -1:1) with eltype Int64 with indices 0:1×-1:1:
+2×3 OffsetArray(::$(Matrix{Int}), 0:1, -1:1) with eltype $Int with indices 0:1×-1:1:
  1  3  5
  2  4  6
 
@@ -365,7 +365,7 @@ julia> OffsetArrays.no_offset_view(O)[1,1] = -9
 -9
 
 julia> A
-2×3 Matrix{Int64}:
+2×3 $(Matrix{Int}):
  -9  3  5
   2  4  6
 ```
