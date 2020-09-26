@@ -11,7 +11,7 @@ _offset(axparent::AbstractUnitRange, ax::AbstractUnitRange) = first(ax) - first(
 _offset(axparent::AbstractUnitRange, ax::Integer) = 1 - first(axparent)
 
 """
-	OffsetArrays.AxisConversionStyle(typeof(indices))
+    OffsetArrays.AxisConversionStyle(typeof(indices))
 
 `AxisConversionStyle` declares if `indices` should be converted to a single `AbstractUnitRange{Int}` 
 or to a `Tuple{Vararg{AbstractUnitRange{Int}}}` while flattening custom types into indices. 
@@ -68,6 +68,6 @@ _toAbstractUnitRanges(::Tuple{}) = ()
 # ensure that the indices are consistent in the constructor
 _checkindices(A::AbstractArray, indices, label) = _checkindices(ndims(A), indices, label)
 function _checkindices(N::Integer, indices, label)
-	throw_argumenterror(N, indices, label) = throw(ArgumentError(label*" $indices are not compatible with a $(N)D array"))
+    throw_argumenterror(N, indices, label) = throw(ArgumentError(label*" $indices are not compatible with a $(N)D array"))
     N == length(indices) || throw_argumenterror(N, indices, label)
 end

@@ -162,6 +162,7 @@ for FT in (:OffsetArray, :OffsetVector, :OffsetMatrix)
     # convert ranges to offsets
     @eval function $FT(A::AbstractArray, inds::Tuple{AbstractUnitRange,Vararg{AbstractUnitRange}})
         _checkindices(A, inds, "indices")
+        # Performance gain by wrapping the error in a function: see https://github.com/JuliaLang/julia/issues/37558
         throw_dimerr(lA, lI) = throw(DimensionMismatch("supplied axes do not agree with the size of the array (got size $lA for the array and $lI for the indices"))
         lA = size(A)
         lI = map(length, inds)
