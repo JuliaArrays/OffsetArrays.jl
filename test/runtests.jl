@@ -279,6 +279,10 @@ end
         @test_throws ArgumentError OffsetVector(zeros(2,2))
         @test_throws ArgumentError OffsetVector(zeros(2,2), 2)
         @test_throws ArgumentError OffsetVector(zeros(2,2), (2,))
+        @test_throws ArgumentError OffsetVector(zeros(2:3,2:3), 2, 3)
+        @test_throws ArgumentError OffsetVector(zeros(2:3,2:3), (2, 4))
+        @test_throws ArgumentError OffsetVector(zeros(2:3,2:3), ())
+        @test_throws ArgumentError OffsetVector(zeros(2:3,2:3))
     end
 
     @testset "OffsetMatrix" begin
@@ -406,6 +410,12 @@ end
         @test_throws ArgumentError OffsetMatrix(zeros(2))
         @test_throws ArgumentError OffsetMatrix(zeros(2), (1, 2))
         @test_throws ArgumentError OffsetMatrix(zeros(2), 1, 2)
+        @test_throws ArgumentError OffsetMatrix(zeros(2:3), (2,))
+        @test_throws ArgumentError OffsetMatrix(zeros(2:3), 2)
+        @test_throws ArgumentError OffsetMatrix(zeros(2:3, 1:2, 1:2), (2,0,0))
+        @test_throws ArgumentError OffsetMatrix(zeros(2:3, 1:2, 1:2), 2,0,0)
+        @test_throws ArgumentError OffsetMatrix(zeros(2:3, 1:2, 1:2), ())
+        @test_throws ArgumentError OffsetMatrix(zeros(2:3, 1:2, 1:2))
     end
 
     # no need to duplicate the 2D case here,

@@ -124,24 +124,19 @@ function overflow_check(r, offset::T) where T
     end
 end
 
+# Tuples of integers are treated as offsets
+# Empty Tuples are handled here
 function OffsetArray(A::AbstractArray, offsets::Tuple{Vararg{Integer}})
     _checkindices(A, offsets, "offsets")
     OffsetArray{eltype(A), ndims(A), typeof(A)}(A, offsets)
 end
-# Nested OffsetArrays may strip off the layer and collate the offsets
-function OffsetArray(A::OffsetArray, offsets::Tuple{Vararg{Integer}})
-    _checkindices(A, offsets, "offsets")
-    OffsetArray(parent(A), A.offsets .+ offsets)
-end
 
+# These methods are necessary to disallow incompatible dimensions for 
+# the OffsetVector and the OffsetMatrix constructors
 for (FT, ND) in ((:OffsetVector, :1), (:OffsetMatrix, :2))
     @eval function $FT(A::AbstractArray{<:Any,$ND}, offsets::Tuple{Vararg{Integer}})
         _checkindices(A, offsets, "offsets")
         OffsetArray{eltype(A), $ND, typeof(A)}(A, offsets)
-    end
-    @eval function $FT(A::OffsetArray{<:Any,$ND}, offsets::Tuple{Vararg{Integer}})
-        _checkindices(A, offsets, "offsets")
-        $FT(parent(A), A.offsets .+ offsets)
     end
     FTstr = string(FT)
     @eval function $FT(A::AbstractArray, offsets::Tuple{Vararg{Integer}})
@@ -151,13 +146,17 @@ end
 
 ## OffsetArray constructors
 for FT in (:OffsetArray, :OffsetVector, :OffsetMatrix)
-    # In general, indices get converted to AbstractUnitRanges.
-    # CartesianIndices{N} get converted to N ranges
-    @eval function $FT(A::AbstractArray, inds::Tuple)
-        $FT(A, _toAbstractUnitRanges(to_indices(A, axes(A), inds)))
+    # Nested OffsetArrays may strip off the wrapper and collate the offsets
+    @eval function $FT(A::OffsetArray, offsets::Tuple{Vararg{Integer}})
+        _checkindices(A, offsets, "offsets")
+        $FT(parent(A), map(+, A.offsets, offsets))
     end
 
-    @eval $FT(A::AbstractArray, inds::Vararg) = $FT(A, inds)
+    # In general, indices get converted to AbstractUnitRanges.
+    # CartesianIndices{N} get converted to N ranges
+    @eval function $FT(A::AbstractArray, inds::Tuple{Any,Vararg{Any}})
+        $FT(A, _toAbstractUnitRanges(to_indices(A, axes(A), inds)))
+    end
 
     # convert ranges to offsets
     @eval function $FT(A::AbstractArray, inds::Tuple{AbstractUnitRange,Vararg{AbstractUnitRange}})
@@ -169,6 +168,8 @@ for FT in (:OffsetArray, :OffsetVector, :OffsetMatrix)
         lA == lI || throw_dimerr(lA, lI)
         $FT(A, map(_offset, axes(A), inds)) 
     end
+
+    @eval $FT(A::AbstractArray, inds::Vararg) = $FT(A, inds)
 
     @eval $FT(A::AbstractArray, origin::Origin) = $FT(A, origin(A))
 end
