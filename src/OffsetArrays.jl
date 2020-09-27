@@ -307,21 +307,19 @@ end
 @propagate_inbounds Base.getindex(a::OffsetRange, r::AbstractRange) = a.parent[r .- a.offsets[1]]
 @propagate_inbounds Base.getindex(a::AbstractRange, r::OffsetRange) = OffsetArray(a[parent(r)], r.offsets)
 
-@propagate_inbounds Base.getindex(r::UnitRange, s::IIUR) =
-    OffsetArray(r[s.indices], s)
+for TR in [:IIUR, :IdOffsetRange]
+    @eval @propagate_inbounds Base.getindex(r::UnitRange, s::$TR) = OffsetArray(r[_unwrap(s)], axes(s))
 
-@propagate_inbounds Base.getindex(r::StepRange, s::IIUR) =
-    OffsetArray(r[s.indices], s)
+    @eval @propagate_inbounds Base.getindex(r::StepRange, s::$TR) = OffsetArray(r[_unwrap(s)], axes(s))
 
-# this method is needed for ambiguity resolution
-@propagate_inbounds Base.getindex(r::StepRangeLen{T,<:Base.TwicePrecision,<:Base.TwicePrecision}, s::IIUR) where T =
-    OffsetArray(r[s.indices], s)
+    # this method is needed for ambiguity resolution
+    @eval @propagate_inbounds Base.getindex(r::StepRangeLen{T,<:Base.TwicePrecision,<:Base.TwicePrecision}, s::$TR) where T =
+    OffsetArray(r[_unwrap(s)], axes(s))
 
-@propagate_inbounds Base.getindex(r::StepRangeLen{T}, s::IIUR) where {T} =
-    OffsetArray(r[s.indices], s)
+    @eval @propagate_inbounds Base.getindex(r::StepRangeLen{T}, s::$TR) where {T} = OffsetArray(r[_unwrap(s)], axes(s))
 
-@propagate_inbounds Base.getindex(r::LinRange, s::IIUR) =
-    OffsetArray(r[s.indices], s)
+    @eval @propagate_inbounds Base.getindex(r::LinRange, s::$TR) = OffsetArray(r[_unwrap(s)], axes(s))
+end
 
 function Base.show(io::IO, r::OffsetRange)
     show(io, r.parent)
