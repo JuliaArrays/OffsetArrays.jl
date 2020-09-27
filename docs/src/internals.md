@@ -152,7 +152,7 @@ While a wide variety of `AbstractUnitRange`s provided by `Base` may be used as i
 
 2. At the second step, the result obtained from the previous step treated again to convert it to a `Tuple` of `AbstractUnitRange`s to handle cases where the first step doesn't achieve this. An additional customization option may be specified at this stage: a type may be converted either to a single `AbstractUnitRange{Int}`, or to a `Tuple` of them. A type might specify which of these two behaviours is desired by extending [`OffsetArrays.AxisConversionStyle`](@ref). An example of a type that is acted upon at this stage is `CartesianIndices`, which is converted to a `Tuple` of `AbstractUnitRange`s.
 
-For example, here is a custom type that leads to zero-based indexing:
+For example, here are a couple of custom type that facilitate zero-based indexing:
 
 ```jldoctest; setup = :(using OffsetArrays)
 julia> struct ZeroBasedIndexing end
@@ -167,4 +167,22 @@ julia> axes(oa)
 (OffsetArrays.IdOffsetRange(0:2), OffsetArrays.IdOffsetRange(0:2))
 ```
 
-Note that zero-based indexing may also be achieved using [`OffsetArrays.Origin`](@ref).
+In this example we had to define the action of `to_indices` as the type `ZeroBasedIndexing` did not have a familiar hierarchy. Things are even simpler if we subtype `AbstractUnitRange`, in which case we need to define `first` and `length` for the custom range to be able to use it as an axis:
+
+```jldoctest; setup = :(using OffsetArrays)
+julia> struct ZeroTo <: AbstractUnitRange{Int}
+       n :: Int
+       ZeroTo(n) = new(n < 0 ? -1 : n)
+       end
+
+julia> Base.first(::ZeroTo) = 0
+
+julia> Base.length(r::ZeroTo) = r.n + 1
+
+julia> oa = OffsetArray(zeros(2,2), ZeroTo(1), ZeroTo(1));
+
+julia> axes(oa)
+(OffsetArrays.IdOffsetRange(0:1), OffsetArrays.IdOffsetRange(0:1))
+```
+
+Note that zero-based indexing may also be achieved using the pre-defined type [`OffsetArrays.Origin`](@ref).
