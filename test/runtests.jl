@@ -283,6 +283,11 @@ end
         @test_throws ArgumentError OffsetVector(zeros(2:3,2:3), (2, 4))
         @test_throws ArgumentError OffsetVector(zeros(2:3,2:3), ())
         @test_throws ArgumentError OffsetVector(zeros(2:3,2:3))
+
+        # eltype of an OffsetArray should match that of the parent (issue #162)
+        @test_throws TypeError OffsetVector{Float64,Vector{ComplexF64}}
+        # ndim of an OffsetArray should match that of the parent
+        @test_throws TypeError OffsetVector{Float64,Matrix{Float64}}
     end
 
     @testset "OffsetMatrix" begin
@@ -416,6 +421,11 @@ end
         @test_throws ArgumentError OffsetMatrix(zeros(2:3, 1:2, 1:2), 2,0,0)
         @test_throws ArgumentError OffsetMatrix(zeros(2:3, 1:2, 1:2), ())
         @test_throws ArgumentError OffsetMatrix(zeros(2:3, 1:2, 1:2))
+
+        # eltype of an OffsetArray should match that of the parent (issue #162)
+        @test_throws TypeError OffsetMatrix{Float64,Matrix{ComplexF64}}
+        # ndim of an OffsetArray should match that of the parent
+        @test_throws TypeError OffsetMatrix{Float64,Vector{Float64}}
     end
 
     # no need to duplicate the 2D case here,
@@ -466,6 +476,11 @@ end
                 @test eltype(a) == Bool
             end
         end
+
+        # eltype of an OffsetArray should match that of the parent (issue #162)
+        @test_throws TypeError OffsetArray{Float64,2,Matrix{ComplexF64}}
+        # ndim of an OffsetArray should match that of the parent
+        @test_throws TypeError OffsetArray{Float64,3,Matrix{Float64}}
     end
 
     @testset "custom range types" begin

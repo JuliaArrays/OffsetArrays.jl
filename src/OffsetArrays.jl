@@ -89,10 +89,10 @@ julia> OffsetArray(a, OffsetArrays.Origin(0)) # short notation for `Origin(0, ..
 
 
 """
-struct OffsetArray{T,N,AA<:AbstractArray} <: AbstractArray{T,N}
+struct OffsetArray{T,N,AA<:AbstractArray{T,N}} <: AbstractArray{T,N}
     parent::AA
     offsets::NTuple{N,Int}
-    function OffsetArray{T, N, AA}(parent::AA, offsets::NTuple{N, Int}) where {T, N, AA<:AbstractArray}
+    function OffsetArray{T, N, AA}(parent::AA, offsets::NTuple{N, Int}) where {T, N, AA<:AbstractArray{T,N}}
         @boundscheck overflow_check.(axes(parent), offsets)
         new{T, N, AA}(parent, offsets)
     end
@@ -103,14 +103,14 @@ end
 
 Type alias and convenience constructor for one-dimensional [`OffsetArray`](@ref)s.
 """
-const OffsetVector{T,AA<:AbstractArray} = OffsetArray{T,1,AA}
+const OffsetVector{T,AA<:AbstractVector{T}} = OffsetArray{T,1,AA}
 
 """
     OffsetMatrix(A, index1, index2)
 
 Type alias and convenience constructor for two-dimensional [`OffsetArray`](@ref)s.
 """
-const OffsetMatrix{T,AA<:AbstractArray} = OffsetArray{T,2,AA}
+const OffsetMatrix{T,AA<:AbstractMatrix{T}} = OffsetArray{T,2,AA}
 
 function overflow_check(r, offset::T) where T
     # This gives some performance boost https://github.com/JuliaLang/julia/issues/33273
