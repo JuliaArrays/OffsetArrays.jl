@@ -93,7 +93,7 @@ struct OffsetArray{T,N,AA<:AbstractArray{T,N}} <: AbstractArray{T,N}
     parent::AA
     offsets::NTuple{N,Int}
     function OffsetArray{T, N, AA}(parent::AA, offsets::NTuple{N, Int}) where {T, N, AA<:AbstractArray{T,N}}
-        # `map` on tuple can be optimized by the compiler and thus not using `foreach` here
+        # allocation of `map` on tuple is optimized away
         map(overflow_check, axes(parent), offsets)
         new{T, N, AA}(parent, offsets)
     end
