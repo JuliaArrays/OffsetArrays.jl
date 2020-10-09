@@ -93,7 +93,7 @@ struct OffsetArray{T,N,AA<:AbstractArray{T,N}} <: AbstractArray{T,N}
     parent::AA
     offsets::NTuple{N,Int}
     function OffsetArray{T, N, AA}(parent::AA, offsets::NTuple{N, Int}) where {T, N, AA<:AbstractArray{T,N}}
-        @boundscheck overflow_check.(axes(parent), offsets)
+        overflow_check.(axes(parent), offsets)
         new{T, N, AA}(parent, offsets)
     end
 end
@@ -126,7 +126,7 @@ end
 
 # Tuples of integers are treated as offsets
 # Empty Tuples are handled here
-function OffsetArray(A::AbstractArray, offsets::Tuple{Vararg{Integer}})
+@inline function OffsetArray(A::AbstractArray, offsets::Tuple{Vararg{Integer}})
     _checkindices(A, offsets, "offsets")
     OffsetArray{eltype(A), ndims(A), typeof(A)}(A, offsets)
 end
@@ -134,12 +134,12 @@ end
 # These methods are necessary to disallow incompatible dimensions for 
 # the OffsetVector and the OffsetMatrix constructors
 for (FT, ND) in ((:OffsetVector, :1), (:OffsetMatrix, :2))
-    @eval function $FT(A::AbstractArray{<:Any,$ND}, offsets::Tuple{Vararg{Integer}})
+    @eval @inline function $FT(A::AbstractArray{<:Any,$ND}, offsets::Tuple{Vararg{Integer}})
         _checkindices(A, offsets, "offsets")
         OffsetArray{eltype(A), $ND, typeof(A)}(A, offsets)
     end
     FTstr = string(FT)
-    @eval function $FT(A::AbstractArray, offsets::Tuple{Vararg{Integer}})
+    @eval @inline function $FT(A::AbstractArray, offsets::Tuple{Vararg{Integer}})
         throw(ArgumentError($FTstr*" requires a "*string($ND)*"D array"))
     end
 end
@@ -147,19 +147,19 @@ end
 ## OffsetArray constructors
 for FT in (:OffsetArray, :OffsetVector, :OffsetMatrix)
     # Nested OffsetArrays may strip off the wrapper and collate the offsets
-    @eval function $FT(A::OffsetArray, offsets::Tuple{Vararg{Integer}})
+    @eval @inline function $FT(A::OffsetArray, offsets::Tuple{Vararg{Integer}})
         _checkindices(A, offsets, "offsets")
         $FT(parent(A), map(+, A.offsets, offsets))
     end
 
     # In general, indices get converted to AbstractUnitRanges.
     # CartesianIndices{N} get converted to N ranges
-    @eval function $FT(A::AbstractArray, inds::Tuple{Any,Vararg{Any}})
+    @eval @inline function $FT(A::AbstractArray, inds::Tuple{Any,Vararg{Any}})
         $FT(A, _toAbstractUnitRanges(to_indices(A, axes(A), inds)))
     end
 
     # convert ranges to offsets
-    @eval function $FT(A::AbstractArray, inds::Tuple{AbstractUnitRange,Vararg{AbstractUnitRange}})
+    @eval @inline function $FT(A::AbstractArray, inds::Tuple{AbstractUnitRange,Vararg{AbstractUnitRange}})
         _checkindices(A, inds, "indices")
         # Performance gain by wrapping the error in a function: see https://github.com/JuliaLang/julia/issues/37558
         throw_dimerr(lA, lI) = throw(DimensionMismatch("supplied axes do not agree with the size of the array (got size $lA for the array and $lI for the indices"))
@@ -169,27 +169,27 @@ for FT in (:OffsetArray, :OffsetVector, :OffsetMatrix)
         $FT(A, map(_offset, axes(A), inds)) 
     end
 
-    @eval $FT(A::AbstractArray, inds::Vararg) = $FT(A, inds)
+    @eval @inline $FT(A::AbstractArray, inds::Vararg) = $FT(A, inds)
 
-    @eval $FT(A::AbstractArray, origin::Origin) = $FT(A, origin(A))
+    @eval @inline $FT(A::AbstractArray, origin::Origin) = $FT(A, origin(A))
 end
 
 # array initialization
-function OffsetArray{T,N}(init::ArrayInitializer, inds::Tuple{Vararg{OffsetAxisKnownLength}}) where {T,N}
+@inline function OffsetArray{T,N}(init::ArrayInitializer, inds::Tuple{Vararg{OffsetAxisKnownLength}}) where {T,N}
     _checkindices(N, inds, "indices")
     AA = Array{T,N}(init, map(_indexlength, inds))
     OffsetArray{T, N, typeof(AA)}(AA, map(_indexoffset, inds))
 end
-function OffsetArray{T, N}(init::ArrayInitializer, inds::Tuple) where {T, N}
+@inline function OffsetArray{T, N}(init::ArrayInitializer, inds::Tuple) where {T, N}
     OffsetArray{T, N}(init, _toAbstractUnitRanges(inds))
 end
-OffsetArray{T,N}(init::ArrayInitializer, inds::Vararg) where {T,N} = OffsetArray{T,N}(init, inds)
+@inline OffsetArray{T,N}(init::ArrayInitializer, inds::Vararg) where {T,N} = OffsetArray{T,N}(init, inds)
 
-OffsetArray{T}(init::ArrayInitializer, inds::NTuple{N, OffsetAxisKnownLength}) where {T,N} = OffsetArray{T,N}(init, inds)
-function OffsetArray{T}(init::ArrayInitializer, inds::Tuple) where {T}
+@inline OffsetArray{T}(init::ArrayInitializer, inds::NTuple{N, OffsetAxisKnownLength}) where {T,N} = OffsetArray{T,N}(init, inds)
+@inline function OffsetArray{T}(init::ArrayInitializer, inds::Tuple) where {T}
     OffsetArray{T}(init, _toAbstractUnitRanges(inds))
 end
-OffsetArray{T}(init::ArrayInitializer, inds::Vararg) where {T} = OffsetArray{T}(init, inds)
+@inline OffsetArray{T}(init::ArrayInitializer, inds::Vararg) where {T} = OffsetArray{T}(init, inds)
 
 Base.IndexStyle(::Type{OA}) where {OA<:OffsetArray} = IndexStyle(parenttype(OA))
 parenttype(::Type{OffsetArray{T,N,AA}}) where {T,N,AA} = AA
