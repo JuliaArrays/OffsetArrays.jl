@@ -110,27 +110,44 @@ end
     check_indexed_by(r3, 0:2)
 
     @testset "Idempotent indexing" begin
-        r = OffsetArrays.IdOffsetRange(3:5, -1)
-        
-        # Indexing with IdentityUnitRange
-        s = IdentityUnitRange(0:2)
-        @test axes(r[s]) == axes(s)
-        for i in eachindex(s)
-            @test r[s[i]] == r[s][i]
-        end
+        @testset "Indexing into an IdOffsetRange" begin
+            r = OffsetArrays.IdOffsetRange(3:5, -1)
+            # Indexing with IdentityUnitRange
+            s = IdentityUnitRange(0:2)
+            @test axes(r[s]) == axes(s)
+            for i in eachindex(s)
+                @test r[s[i]] == r[s][i]
+            end
 
-        # Indexing with IdOffsetRange
-        s = OffsetArrays.IdOffsetRange(-4:-2, 4)
-        @test axes(r[s]) == axes(s)
-        for i in eachindex(s)
-            @test r[s[i]] == r[s][i]
-        end
+            # Indexing with IdOffsetRange
+            s = OffsetArrays.IdOffsetRange(-4:-2, 4)
+            @test axes(r[s]) == axes(s)
+            for i in eachindex(s)
+                @test r[s[i]] == r[s][i]
+            end
 
-        # Indexing with UnitRange
-        s = 0:2
-        @test axes(r[s]) == axes(s)
-        for i in eachindex(s)
-            @test r[s[i]] == r[s][i]
+            # Indexing with UnitRange
+            s = 0:2
+            @test axes(r[s]) == axes(s)
+            for i in eachindex(s)
+                @test r[s[i]] == r[s][i]
+            end
+        end
+        @testset "Indexing using an IdOffsetRange" begin
+            r = OffsetArrays.IdOffsetRange(3:5, -1)
+            # Indexing into an IdentityUnitRange
+            s = IdentityUnitRange(-1:5)
+            @test axes(s[r]) == axes(r)
+            for i in eachindex(r)
+                @test s[r[i]] == s[r][i]
+            end
+
+            # Indexing into an UnitRange
+            s = -3:6
+            @test axes(s[r]) == axes(r)
+            for i in eachindex(r)
+                @test s[r[i]] == s[r][i]
+            end
         end
     end
 
