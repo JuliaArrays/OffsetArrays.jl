@@ -969,6 +969,10 @@ end
     @test_throws MethodError similar(A, (: ,2))
     @test_throws MethodError similar(A, Float64, (: ,:))
     @test_throws MethodError similar(A, Float64, (: ,2))
+
+    @test_throws MethodError similar(Matrix{Float64}, (:, 2))
+    @test_throws MethodError similar(Matrix{Float64}, (:, 1:3))
+    @test_throws MethodError similar(Matrix{Float64}, (:, :))
 end
 
 @testset "reshape" begin
