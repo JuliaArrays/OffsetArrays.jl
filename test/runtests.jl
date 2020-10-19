@@ -969,6 +969,22 @@ end
     @test_throws MethodError similar(A, (: ,2))
     @test_throws MethodError similar(A, Float64, (: ,:))
     @test_throws MethodError similar(A, Float64, (: ,2))
+
+    function testsimilar(args...)
+        try
+           similar(args...)
+        catch e
+            @test e isa MethodError
+            io = IOBuffer()
+            showerror(io, e)
+            s = split(String(take!(io)),'\n')[1]
+            @test occursin(repr(similar), s)
+        end
+    end
+
+    testsimilar(typeof(A), (:, :))
+    testsimilar(typeof(A), (:, 2))
+    testsimilar(typeof(A), (:, 1:3))
 end
 
 @testset "reshape" begin
