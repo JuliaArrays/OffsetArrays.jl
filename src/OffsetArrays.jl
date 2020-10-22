@@ -473,4 +473,10 @@ if VERSION < v"1.1.0-DEV.783"
     Base.copyfirst!(dest::OffsetArray, src::OffsetArray) = (maximum!(parent(dest), parent(src)); return dest)
 end
 
+##
+# Adapt allows for automatic conversion of CPU OffsetArrays to GPU OffsetArrays
+##
+import Adapt
+Adapt.adapt_structure(to, x::OffsetArray) = OffsetArray(Adapt.adapt(to, parent(x)), x.offsets)
+
 end # module

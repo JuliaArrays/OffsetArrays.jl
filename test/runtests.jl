@@ -6,6 +6,8 @@ using LinearAlgebra
 using DelimitedFiles
 using CatIndices: BidirectionalVector
 using EllipsisNotation
+using Adapt
+using StaticArrays
 
 # https://github.com/JuliaLang/julia/pull/29440
 if VERSION < v"1.1.0-DEV.389"
@@ -1376,6 +1378,16 @@ end
     @test searchsorted(o,  2) ==  0:-1
     @test searchsorted(o,  5) ==  2:2
     @test searchsorted(o,  6) ==  3:2
+end
+
+@testset "Adapt" begin
+    # We need another storage type, CUDA.jl defines one but we can't use that for CI
+    # let's define an appropriate method for SArrays
+    Adapt.adapt_storage(::Type{SA}, xs::AbstractArray) where SA<:SArray = convert(SA, xs)
+    arr = OffsetArray(rand(3, 3), -1:1, -1:1)
+    s_arr = adapt(SMatrix{3,3}, arr)
+    @test parent(s_arr) isa SArray
+    @test arr == adapt(Array, s_arr)
 end
 
 include("origin.jl")
