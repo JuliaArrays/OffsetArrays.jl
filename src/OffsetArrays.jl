@@ -198,6 +198,12 @@ parenttype(A::OffsetArray) = parenttype(typeof(A))
 
 Base.parent(A::OffsetArray) = A.parent
 
+# TODO: Ideally we would delegate to the parent's broadcasting implementation, but that
+#       is currently broken in sufficiently many implementation, namely RecursiveArrayTools, DistributedArrays
+#       and StaticArrays, that it will take concentrated effort to get this working across the ecosystem.
+#       The goal would be to have `OffsetArray(CuArray) .+ 1 == OffsetArray{CuArray}`.
+# Base.Broadcast.BroadcastStyle(::Type{<:OffsetArray{<:Any, <:Any, AA}}) where AA = Base.Broadcast.BroadcastStyle(AA)
+
 Base.eachindex(::IndexCartesian, A::OffsetArray) = CartesianIndices(axes(A))
 Base.eachindex(::IndexLinear, A::OffsetVector)   = axes(A, 1)
 
@@ -472,5 +478,11 @@ Base.searchsortedlast(v::OffsetArray, x, lo::T, hi::T, o::Base.Ordering) where T
 if VERSION < v"1.1.0-DEV.783"
     Base.copyfirst!(dest::OffsetArray, src::OffsetArray) = (maximum!(parent(dest), parent(src)); return dest)
 end
+
+##
+# Adapt allows for automatic conversion of CPU OffsetArrays to GPU OffsetArrays
+##
+import Adapt
+Adapt.adapt_structure(to, x::OffsetArray) = OffsetArray(Adapt.adapt(to, parent(x)), x.offsets)
 
 end # module
