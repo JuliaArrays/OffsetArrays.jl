@@ -1388,9 +1388,6 @@ end
     s_arr = adapt(SMatrix{3,3}, arr)
     @test parent(s_arr) isa SArray
     @test arr == adapt(Array, s_arr)
-
-    # Check that broadcast respects parent
-    @test Base.Broadcast.BroadcastStyle(typeof(s_arr)) == StaticArrays.StaticArrayStyle{2}()
 end
 
 include("origin.jl")

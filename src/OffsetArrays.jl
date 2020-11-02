@@ -197,7 +197,12 @@ parenttype(::Type{OffsetArray{T,N,AA}}) where {T,N,AA} = AA
 parenttype(A::OffsetArray) = parenttype(typeof(A))
 
 Base.parent(A::OffsetArray) = A.parent
-Base.Broadcast.BroadcastStyle(::Type{<:OffsetArray{<:Any, <:Any, AA}}) where AA = Base.Broadcast.BroadcastStyle(AA)
+
+# TODO: Ideally we would delegate to the parent's broadcasting implementation, but that
+#       is currently broken in sufficiently many implementation, namely RecursiveArrayTools, DistributedArrays
+#       and StaticArrays, that it will take concentrated effort to get this working across the ecosystem.
+#       The goal would be to have `OffsetArray(CuArray) .+ 1 == OffsetArray{CuArray}`.
+# Base.Broadcast.BroadcastStyle(::Type{<:OffsetArray{<:Any, <:Any, AA}}) where AA = Base.Broadcast.BroadcastStyle(AA)
 
 Base.eachindex(::IndexCartesian, A::OffsetArray) = CartesianIndices(axes(A))
 Base.eachindex(::IndexLinear, A::OffsetVector)   = axes(A, 1)
