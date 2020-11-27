@@ -1393,7 +1393,10 @@ end
 @testset "Pointer" begin
     A = rand(4, 5)
     O = OffsetArray(@view(A[1:3,1:2:5]), -1:1, -1:1)
-    @test pointer(A) === pointer(O')
+    @test pointer(A) === pointer(O)
+    if VERSION ≥ v"1.5"
+        @test pointer(A) === pointer(O')
+    end
 end
 
 include("origin.jl")
