@@ -1390,4 +1390,10 @@ end
     @test arr == adapt(Array, s_arr)
 end
 
+@testset "Pointer" begin
+    A = rand(4, 5)
+    O = OffsetArray(@view(A[1:3,1:2:5]), -1:1, -1:1)
+    @test pointer(A) === pointer(O')
+end
+
 include("origin.jl")
