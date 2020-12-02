@@ -1391,11 +1391,22 @@ end
 end
 
 @testset "Pointer" begin
-    A = rand(4, 5)
-    O = OffsetArray(@view(A[1:3,1:2:5]), -1:1, -1:1)
-    @test pointer(A) === pointer(O)
+    a = OffsetVector(collect(10:20), 9);
+    @test 12 == a[12] == unsafe_load(pointer(a), 12 + (1 - firstindex(a))) == unsafe_load(pointer(a, 12))
+
+    A = OffsetArray(reshape(collect(10:130), (11,11)), 9, 9);
+    @test 21 == A[12] == unsafe_load(pointer(A), 12) == unsafe_load(pointer(A, 12))
+    @test 61 == A[52] == unsafe_load(pointer(A), 52) == unsafe_load(pointer(A, 52))
+
+    @test pointer(a) === pointer(parent(a))
+    @test pointer(A) === pointer(parent(A))
+    @test pointer(a, 12) === pointer(parent(a), 12 + (1 - firstindex(a)))
+    @test pointer(A, 12) === pointer(parent(A), 12)
     if VERSION ≥ v"1.5"
-        @test pointer(A) === pointer(O')
+        @test pointer(a') === pointer(parent(a))
+        @test pointer(A') === pointer(parent(A))
+        @test pointer(a', 5) === pointer(parent(a), 5)
+        @test pointer(A', 15) === pointer(parent(A)', 15)
     end
 end
 
