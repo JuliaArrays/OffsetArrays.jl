@@ -1402,6 +1402,8 @@ end
     @test pointer(A) === pointer(parent(A))
     @test pointer(a, 12) === pointer(parent(a), 12 + (1 - firstindex(a)))
     @test pointer(A, 12) === pointer(parent(A), 12)
+    @test pointer(a) === pointer(a, firstindex(a))
+    @test pointer(A) === pointer(A, firstindex(A))
     if VERSION ≥ v"1.5"
         @test pointer(a') === pointer(parent(a))
         @test pointer(A') === pointer(parent(A))
