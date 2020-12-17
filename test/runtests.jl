@@ -929,6 +929,12 @@ end
     v = rand(3)
     ov = OffsetArray(v, (-2,))
     @test Base.replace_in_print_matrix(ov, -1, 1, " ") == Base.replace_in_print_matrix(v, 1, 1, " ")
+
+    # Avoid returning the value of toplevel if it is false
+    # showarg should only print values, it shouldn't return anything
+    @test Base.showarg(io, a, false) === nothing
+    # check the other case too for good measure
+    @test Base.showarg(io, a, true) === nothing
 end
 
 @testset "readdlm/writedlm" begin
