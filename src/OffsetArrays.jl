@@ -360,7 +360,9 @@ function Base.showarg(io::IO, a::OffsetArray, toplevel)
     Base.showarg(io, parent(a), false)
     Base.showindices(io, axes(a)...)
     print(io, ')')
-    toplevel && print(io, " with eltype ", eltype(a))
+    if toplevel
+        print(io, " with eltype ", eltype(a))
+    end
 end
 
 function Base.replace_in_print_matrix(A::OffsetArray{<:Any,2}, i::Integer, j::Integer, s::AbstractString)
