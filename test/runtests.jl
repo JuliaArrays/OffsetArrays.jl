@@ -1312,9 +1312,12 @@ end
 @testset "no offset view" begin
     # OffsetArray fallback
     A = randn(3, 3)
+    @inferred no_offset_view(A)
     O1 = OffsetArray(A, -1:1, 0:2)
     O2 = OffsetArray(O1, -2:0, -3:(-1))
     @test no_offset_view(O2) ≡ A
+    @inferred no_offset_view(O1)
+    @inferred no_offset_view(O2)
 
     # generic fallback
     A = collect(reshape(1:12, 3, 4))
