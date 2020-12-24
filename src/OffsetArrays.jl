@@ -377,9 +377,9 @@ end
 """
     no_offset_view(A)
 
-Return an `AbstractArray` that shares structure and has the same type and size as the
-argument, but has 1-based indexing. May just return the argument when applicable. Not
-exported.
+Return an `AbstractArray` that shares structure and underlying data with the argument,
+but uses 1-based indexing. May just return the argument when applicable.
+Not exported.
 
 The default implementation uses `OffsetArrays`, but other types should use something more
 specific to remove a level of indirection when applicable.
@@ -403,14 +403,14 @@ julia> A
 """
 function no_offset_view(A::AbstractArray)
     if Base.has_offset_axes(A)
-        OffsetArray(A, map(r->1-first(r), axes(A)))
+        OffsetArray(A, Origin(1))
     else
         A
     end
 end
 
 no_offset_view(A::OffsetArray) = no_offset_view(parent(A))
-
+no_offset_view(a::Array) = a
 
 ####
 # work around for segfault in searchsorted*

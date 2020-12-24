@@ -1309,12 +1309,25 @@ function Base.getindex(A::NegativeArray{T,N}, I::Vararg{Int,N}) where {T,N}
     getindex(A.parent, (I .+ size(A.parent) .+ 1)...)
 end
 
+struct PointlessWrapper{T,N, A <: AbstractArray{T,N}} <: AbstractArray{T,N}
+    parent :: A
+end
+Base.parent(x::PointlessWrapper) = x.parent
+Base.size(x::PointlessWrapper) = size(parent(x))
+Base.axes(x::PointlessWrapper) = axes(parent(x))
+
 @testset "no offset view" begin
     # OffsetArray fallback
     A = randn(3, 3)
+    @inferred no_offset_view(A)
     O1 = OffsetArray(A, -1:1, 0:2)
     O2 = OffsetArray(O1, -2:0, -3:(-1))
     @test no_offset_view(O2) ≡ A
+    @inferred no_offset_view(O1)
+    @inferred no_offset_view(O2)
+
+    P = PointlessWrapper(A)
+    @test no_offset_view(P) ≡ P
 
     # generic fallback
     A = collect(reshape(1:12, 3, 4))
