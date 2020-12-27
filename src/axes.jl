@@ -132,8 +132,8 @@ offset_coerce(::Type{I}, r::AbstractUnitRange) where I<:AbstractUnitRange{T} whe
 Base.reduced_index(i::IdOffsetRange) = typeof(i)(first(i):first(i))
 # Workaround for #92 on Julia < 1.4
 Base.reduced_index(i::IdentityUnitRange{<:IdOffsetRange}) = typeof(i)(first(i):first(i))
-for f in [:firstindex, :lastindex]
-    @eval Base.$f(r::IdOffsetRange) = $f(r.parent) .+ r.offset
+for f in [:firstindex, :lastindex, :first, :last]
+    @eval @inline Base.$f(r::IdOffsetRange) = $f(r.parent) + r.offset
 end
 
 @inline function Base.iterate(r::IdOffsetRange)
@@ -146,9 +146,6 @@ end
     ret === nothing && return nothing
     return (ret[1] + r.offset, ret[2])
 end
-
-@inline Base.first(r::IdOffsetRange) = first(r.parent) + r.offset
-@inline Base.last(r::IdOffsetRange) = last(r.parent) + r.offset
 
 @propagate_inbounds Base.getindex(r::IdOffsetRange, i::Integer) = r.parent[i - r.offset] + r.offset
 @propagate_inbounds function Base.getindex(r::IdOffsetRange, s::AbstractUnitRange{<:Integer})
