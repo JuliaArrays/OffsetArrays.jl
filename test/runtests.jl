@@ -88,6 +88,19 @@ end
     @test same_value(r, 4:5)
     check_indexed_by(r, 4:5)
 
+    r = IdOffsetRange{Int, UnitRange{Int}}(IdOffsetRange(3:5, 2), 2)
+    @test typeof(r) == IdOffsetRange{Int, UnitRange{Int}}
+    @test same_value(r, 7:9)
+    check_indexed_by(r, 5:7)
+
+    r = IdOffsetRange{Int, Base.OneTo{Int}}(IdOffsetRange(Base.OneTo(3), 1), 1)
+    @test typeof(r) == IdOffsetRange{Int,Base.OneTo{Int}}
+    @test same_value(r, 3:5)
+    check_indexed_by(r, 3:5)
+
+    r = IdOffsetRange(IdOffsetRange(3:5, 2), 1)
+    @test parent(r) isa UnitRange
+
     # conversion preserves both the values and the axes, throwing an error if this is not possible
     @test @inferred(oftype(ro, ro)) === ro
     @test @inferred(convert(OffsetArrays.IdOffsetRange{Int}, ro)) === ro
