@@ -101,6 +101,14 @@ end
     r = IdOffsetRange(IdOffsetRange(3:5, 2), 1)
     @test parent(r) isa UnitRange
 
+    # Pair construction
+    rp = (2=>3):(5=>6)
+    @test first(rp) === 3
+    @test  last(rp) === 6
+    @test firstindex(rp) === 2
+    @test  lastindex(rp) === 5
+    @test_throws ArgumentError("indices and values must have the same length, got 0:1 (length 2) and 5:7 (length 3), respectively") (0=>5):(1=>7)
+
     # conversion preserves both the values and the axes, throwing an error if this is not possible
     @test @inferred(oftype(ro, ro)) === ro
     @test @inferred(convert(OffsetArrays.IdOffsetRange{Int}, ro)) === ro
@@ -199,19 +207,19 @@ end
     @testset "OffsetVector" begin
         # initialization
         one_based_axes = [
-            (Base.OneTo(4), ), 
-            (1:4, ), 
-            (CartesianIndex(1):CartesianIndex(4), ), 
-            (IdentityUnitRange(1:4), ), 
-            (IdOffsetRange(1:4),), 
+            (Base.OneTo(4), ),
+            (1:4, ),
+            (CartesianIndex(1):CartesianIndex(4), ),
+            (IdentityUnitRange(1:4), ),
+            (IdOffsetRange(1:4),),
             (IdOffsetRange(3:6, -2),)
         ]
 
         offset_axes = [
-            (-1:2, ), 
-            (CartesianIndex(-1):CartesianIndex(2), ), 
-            (IdentityUnitRange(-1:2), ), 
-            (IdOffsetRange(-1:2),), 
+            (-1:2, ),
+            (CartesianIndex(-1):CartesianIndex(2), ),
+            (IdentityUnitRange(-1:2), ),
+            (IdOffsetRange(-1:2),),
             (IdOffsetRange(3:6, -4),)
         ]
 
@@ -324,7 +332,7 @@ end
 
     @testset "OffsetMatrix" begin
         # initialization
-        
+
         one_based_axes = [
                 (Base.OneTo(4), Base.OneTo(3)),
                 (1:4, 1:3),
@@ -573,7 +581,7 @@ end
         end
         @testset "TupleOfRanges" begin
             Base.to_indices(A, inds, t::Tuple{TupleOfRanges{N}}) where {N} = t
-            OffsetArrays.AxisConversionStyle(::Type{TupleOfRanges{N}}) where {N} = 
+            OffsetArrays.AxisConversionStyle(::Type{TupleOfRanges{N}}) where {N} =
                 OffsetArrays.TupleOfRanges()
 
             Base.convert(::Type{Tuple{Vararg{AbstractUnitRange{Int}}}}, t::TupleOfRanges) = t.x
@@ -584,7 +592,7 @@ end
             @test axes(oa) == inds.x
         end
         @testset "NewColon" begin
-            Base.to_indices(A, inds, t::Tuple{NewColon,Vararg{Any}}) = 
+            Base.to_indices(A, inds, t::Tuple{NewColon,Vararg{Any}}) =
                 (_uncolon(inds, t), to_indices(A, Base.tail(inds), Base.tail(t))...)
 
             _uncolon(inds::Tuple{}, I::Tuple{NewColon, Vararg{Any}}) = OneTo(1)
@@ -916,9 +924,9 @@ end
     a = OffsetArray([1 2; 3 4], -1:0, 5:6)
     io = IOBuffer()
     show(io, axes(a, 1))
-    @test String(take!(io)) == "OffsetArrays.IdOffsetRange(-1:0)"
+    @test String(take!(io)) == "(-1 => -1):(0 => 0)"
     show(io, axes(a, 2))
-    @test String(take!(io)) == "OffsetArrays.IdOffsetRange(5:6)"
+    @test String(take!(io)) == "(5 => 5):(6 => 6)"
 
     @test Base.inds2string(axes(a)) == Base.inds2string(map(UnitRange, axes(a)))
 

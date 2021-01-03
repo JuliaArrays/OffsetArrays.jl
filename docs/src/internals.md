@@ -44,7 +44,7 @@ type:
 
 ```jldoctest oa
 julia> ax = axes(oa, 2)
-OffsetArrays.IdOffsetRange(5:6)
+(5 => 5):(6 => 6)
 ```
 
 This has a similar design to `Base.IdentityUnitRange` that `ax[x] == x` always holds.
@@ -61,10 +61,10 @@ This property makes sure that they tend to be their own axes:
 
 ```jldoctest oa
 julia> axes(ax)
-(OffsetArrays.IdOffsetRange(5:6),)
+((5 => 5):(6 => 6),)
 
 julia> axes(ax[ax])
-(OffsetArrays.IdOffsetRange(5:6),)
+((5 => 5):(6 => 6),)
 ```
 
 This example of indexing is [idempotent](https://en.wikipedia.org/wiki/Idempotence).
@@ -80,7 +80,7 @@ julia> oa2 = OffsetArray([5, 10, 15, 20], 0:3)
  20
 
 julia> ax2 = axes(oa2, 1)
-OffsetArrays.IdOffsetRange(0:3)
+(0 => 0):(3 => 3)
 
 julia> oa2[2]
 15
@@ -112,22 +112,23 @@ cases that you should be aware of, especially when you are working with multi-di
 One such cases is `getindex`:
 
 ```jldoctest getindex; setup = :(using OffsetArrays)
-julia> Ao = zeros(-3:3, -3:3); Ao[:] .= 1:49;
+julia> Ao = zeros(-3:3, -3:3); Ao[:] .= 1:49; axes(Ao)
+((-3 => -3):(3 => 3), (-3 => -3):(3 => 3))
 
 julia> Ao[-3:0, :] |> axes # the first dimension does not preserve offsets
-(OffsetArrays.IdOffsetRange(1:4), OffsetArrays.IdOffsetRange(-3:3))
+((1 => 1):(4 => 4), (-3 => -3):(3 => 3))
 
-julia> Ao[-3:0, -3:3] |> axes # neither dimensions preserve offsets
+julia> Ao[-3:0, -3:3] |> axes # neither dimension preserves offsets
 (Base.OneTo(4), Base.OneTo(7))
 
 julia> Ao[axes(Ao)...] |> axes # offsets are preserved
-(OffsetArrays.IdOffsetRange(-3:3), OffsetArrays.IdOffsetRange(-3:3))
+((-3 => -3):(3 => 3), (-3 => -3):(3 => 3))
 
 julia> Ao[:] |> axes # This is linear indexing
 (Base.OneTo(49),)
 ```
 
-Note that if you pass a `UnitRange`, the offsets in corresponding dimension will not be preserved.
+Note that if you pass a `UnitRange`, the offsets in the corresponding dimension will not be preserved.
 This might look weird at first, but since it follows the `a[ax][i] == a[ax[i]]` rule, it is not a
 bug.
 
@@ -138,7 +139,7 @@ julia> Ao[I, 0][1] == Ao[I[1], 0]
 true
 
 julia> ax = axes(Ao, 1) # ax starts at index -3
-OffsetArrays.IdOffsetRange(-3:3)
+(-3 => -3):(3 => 3)
 
 julia> Ao[ax, 0][1] == Ao[ax[1], 0]
 true
@@ -164,15 +165,15 @@ julia> a = zeros(3, 3);
 julia> oa = OffsetArray(a, ZeroBasedIndexing());
 
 julia> axes(oa)
-(OffsetArrays.IdOffsetRange(0:2), OffsetArrays.IdOffsetRange(0:2))
+((0 => 0):(2 => 2), (0 => 0):(2 => 2))
 ```
 
 In this example we had to define the action of `to_indices` as the type `ZeroBasedIndexing` did not have a familiar hierarchy. Things are even simpler if we subtype `AbstractUnitRange`, in which case we need to define `first` and `length` for the custom range to be able to use it as an axis:
 
 ```jldoctest; setup = :(using OffsetArrays)
 julia> struct ZeroTo <: AbstractUnitRange{Int}
-       n :: Int
-       ZeroTo(n) = new(n < 0 ? -1 : n)
+           n :: Int
+           ZeroTo(n) = new(n < 0 ? -1 : n)
        end
 
 julia> Base.first(::ZeroTo) = 0
@@ -182,7 +183,7 @@ julia> Base.length(r::ZeroTo) = r.n + 1
 julia> oa = OffsetArray(zeros(2,2), ZeroTo(1), ZeroTo(1));
 
 julia> axes(oa)
-(OffsetArrays.IdOffsetRange(0:1), OffsetArrays.IdOffsetRange(0:1))
+((0 => 0):(1 => 1), (0 => 0):(1 => 1))
 ```
 
 Note that zero-based indexing may also be achieved using the pre-defined type [`OffsetArrays.Origin`](@ref).
