@@ -44,7 +44,7 @@ julia> axes(ro, 1)     # 11:13 is indexed by 1:3, and the offset is also applied
 
 You can construct these ranges as they are displayed:
 
-```jldoctest; setup=(import OffsetArrays)
+```jldoctest; setup=(import OffsetArrays), filter=r", ?U"
 julia> r = (0=>8):(3=>11)
 (0 => 8):(3 => 11)
 
