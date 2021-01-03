@@ -62,7 +62,7 @@ must start with value 1.
 
     has `r[1] == 3` and `r[2] == 4` and would satisfy `r == 3:4`, whereas
 
-    ```
+    ```julia
     julia> convert(OffsetArrays.IdOffsetRange{Int,Base.OneTo{Int}}, 3:4)    # future behavior, not present behavior
     ERROR: ArgumentError: first element must be 1, got 3
     ```
@@ -86,22 +86,23 @@ function IdOffsetRange{T,I}(r::AbstractUnitRange, offset::Integer = 0) where {T<
     return IdOffsetRange{T,I}(rc, convert(T, o+offset))
 end
 function IdOffsetRange{T}(r::AbstractUnitRange, offset::Integer = 0) where T<:Integer
-    rc = convert(AbstractUnitRange{T}, r)::AbstractUnitRange{T}
+    rc = convert(AbstractUnitRange{T}, r)
     return IdOffsetRange{T,typeof(rc)}(rc, convert(T, offset))
 end
 IdOffsetRange(r::AbstractUnitRange{T}, offset::Integer = 0) where T<:Integer =
     IdOffsetRange{T,typeof(r)}(r, convert(T, offset))
 
 # Coercion from other IdOffsetRanges
-IdOffsetRange{T,I}(r::IdOffsetRange{T,I}) where {T<:Integer,I<:AbstractUnitRange{T}} = r
-function IdOffsetRange{T,I}(r::IdOffsetRange) where {T<:Integer,I<:AbstractUnitRange{T}}
-    rc, offset = offset_coerce(I, r.parent)
-    return IdOffsetRange{T,I}(rc, r.offset+offset)
+IdOffsetRange{T,I}(r::IdOffsetRange{T,I}) where {T,I} = r
+function IdOffsetRange{T,I}(r::IdOffsetRange, offset::Integer = 0) where {T<:Integer,I<:AbstractUnitRange{T}}
+    rc, offset_rc = offset_coerce(I, r.parent)
+    return IdOffsetRange{T,I}(rc, r.offset + offset + offset_rc)
 end
-function IdOffsetRange{T}(r::IdOffsetRange) where T<:Integer
-    return IdOffsetRange(convert(AbstractUnitRange{T}, r.parent), r.offset)
+function IdOffsetRange{T}(r::IdOffsetRange, offset::Integer = 0) where T<:Integer
+    return IdOffsetRange{T}(r.parent, r.offset + offset)
 end
 IdOffsetRange(r::IdOffsetRange) = r
+IdOffsetRange(r::IdOffsetRange, offset::Integer) = typeof(r)(r.parent, offset + r.offset)
 
 # TODO: uncomment these when Julia is ready
 # # Conversion preserves both the values and the indexes, throwing an InexactError if this
@@ -121,7 +122,7 @@ end
 #     rc, o = offset_coerce(Base.OneTo{T}, r.parent)
 
 # Fallback, specialze this method if `convert(I, r)` doesn't do what you need
-offset_coerce(::Type{I}, r::AbstractUnitRange) where I<:AbstractUnitRange{T} where T =
+offset_coerce(::Type{I}, r::AbstractUnitRange) where I<:AbstractUnitRange =
     convert(I, r), 0
 
 @inline Base.parent(r::IdOffsetRange) = r.parent
