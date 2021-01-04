@@ -93,7 +93,7 @@ IdOffsetRange(r::AbstractUnitRange{T}, offset::Integer = 0) where T<:Integer =
     IdOffsetRange{T,typeof(r)}(r, convert(T, offset))
 
 # Coercion from other IdOffsetRanges
-IdOffsetRange{T,I}(r::IdOffsetRange{T,I}) where {T,I} = r
+IdOffsetRange{T,I}(r::IdOffsetRange{T,I}) where {T<:Integer,I<:AbstractUnitRange{T}} = r
 function IdOffsetRange{T,I}(r::IdOffsetRange, offset::Integer = 0) where {T<:Integer,I<:AbstractUnitRange{T}}
     rc, offset_rc = offset_coerce(I, r.parent)
     return IdOffsetRange{T,I}(rc, r.offset + offset + offset_rc)
