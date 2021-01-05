@@ -33,3 +33,5 @@ Origin(I1::Int, In::Int...) = Origin((I1, In...))
 Origin(n::Int) = Origin{Int}(n)
 
 (o::Origin)(A::AbstractArray) = o.index .- first.(axes(A))
+
+Base.Broadcast.broadcastable(o::Origin) = Ref(o)
