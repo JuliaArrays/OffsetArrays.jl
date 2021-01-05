@@ -27,4 +27,15 @@ using OffsetArrays: Origin
     oa = OffsetArray(a, -3, -3, -3)
     @test get_origin(OffsetArray(oa, Origin(0))) == (0, 0, 0)
     @test get_origin(OffsetArray(oa, Origin(1, 2, 3))) == (1, 2, 3)
+    
+    # Scalar broadcasting
+    let
+        a = [ [1,2,3], [4,5,6] ]
+        oa = OffsetVector.(a, Origin(0))
+        @test get_origin.(oa) == [ (0,), (0,) ]
+
+        a = [ [1 2; 3 4], [5 6 7; 8 9 10] ]
+        oa = OffsetArray.(a, Origin(0, -1))
+        @test get_origin.(oa) == [ (0,-1), (0,-1) ]
+    end
 end
