@@ -373,7 +373,7 @@ function Base.inds2string(inds::Tuple{Vararg{Union{IdOffsetRange, IdentityUnitRa
 end
 Base.showindices(io::IO, ind1::IdOffsetRange, inds::IdOffsetRange...) = Base.showindices(io, map(UnitRange, (ind1, inds...))...)
 
-function Base.showarg(io::IO, a::OffsetArray, toplevel)
+function Base.showarg(io::IO, @nospecialize(a::OffsetArray), toplevel)
     print(io, "OffsetArray(")
     Base.showarg(io, parent(a), false)
     Base.showindices(io, axes(a)...)
