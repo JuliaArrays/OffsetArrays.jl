@@ -198,24 +198,24 @@ end
 
     @testset "OffsetVector" begin
         # initialization
-        one_based_axes = [
-            (Base.OneTo(4), ), 
-            (1:4, ), 
-            (CartesianIndex(1):CartesianIndex(4), ), 
-            (IdentityUnitRange(1:4), ), 
-            (IdOffsetRange(1:4),), 
+        one_based_axes = Any[
+            (Base.OneTo(4), ),
+            (1:4, ),
+            (CartesianIndex(1):CartesianIndex(4), ),
+            (IdentityUnitRange(1:4), ),
+            (IdOffsetRange(1:4),),
             (IdOffsetRange(3:6, -2),)
         ]
 
-        offset_axes = [
-            (-1:2, ), 
-            (CartesianIndex(-1):CartesianIndex(2), ), 
-            (IdentityUnitRange(-1:2), ), 
-            (IdOffsetRange(-1:2),), 
+        offset_axes = Any[
+            (-1:2, ),
+            (CartesianIndex(-1):CartesianIndex(2), ),
+            (IdentityUnitRange(-1:2), ),
+            (IdOffsetRange(-1:2),),
             (IdOffsetRange(3:6, -4),)
         ]
 
-        for inds in [size.(one_based_axes[1], 1), one_based_axes...]
+        for inds in Any[size.(one_based_axes[1], 1), one_based_axes...]
             # test indices API
             a = OffsetVector{Float64}(undef, inds)
             @test eltype(a) === Float64
@@ -248,7 +248,7 @@ end
             a = OffsetVector{Missing}(missing, inds)
             @test axes(a) === ax
 
-            for (T, t) in [(Nothing, nothing), (Missing, missing)]
+            for (T, t) in Any[(Nothing, nothing), (Missing, missing)]
                 a = OffsetVector{Union{T, Vector{Int}}}(undef, inds)
                 @test !isassigned(a, -1)
                 @test eltype(a) === Union{T, Vector{Int}}
@@ -282,7 +282,7 @@ end
         # nested offset array
         a = rand(4)
         oa = OffsetArray(a, -1)
-        for inds in [.-oa.offsets, one_based_axes...]
+        for inds in Any[.-oa.offsets, one_based_axes...]
             ooa = OffsetArray(oa, inds)
             @test typeof(parent(ooa)) <: Vector
             @test ooa === OffsetArray(oa, inds...) === OffsetVector(oa, inds) === OffsetVector(oa, inds...)
@@ -324,8 +324,8 @@ end
 
     @testset "OffsetMatrix" begin
         # initialization
-        
-        one_based_axes = [
+
+        one_based_axes = Any[
                 (Base.OneTo(4), Base.OneTo(3)),
                 (1:4, 1:3),
                 (CartesianIndex(1, 1):CartesianIndex(4, 3), ),
@@ -338,7 +338,7 @@ end
                 (IdOffsetRange(3:6, -2), 1:3),
         ]
 
-        offset_axes = [
+        offset_axes = Any[
                 (-1:2, 0:2),
                 (CartesianIndex(-1, 0):CartesianIndex(2, 2), ),
                 (-1:2, CartesianIndex(0):CartesianIndex(2)),
@@ -351,7 +351,7 @@ end
                 (IdOffsetRange(-1:2), 0:2),
         ]
 
-        for inds in [size.(one_based_axes[1], 1), one_based_axes...]
+        for inds in Any[size.(one_based_axes[1], 1), one_based_axes...]
             # test API
             a = OffsetMatrix{Float64}(undef, inds)
             ax = (IdOffsetRange(Base.OneTo(4), 0), IdOffsetRange(Base.OneTo(3), 0))
@@ -385,7 +385,7 @@ end
             a = OffsetMatrix{Missing}(missing, inds)
             @test axes(a) === ax
 
-            for (T, t) in [(Nothing, nothing), (Missing, missing)]
+            for (T, t) in Any[(Nothing, nothing), (Missing, missing)]
                 a = OffsetMatrix{Union{T, Vector{Int}}}(undef, inds)
                 @test !isassigned(a, -1, 0)
                 @test eltype(a) === Union{T, Vector{Int}}
@@ -421,7 +421,7 @@ end
         # nested offset array
         a = rand(4, 3)
         oa = OffsetArray(a, -1, -2)
-        for inds in [.-oa.offsets, one_based_axes...]
+        for inds in Any[.-oa.offsets, one_based_axes...]
             ooa = OffsetArray(oa, inds)
             @test ooa === OffsetArray(oa, inds...) === OffsetMatrix(oa, inds) === OffsetMatrix(oa, inds...)
             @test typeof(parent(ooa)) <: Matrix
@@ -496,13 +496,13 @@ end
         @testset "convenience constructors" begin
             ax = (2:3, 4:5)
 
-            for f in [zeros, ones]
+            for f in (zeros, ones)
                 a = f(Float64, ax)
                 @test axes(a) == ax
                 @test eltype(a) == Float64
             end
 
-            for f in [trues, falses]
+            for f in (trues, falses)
                 a = f(ax)
                 @test axes(a) == ax
                 @test eltype(a) == Bool
@@ -573,7 +573,7 @@ end
         end
         @testset "TupleOfRanges" begin
             Base.to_indices(A, inds, t::Tuple{TupleOfRanges{N}}) where {N} = t
-            OffsetArrays.AxisConversionStyle(::Type{TupleOfRanges{N}}) where {N} = 
+            OffsetArrays.AxisConversionStyle(::Type{TupleOfRanges{N}}) where {N} =
                 OffsetArrays.TupleOfRanges()
 
             Base.convert(::Type{Tuple{Vararg{AbstractUnitRange{Int}}}}, t::TupleOfRanges) = t.x
@@ -584,7 +584,7 @@ end
             @test axes(oa) == inds.x
         end
         @testset "NewColon" begin
-            Base.to_indices(A, inds, t::Tuple{NewColon,Vararg{Any}}) = 
+            Base.to_indices(A, inds, t::Tuple{NewColon,Vararg{Any}}) =
                 (_uncolon(inds, t), to_indices(A, Base.tail(inds), Base.tail(t))...)
 
             _uncolon(inds::Tuple{}, I::Tuple{NewColon, Vararg{Any}}) = OneTo(1)
@@ -598,7 +598,7 @@ end
 
     @testset "Offset range construction" begin
         r = -2:5
-        for AT in [OffsetArray, OffsetVector]
+        for AT in Any[OffsetArray, OffsetVector]
             y = AT(r, r)
             @test axes(y) == (r,)
             @test step(y) == step(r)
@@ -1236,8 +1236,8 @@ end
     @test sort(A, dims = 1) == OffsetArray(sort(parent(A), dims = 1), A.offsets)
     @test sort(A, dims = 2) == OffsetArray(sort(parent(A), dims = 2), A.offsets)
 
-    @test mapslices(v->sort(v), A, dims = 1) == OffsetArray(mapslices(v->sort(v), parent(A), dims = 1), A.offsets)
-    @test mapslices(v->sort(v), A, dims = 2) == OffsetArray(mapslices(v->sort(v), parent(A), dims = 2), A.offsets)
+    @test mapslices(sort, A, dims = 1) == OffsetArray(mapslices(sort, parent(A), dims = 1), A.offsets)
+    @test mapslices(sort, A, dims = 2) == OffsetArray(mapslices(sort, parent(A), dims = 2), A.offsets)
 end
 
 @testset "rot/reverse" begin
