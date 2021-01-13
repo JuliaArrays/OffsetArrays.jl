@@ -9,6 +9,8 @@ using EllipsisNotation
 using Adapt
 using StaticArrays
 
+DocMeta.setdocmeta!(OffsetArrays, :DocTestSetup, :(using OffsetArrays); recursive=true)
+
 # https://github.com/JuliaLang/julia/pull/29440
 if VERSION < v"1.1.0-DEV.389"
     Base.:(:)(I::CartesianIndex{N}, J::CartesianIndex{N}) where N =
@@ -22,6 +24,14 @@ struct TupleOfRanges{N}
     x ::NTuple{N, UnitRange{Int}}
 end
 
+function same_value(r1, r2)
+    length(r1) == length(r2) || return false
+    for (v1, v2) in zip(r1, r2)
+        v1 == v2 || return false
+    end
+    return true
+end
+
 @testset "Project meta quality checks" begin
     # Not checking compat section for test-only dependencies
     Aqua.test_all(OffsetArrays; project_extras=true, deps_compat=true, stale_deps=true, project_toml_formatting=true)
@@ -31,13 +41,7 @@ end
 end
 
 @testset "IdOffsetRange" begin
-    function same_value(r1, r2)
-        length(r1) == length(r2) || return false
-        for (v1, v2) in zip(r1, r2)
-            v1 == v2 || return false
-        end
-        return true
-    end
+    
     function check_indexed_by(r, rindx)
         for i in rindx
             r[i]
@@ -98,8 +102,16 @@ end
     @test same_value(r, 3:5)
     check_indexed_by(r, 3:5)
 
-    r = IdOffsetRange(IdOffsetRange(3:5, 2), 1)
-    @test parent(r) isa UnitRange
+    rp = Base.OneTo(3)
+    r = IdOffsetRange(rp)
+    r2 = IdOffsetRange{Int,typeof(r)}(r, 1)
+    @test same_value(r2, 2:4)
+    check_indexed_by(r2, 2:4)
+
+    r2 = IdOffsetRange{Int32,IdOffsetRange{Int32,Base.OneTo{Int32}}}(r, 1)
+    @test typeof(r2) == IdOffsetRange{Int32,IdOffsetRange{Int32,Base.OneTo{Int32}}}
+    @test same_value(r2, 2:4)
+    check_indexed_by(r2, 2:4)
 
     # conversion preserves both the values and the axes, throwing an error if this is not possible
     @test @inferred(oftype(ro, ro)) === ro
@@ -866,6 +878,16 @@ end
     @test S[0, 2, 2] == A[0, 4, 2]
     @test S[1, 1, 2] == A[1, 3, 2]
     @test axes(S) == (OffsetArrays.IdOffsetRange(0:1), Base.OneTo(2), OffsetArrays.IdOffsetRange(2:5))
+
+    # fix IdOffsetRange(::IdOffsetRange, offset) nesting from #178
+    b = 1:20
+    bov = OffsetArray(view(b, 3:4), 3:4)
+    c = @view b[bov]
+    @test same_value(c, 3:4)
+    @test axes(c,1) == 3:4
+    d = OffsetArray(c, 1:2)
+    @test same_value(d, c)
+    @test axes(d,1) == 1:2
 end
 
 @testset "iteration" begin
