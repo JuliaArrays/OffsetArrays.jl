@@ -7,6 +7,12 @@ else
     using Base: IdentityUnitRange
 end
 
+@static if VERSION >= v"1.5"
+    const replace_ref_end! = Base.replace_ref_begin_end!
+else
+    const replace_ref_end! = Base.replace_ref_end!
+end
+
 export OffsetArray, OffsetMatrix, OffsetVector
 
 include("axes.jl")
@@ -391,6 +397,77 @@ function Base.replace_in_print_matrix(A::OffsetArray{<:Any,1}, i::Integer, j::In
     ip = parentindex(axes(A,1), i)
     Base.replace_in_print_matrix(parent(A), ip, j, s)
 end
+
+"""
+    offset_view(A::AbstractArray, I...)
+
+Return a view into `A` with the given indices `I` that is also indexed by `I`.
+
+# Examples
+```jldoctest
+julia> a = 1:20;
+
+julia> OffsetArrays.offset_view(a, 4:5)
+4:5 with indices 4:5
+
+julia> b = reshape(1:12, 3, 4)
+3×4 reshape(::UnitRange{Int64}, 3, 4) with eltype Int64:
+ 1  4  7  10
+ 2  5  8  11
+ 3  6  9  12
+
+julia> OffsetArrays.offset_view(b, :, 3:4)
+3×2 OffsetArray(view(reshape(::UnitRange{Int64}, 3, 4), :, 3:4), 1:3, 3:4) with eltype Int64 with indices 1:3×3:4:
+ 7  10
+ 8  11
+ 9  12
+```
+"""
+function offset_view(A::AbstractArray, I::Vararg)
+    v = view(A, I...)
+    OffsetArray(v, _filteraxes(I...))
+end
+
+"""
+    @offset_view A[I...]
+
+Create a view into `A` from an indexing operation `A[I...]` that is also indexed by `I`.
+
+# Examples
+```jldoctest
+julia> a = 1:20;
+
+julia> OffsetArrays.@offset_view a[4:5]
+4:5 with indices 4:5
+
+julia> b = reshape(1:12, 3, 4)
+3×4 reshape(::UnitRange{Int64}, 3, 4) with eltype Int64:
+ 1  4  7  10
+ 2  5  8  11
+ 3  6  9  12
+
+julia> OffsetArrays.@offset_view b[:, 3:4]
+3×2 OffsetArray(view(reshape(::UnitRange{Int64}, 3, 4), :, 3:4), 1:3, 3:4) with eltype Int64 with indices 1:3×3:4:
+ 7  10
+ 8  11
+ 9  12
+```
+"""
+macro offset_view(ex)
+    if Meta.isexpr(ex, :ref)
+        ex = replace_ref_end!(ex)
+        if Meta.isexpr(ex, :ref)
+            ex = Expr(:call, offset_view, ex.args...)
+        else # ex replaced by let ...; foo[...]; end
+            @assert Meta.isexpr(ex, :let) && Meta.isexpr(ex.args[2], :ref)
+            ex.args[2] = Expr(:call, offset_view, ex.args[2].args...)
+        end
+        Expr(:&&, true, esc(ex))
+    else
+        throw(ArgumentError("Invalid use of @offset_view macro: argument must be a reference expression A[...]."))
+    end
+end
+
 
 """
     no_offset_view(A)

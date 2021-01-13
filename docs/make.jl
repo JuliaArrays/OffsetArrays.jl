@@ -1,6 +1,8 @@
 using Documenter, JSON
 using OffsetArrays
 
+DocMeta.setdocmeta!(OffsetArrays, :DocTestSetup, :(using OffsetArrays); recursive=true)
+
 makedocs(
     sitename = "OffsetArrays",
     format = Documenter.HTML(prettyurls = get(ENV, "CI", nothing) == "true"),

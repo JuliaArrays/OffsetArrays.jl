@@ -78,6 +78,9 @@ struct IdOffsetRange{T<:Integer,I<:AbstractUnitRange{T}} <: AbstractUnitRange{T}
     offset::T
 
     IdOffsetRange{T,I}(r::I, offset::T) where {T<:Integer,I<:AbstractUnitRange{T}} = new{T,I}(r, offset)
+    function IdOffsetRange{T,IdOffsetRange{T,I}}(r::IdOffsetRange{T,I}, offset::T) where {T<:Integer,I<:AbstractUnitRange{T}}
+        new{T,IdOffsetRange{T,I}}(r, offset)
+    end
 end
 
 # Construction/coercion from arbitrary AbstractUnitRanges
@@ -96,13 +99,12 @@ IdOffsetRange(r::AbstractUnitRange{T}, offset::Integer = 0) where T<:Integer =
 IdOffsetRange{T,I}(r::IdOffsetRange{T,I}) where {T<:Integer,I<:AbstractUnitRange{T}} = r
 function IdOffsetRange{T,I}(r::IdOffsetRange, offset::Integer = 0) where {T<:Integer,I<:AbstractUnitRange{T}}
     rc, offset_rc = offset_coerce(I, r.parent)
-    return IdOffsetRange{T,I}(rc, r.offset + offset + offset_rc)
+    return IdOffsetRange{T,I}(rc, convert(T, r.offset + offset + offset_rc))
 end
 function IdOffsetRange{T}(r::IdOffsetRange, offset::Integer = 0) where T<:Integer
     return IdOffsetRange{T}(r.parent, r.offset + offset)
 end
 IdOffsetRange(r::IdOffsetRange) = r
-IdOffsetRange(r::IdOffsetRange, offset::Integer) = typeof(r)(r.parent, offset + r.offset)
 
 # TODO: uncomment these when Julia is ready
 # # Conversion preserves both the values and the indexes, throwing an InexactError if this

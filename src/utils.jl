@@ -74,3 +74,7 @@ end
 
 _unwrap(r::IdOffsetRange) = r.parent .+ r.offset
 _unwrap(r::IdentityUnitRange) = r.indices
+
+@inline _filteraxes(x::Union{Colon, AbstractArray}, I...) = (x, _filteraxes(I...)...)
+@inline _filteraxes(i1, I...) = (_filteraxes(I...)...,)
+_filteraxes() = ()
