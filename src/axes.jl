@@ -178,3 +178,10 @@ if VERSION < v"1.5.2"
     @inline Base.compute_offset1(parent, stride1::Integer, dims::Tuple{Int}, inds::Tuple{IdOffsetRange}, I::Tuple) =
         Base.compute_linindex(parent, I) - stride1*first(inds[1])
 end
+
+# This was deemed "too private" to extend: see issue #184
+# # Fixes an inference failure in Base.mapfirst!
+# # Test: A = OffsetArray(rand(4,4), (-3,5)); R = similar(A, (1:1, 6:9)); maximum!(R, A)
+# if isdefined(Base, :_firstslice)
+#     Base._firstslice(i::IdOffsetRange) = IdOffsetRange(Base._firstslice(i.parent), i.offset)
+# end

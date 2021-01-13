@@ -24,14 +24,14 @@ const ArrayInitializer = Union{UndefInitializer, Missing, Nothing}
     OffsetArray(A, indices...)
 
 Return an `AbstractArray` that shares element type and size with the first argument but
-uses the supplied `indices` to infer its axes. If all the indices are `AbstractUnitRange`s then 
-these are directly used as the axis span along each dimension. Refer to the examples below for other 
+uses the supplied `indices` to infer its axes. If all the indices are `AbstractUnitRange`s then
+these are directly used as the axis span along each dimension. Refer to the examples below for other
 permissible types.
 
-Alternatively it's possible to specify the coordinates of one corner of the array 
-and have the axes be computed automatically from the size of `A`. 
+Alternatively it's possible to specify the coordinates of one corner of the array
+and have the axes be computed automatically from the size of `A`.
 This constructor makes it convenient to shift to
-an arbitrary starting index along each axis, for example to a zero-based indexing scheme followed by 
+an arbitrary starting index along each axis, for example to a zero-based indexing scheme followed by
 arrays in languages such as C and Python.
 See [`Origin`](@ref) and the examples below for this usage.
 
@@ -51,9 +51,9 @@ julia> A[0, 1]
 5
 ```
 
-Examples of range-like types are: `UnitRange` (e.g, `-1:2`), `CartesianIndices`, 
-and `Colon()` (or concisely `:`). A `UnitRange` specifies the axis span along one particular dimension, 
-`CartesianIndices` specify the axis spans along multiple dimensions, and a `Colon` is a placeholder 
+Examples of range-like types are: `UnitRange` (e.g, `-1:2`), `CartesianIndices`,
+and `Colon()` (or concisely `:`). A `UnitRange` specifies the axis span along one particular dimension,
+`CartesianIndices` specify the axis spans along multiple dimensions, and a `Colon` is a placeholder
 that specifies that the `OffsetArray` shares its axis with its parent along that dimension.
 
 ```jldoctest; setup=:(using OffsetArrays)
@@ -86,9 +86,9 @@ ERROR: [...]
 
 # Example: origin
 
-[`OffsetArrays.Origin`](@ref) may be used to specify the origin of the OffsetArray. The term origin here 
-refers to the corner with the lowest values of coordinates, such as the left edge for an `AbstractVector`, 
-the bottom left corner for an `AbstractMatrix` and so on. The coordinates of the origin sets the starting 
+[`OffsetArrays.Origin`](@ref) may be used to specify the origin of the OffsetArray. The term origin here
+refers to the corner with the lowest values of coordinates, such as the left edge for an `AbstractVector`,
+the bottom left corner for an `AbstractMatrix` and so on. The coordinates of the origin sets the starting
 index of the array along each dimension.
 
 ```jldoctest; setup=:(using OffsetArrays)
@@ -150,7 +150,7 @@ end
     OffsetArray{eltype(A), ndims(A), typeof(A)}(A, offsets)
 end
 
-# These methods are necessary to disallow incompatible dimensions for 
+# These methods are necessary to disallow incompatible dimensions for
 # the OffsetVector and the OffsetMatrix constructors
 for (FT, ND) in ((:OffsetVector, :1), (:OffsetMatrix, :2))
     @eval @inline function $FT(A::AbstractArray{<:Any,$ND}, offsets::Tuple{Vararg{Integer}})
@@ -185,7 +185,7 @@ for FT in (:OffsetArray, :OffsetVector, :OffsetMatrix)
         lA = size(A)
         lI = map(length, inds)
         lA == lI || throw_dimerr(lA, lI)
-        $FT(A, map(_offset, axes(A), inds)) 
+        $FT(A, map(_offset, axes(A), inds))
     end
 
     @eval @inline $FT(A::AbstractArray, inds::Vararg) = $FT(A, inds)
@@ -372,8 +372,8 @@ function Base.inds2string(inds::Tuple{Vararg{Union{IdOffsetRange, IdentityUnitRa
     Base.inds2string(map(UnitRange, inds))
 end
 Base.showindices(io::IO, ind1::IdOffsetRange, inds::IdOffsetRange...) = Base.showindices(io, map(UnitRange, (ind1, inds...))...)
-    
-function Base.showarg(io::IO, a::OffsetArray, toplevel)
+
+function Base.showarg(io::IO, @nospecialize(a::OffsetArray), toplevel)
     print(io, "OffsetArray(")
     Base.showarg(io, parent(a), false)
     Base.showindices(io, axes(a)...)
@@ -508,5 +508,10 @@ end
 ##
 import Adapt
 Adapt.adapt_structure(to, x::OffsetArray) = OffsetArray(Adapt.adapt(to, parent(x)), x.offsets)
+
+if Base.VERSION >= v"1.4.2"
+    include("precompile.jl")
+    _precompile_()
+end
 
 end # module
