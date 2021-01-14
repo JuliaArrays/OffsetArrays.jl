@@ -178,7 +178,7 @@ if VERSION < v"1.5.2"
     # issue 100, 133: IdOffsetRange as another index-preserving case shouldn't comtribute offsets
     # fixed by https://github.com/JuliaLang/julia/pull/37204
     @inline Base.compute_offset1(parent, stride1::Integer, dims::Tuple{Int}, inds::Tuple{IdOffsetRange}, I::Tuple) =
-        Base.compute_linindex(parent, I) - stride1*first(inds[1])
+        Base.compute_linindex(parent, I) - stride1*first(Base.axes1(inds[1]))
 end
 
 # This was deemed "too private" to extend: see issue #184
