@@ -404,7 +404,9 @@ end
 Return a view into `A` with the given indices `I` that is also indexed by `I`.
 
 !!! note "Fancy indexing"
-    Indexing with `AbstractVector` types that are not `AbstractUnitRange`s is not supported.
+    Indexing with `AbstractVector` types that are not convertible to an `AbstractUnitRange`s 
+    or to a Tuple of `AbstractUnitRanges` is not supported. For example, `Vector`s may not be 
+    used as indices in an `@offset_view` operation.
 
 # Examples
 ```jldoctest
@@ -414,13 +416,13 @@ julia> OffsetArrays.offset_view(a, 4:5)
 4:5 with indices 4:5
 
 julia> b = reshape(1:12, 3, 4)
-3×4 reshape(::UnitRange{Int64}, 3, 4) with eltype Int64:
+3×4 reshape(::UnitRange{$Int}, 3, 4) with eltype $Int:
  1  4  7  10
  2  5  8  11
  3  6  9  12
 
 julia> OffsetArrays.offset_view(b, :, 3:4)
-3×2 OffsetArray(view(reshape(::UnitRange{Int64}, 3, 4), :, 3:4), 1:3, 3:4) with eltype Int64 with indices 1:3×3:4:
+3×2 OffsetArray(view(reshape(::UnitRange{$Int}, 3, 4), :, 3:4), 1:3, 3:4) with eltype $Int with indices 1:3×3:4:
  7  10
  8  11
  9  12
@@ -436,6 +438,11 @@ end
 
 Create a view into `A` from an indexing operation `A[I...]` that is also indexed by `I`.
 
+!!! note "Fancy indexing"
+    Indexing with `AbstractVector` types that are not convertible to an `AbstractUnitRange`s 
+    or to a Tuple of `AbstractUnitRanges` is not supported. For example, `Vector`s may not be 
+    used as indices in an `@offset_view` operation.
+
 # Examples
 ```jldoctest
 julia> a = 1:20;
@@ -444,13 +451,13 @@ julia> OffsetArrays.@offset_view a[4:5]
 4:5 with indices 4:5
 
 julia> b = reshape(1:12, 3, 4)
-3×4 reshape(::UnitRange{Int64}, 3, 4) with eltype Int64:
+3×4 reshape(::UnitRange{$Int}, 3, 4) with eltype $Int:
  1  4  7  10
  2  5  8  11
  3  6  9  12
 
 julia> OffsetArrays.@offset_view b[:, 3:4]
-3×2 OffsetArray(view(reshape(::UnitRange{Int64}, 3, 4), :, 3:4), 1:3, 3:4) with eltype Int64 with indices 1:3×3:4:
+3×2 OffsetArray(view(reshape(::UnitRange{$Int}, 3, 4), :, 3:4), 1:3, 3:4) with eltype $Int with indices 1:3×3:4:
  7  10
  8  11
  9  12
