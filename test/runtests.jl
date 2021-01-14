@@ -201,6 +201,7 @@ end
         one_based_axes = Any[
             (Base.OneTo(4), ),
             (1:4, ),
+            (big(1):big(4), ),
             (CartesianIndex(1):CartesianIndex(4), ),
             (IdentityUnitRange(1:4), ),
             (IdOffsetRange(1:4),),
@@ -209,13 +210,17 @@ end
 
         offset_axes = Any[
             (-1:2, ),
+            (big(-1):big(2), ),
             (CartesianIndex(-1):CartesianIndex(2), ),
             (IdentityUnitRange(-1:2), ),
             (IdOffsetRange(-1:2),),
             (IdOffsetRange(3:6, -4),)
         ]
 
-        for inds in Any[size.(one_based_axes[1], 1), one_based_axes...]
+        offsets = size.(one_based_axes[1], 1)
+        offsets_big = map(big, offsets)
+
+        for inds in Any[offsets, offsets_big, one_based_axes...]
             # test indices API
             a = OffsetVector{Float64}(undef, inds)
             @test eltype(a) === Float64
@@ -294,11 +299,11 @@ end
         # overflow bounds check
         v = rand(5)
         @test axes(OffsetVector(v, typemax(Int)-length(v))) == (IdOffsetRange(axes(v)[1], typemax(Int)-length(v)), )
-        @test_throws ArgumentError OffsetVector(v, typemax(Int)-length(v)+1)
+        @test_throws OverflowError OffsetVector(v, typemax(Int)-length(v)+1)
         ao = OffsetArray(v, typemin(Int))
         @test_nowarn OffsetArray{Float64, 1, typeof(ao)}(ao, (-1, ))
-        @test_throws ArgumentError OffsetArray{Float64, 1, typeof(ao)}(ao, (-2, )) # inner Constructor
-        @test_throws ArgumentError OffsetArray(ao, (-2, )) # convinient constructor accumulate offsets
+        @test_throws OverflowError OffsetArray{Float64, 1, typeof(ao)}(ao, (-2, )) # inner Constructor
+        @test_throws OverflowError OffsetArray(ao, (-2, )) # convinient constructor accumulate offsets
 
         # disallow OffsetVector(::Array{<:Any, N}, offsets) where N != 1
         @test_throws ArgumentError OffsetVector(zeros(2,2), (2, 2))
@@ -328,6 +333,7 @@ end
         one_based_axes = Any[
                 (Base.OneTo(4), Base.OneTo(3)),
                 (1:4, 1:3),
+                (big(1):big(4), big(1):big(3)),
                 (CartesianIndex(1, 1):CartesianIndex(4, 3), ),
                 (CartesianIndex(1):CartesianIndex(4), CartesianIndex(1):CartesianIndex(3)),
                 (CartesianIndex(1):CartesianIndex(4), 1:3),
@@ -340,6 +346,7 @@ end
 
         offset_axes = Any[
                 (-1:2, 0:2),
+                (big(-1):big(2), big(0):big(2)),
                 (CartesianIndex(-1, 0):CartesianIndex(2, 2), ),
                 (-1:2, CartesianIndex(0):CartesianIndex(2)),
                 (CartesianIndex(-1):CartesianIndex(2), CartesianIndex(0):CartesianIndex(2)),
@@ -351,7 +358,10 @@ end
                 (IdOffsetRange(-1:2), 0:2),
         ]
 
-        for inds in Any[size.(one_based_axes[1], 1), one_based_axes...]
+        offsets = size.(one_based_axes[1], 1)
+        offsets_big = map(big, offsets)
+
+        for inds in Any[offsets, offsets_big, one_based_axes...]
             # test API
             a = OffsetMatrix{Float64}(undef, inds)
             ax = (IdOffsetRange(Base.OneTo(4), 0), IdOffsetRange(Base.OneTo(3), 0))
@@ -433,8 +443,8 @@ end
         # overflow bounds check
         a = rand(4, 3)
         @test axes(OffsetMatrix(a, typemax(Int)-size(a, 1), 0)) == (IdOffsetRange(axes(a)[1], typemax(Int)-size(a, 1)), axes(a, 2))
-        @test_throws ArgumentError OffsetMatrix(a, typemax(Int)-size(a,1)+1, 0)
-        @test_throws ArgumentError OffsetMatrix(a, 0, typemax(Int)-size(a, 2)+1)
+        @test_throws OverflowError OffsetMatrix(a, typemax(Int)-size(a,1)+1, 0)
+        @test_throws OverflowError OffsetMatrix(a, 0, typemax(Int)-size(a, 2)+1)
 
         # disallow OffsetMatrix(::Array{<:Any, N}, offsets) where N != 2
         @test_throws ArgumentError OffsetMatrix(zeros(2), (2,))

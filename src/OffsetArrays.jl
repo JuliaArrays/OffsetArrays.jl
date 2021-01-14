@@ -117,6 +117,10 @@ struct OffsetArray{T,N,AA<:AbstractArray{T,N}} <: AbstractArray{T,N}
     end
 end
 
+function OffsetArray{T, N, AA}(parent::AA, offsets::NTuple{N, <:Integer}) where {T, N, AA<:AbstractArray{T,N}}
+    OffsetArray{T, N, AA}(parent, map(x -> convert(Int, x), offsets))
+end
+
 """
     OffsetVector(v, index)
 
@@ -133,8 +137,8 @@ const OffsetMatrix{T,AA<:AbstractMatrix{T}} = OffsetArray{T,2,AA}
 
 function overflow_check(r, offset::T) where T
     # This gives some performance boost https://github.com/JuliaLang/julia/issues/33273
-    throw_upper_overflow_error() = throw(ArgumentError("Boundary overflow detected: offset $offset should be equal or less than $(typemax(T) - last(r))"))
-    throw_lower_overflow_error() = throw(ArgumentError("Boundary overflow detected: offset $offset should be equal or greater than $(typemin(T) - first(r))"))
+    throw_upper_overflow_error() = throw(OverflowError("Boundary overflow detected: offset should be <= $(typemax(T) - last(r)) for offsets of type $T, received $offset"))
+    throw_lower_overflow_error() = throw(OverflowError("Boundary overflow detected: offset should be >= $(typemin(T) - first(r)) for offsets of type $T, received $offset"))
 
     if offset > 0 && last(r) > typemax(T) - offset
         throw_upper_overflow_error()
