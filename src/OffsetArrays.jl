@@ -403,6 +403,9 @@ end
 
 Return a view into `A` with the given indices `I` that is also indexed by `I`.
 
+!!! note "Fancy indexing"
+    Indexing with `AbstractVector` types that are not `AbstractUnitRange`s is not supported.
+
 # Examples
 ```jldoctest
 julia> a = 1:20;
