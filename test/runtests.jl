@@ -866,6 +866,25 @@ end
     @test S[0, 2, 2] == A[0, 4, 2]
     @test S[1, 1, 2] == A[1, 3, 2]
     @test axes(S) == (OffsetArrays.IdOffsetRange(0:1), Base.OneTo(2), OffsetArrays.IdOffsetRange(2:5))
+
+    # issue #186
+    a = reshape(1:12, 3, 4)
+    r = OffsetArrays.IdOffsetRange(3:4)
+    av = view(a, :, r)
+    @test av == a[:, 3:4]
+    @test axes(av) == (axes(a,1), axes(r,1))
+    r = OffsetArrays.IdOffsetRange(1:2,2)
+    av = view(a, :, r)
+    @test no_offset_view(av) == a[:, 3:4]
+    @test axes(av) == (axes(a,1), axes(r,1))
+    # r = OffsetArrays.IdOffsetRange(2:3)
+    # av1d = view(a, r, 3)
+    # @test av1d == a[2:3, 3]
+    # @test axes(av1d) == (axes(r,1),)
+    # r = OffsetArrays.IdOffsetRange(Base.OneTo(2), 1)
+    # av1d = view(a, r, 3)
+    # @test no_offset_view(av1d) == a[2:3, 3]
+    # @test axes(av1d) == (axes(r,1),)
 end
 
 @testset "iteration" begin
