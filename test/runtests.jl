@@ -1403,6 +1403,7 @@ end
 Base.parent(x::PointlessWrapper) = x.parent
 Base.size(x::PointlessWrapper) = size(parent(x))
 Base.axes(x::PointlessWrapper) = axes(parent(x))
+Base.getindex(x::PointlessWrapper, i...) = x.parent[i...]
 
 @testset "no offset view" begin
     # OffsetArray fallback
@@ -1415,7 +1416,7 @@ Base.axes(x::PointlessWrapper) = axes(parent(x))
     @inferred no_offset_view(O2)
 
     P = PointlessWrapper(A)
-    @test no_offset_view(P) ≡ P
+    @test @inferred(no_offset_view(P)) == P
 
     # generic fallback
     A = collect(reshape(1:12, 3, 4))
