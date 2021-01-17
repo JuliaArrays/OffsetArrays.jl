@@ -423,14 +423,7 @@ julia> A
   2  4  6
 ```
 """
-function no_offset_view(A::AbstractArray)
-    if Base.has_offset_axes(A)
-        OffsetArray(A, Origin(1))
-    else
-        A
-    end
-end
-
+no_offset_view(A::AbstractArray) = OffsetArray(A, Origin(1))
 no_offset_view(A::OffsetArray) = no_offset_view(parent(A))
 no_offset_view(a::Array) = a
 
