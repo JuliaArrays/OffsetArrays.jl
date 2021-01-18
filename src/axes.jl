@@ -78,31 +78,38 @@ struct IdOffsetRange{T<:Integer,I<:AbstractUnitRange{T}} <: AbstractUnitRange{T}
     offset::T
 
     IdOffsetRange{T,I}(r::I, offset::T) where {T<:Integer,I<:AbstractUnitRange{T}} = new{T,I}(r, offset)
+    
+    #= This method is necessary to avoid a StackOverflowError in IdOffsetRange{T,I}(r::IdOffsetRange, offset::Integer). 
+    The type signature in that method is more specific than IdOffsetRange{T,I}(r::I, offset::T), 
+    so it ends up calling itself if I <: IdOffsetRange. 
+    =#
+    function IdOffsetRange{T,IdOffsetRange{T,I}}(r::IdOffsetRange{T,I}, offset::T) where {T<:Integer,I<:AbstractUnitRange{T}}
+        new{T,IdOffsetRange{T,I}}(r, offset)
+    end
 end
 
 # Construction/coercion from arbitrary AbstractUnitRanges
 function IdOffsetRange{T,I}(r::AbstractUnitRange, offset::Integer = 0) where {T<:Integer,I<:AbstractUnitRange{T}}
     rc, o = offset_coerce(I, r)
-    return IdOffsetRange{T,I}(rc, convert(T, o+offset))
+    return IdOffsetRange{T,I}(rc, convert(T, o+offset)::T)
 end
 function IdOffsetRange{T}(r::AbstractUnitRange, offset::Integer = 0) where T<:Integer
-    rc = convert(AbstractUnitRange{T}, r)
-    return IdOffsetRange{T,typeof(rc)}(rc, convert(T, offset))
+    rc = convert(AbstractUnitRange{T}, r)::AbstractUnitRange{T}
+    return IdOffsetRange{T,typeof(rc)}(rc, convert(T, offset)::T)
 end
 IdOffsetRange(r::AbstractUnitRange{T}, offset::Integer = 0) where T<:Integer =
-    IdOffsetRange{T,typeof(r)}(r, convert(T, offset))
+    IdOffsetRange{T,typeof(r)}(r, convert(T, offset)::T)
 
 # Coercion from other IdOffsetRanges
 IdOffsetRange{T,I}(r::IdOffsetRange{T,I}) where {T<:Integer,I<:AbstractUnitRange{T}} = r
 function IdOffsetRange{T,I}(r::IdOffsetRange, offset::Integer = 0) where {T<:Integer,I<:AbstractUnitRange{T}}
     rc, offset_rc = offset_coerce(I, r.parent)
-    return IdOffsetRange{T,I}(rc, r.offset + offset + offset_rc)
+    return IdOffsetRange{T,I}(rc, convert(T, r.offset + offset + offset_rc)::T)
 end
 function IdOffsetRange{T}(r::IdOffsetRange, offset::Integer = 0) where T<:Integer
     return IdOffsetRange{T}(r.parent, r.offset + offset)
 end
 IdOffsetRange(r::IdOffsetRange) = r
-IdOffsetRange(r::IdOffsetRange, offset::Integer) = typeof(r)(r.parent, offset + r.offset)
 
 # TODO: uncomment these when Julia is ready
 # # Conversion preserves both the values and the indexes, throwing an InexactError if this
@@ -123,12 +130,12 @@ end
 
 # Fallback, specialze this method if `convert(I, r)` doesn't do what you need
 offset_coerce(::Type{I}, r::AbstractUnitRange) where I<:AbstractUnitRange =
-    convert(I, r), 0
+    convert(I, r)::I, 0
 
 @inline Base.parent(r::IdOffsetRange) = r.parent
 @inline Base.axes(r::IdOffsetRange) = (Base.axes1(r),)
 @inline Base.axes1(r::IdOffsetRange) = IdOffsetRange(Base.axes1(r.parent), r.offset)
-@inline Base.unsafe_indices(r::IdOffsetRange) = (r,)
+@inline Base.unsafe_indices(r::IdOffsetRange) = (Base.axes1(r),)
 @inline Base.length(r::IdOffsetRange) = length(r.parent)
 Base.reduced_index(i::IdOffsetRange) = typeof(i)(first(i):first(i))
 # Workaround for #92 on Julia < 1.4
@@ -176,7 +183,7 @@ if VERSION < v"1.5.2"
     # issue 100, 133: IdOffsetRange as another index-preserving case shouldn't comtribute offsets
     # fixed by https://github.com/JuliaLang/julia/pull/37204
     @inline Base.compute_offset1(parent, stride1::Integer, dims::Tuple{Int}, inds::Tuple{IdOffsetRange}, I::Tuple) =
-        Base.compute_linindex(parent, I) - stride1*first(inds[1])
+        Base.compute_linindex(parent, I) - stride1*first(Base.axes1(inds[1]))
 end
 
 # This was deemed "too private" to extend: see issue #184
