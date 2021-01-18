@@ -118,7 +118,7 @@ struct OffsetArray{T,N,AA<:AbstractArray{T,N}} <: AbstractArray{T,N}
 end
 
 function OffsetArray{T, N, AA}(parent::AA, offsets::NTuple{N, <:Integer}) where {T, N, AA<:AbstractArray{T,N}}
-    OffsetArray{T, N, AA}(parent, map(x -> convert(Int, x), offsets))
+    OffsetArray{T, N, AA}(parent, map(x -> convert(Int, x)::Int, offsets))
 end
 
 """
