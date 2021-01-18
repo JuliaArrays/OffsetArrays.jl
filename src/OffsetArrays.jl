@@ -367,7 +367,9 @@ Base.show(io::IO, ::MIME"text/plain", r::OffsetRange) = show(io, r)
 
 Base.resize!(A::OffsetVector, nl::Integer) = (resize!(A.parent, nl); A)
 Base.push!(A::OffsetVector, x...) = (push!(A.parent, x...); A)
+Base.pushfirst!(A::OffsetVector, x...) = (pushfirst!(A.parent, x...); A)
 Base.pop!(A::OffsetVector) = pop!(A.parent)
+Base.popfirst!(A::OffsetVector) = popfirst!(A.parent)
 Base.append!(A::OffsetVector, items) = (append!(A.parent, items); A)
 Base.empty!(A::OffsetVector) = (empty!(A.parent); A)
 
