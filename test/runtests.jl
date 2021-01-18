@@ -185,6 +185,13 @@ end
     @test first(rred) == first(r)
 end
 
+# used in testing the constructor
+struct WeirdInteger{T} <: Integer
+    x :: T
+end
+# assume that it doesn't behave as expected
+Base.convert(::Type{Int}, a::WeirdInteger) = a
+
 @testset "Constructors" begin
     @testset "Single-entry arrays in dims 0:5" begin
         for n = 0:5
@@ -535,6 +542,9 @@ end
         @test_throws TypeError OffsetArray{Float64,2,Matrix{ComplexF64}}
         # ndim of an OffsetArray should match that of the parent
         @test_throws TypeError OffsetArray{Float64,3,Matrix{Float64}}
+
+        # should throw a TypeError if the offsets can not be converted to Ints
+        @test_throws TypeError OffsetVector{Int,Vector{Int}}(zeros(Int,2), (WeirdInteger(1),))
     end
 
     @testset "custom range types" begin
