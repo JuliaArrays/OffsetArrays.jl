@@ -6,7 +6,15 @@ on:
   push:
     branches:
       - master
+    paths-ignore:
+      - 'LICENSE.md'
+      - 'README.md'
+      - '.github/workflows/TagBot.yml'
   pull_request:
+    paths-ignore:
+      - 'LICENSE.md'
+      - 'README.md'
+      - '.github/workflows/TagBot.yml'
   schedule:
     - cron: '20 00 1 * *'
 
