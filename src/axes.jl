@@ -79,9 +79,9 @@ struct IdOffsetRange{T<:Integer,I<:AbstractUnitRange{T}} <: AbstractUnitRange{T}
 
     IdOffsetRange{T,I}(r::I, offset::T) where {T<:Integer,I<:AbstractUnitRange{T}} = new{T,I}(r, offset)
     
-    #= This method is necessary to avoid a StackOverflowError in IdOffsetRange{T,I}(r::IdOffsetRange, offset::Integer)
+    #= This method is necessary to avoid a StackOverflowError in IdOffsetRange{T,I}(r::IdOffsetRange, offset::Integer). 
     The type signature in that method is more specific than IdOffsetRange{T,I}(r::I, offset::T), 
-    so it ends up calling itself if I is of type IdOffsetRange.
+    so it ends up calling itself if I <: IdOffsetRange. 
     =#
     function IdOffsetRange{T,IdOffsetRange{T,I}}(r::IdOffsetRange{T,I}, offset::T) where {T<:Integer,I<:AbstractUnitRange{T}}
         new{T,IdOffsetRange{T,I}}(r, offset)
