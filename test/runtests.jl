@@ -1440,14 +1440,37 @@ end
     @test push!(o, 2, 3) === o
     @test axes(o, 1) == 0:2
     @test o[end-1:end] == [2, 3]
+
+    # pushfirst!
+    o = OffsetVector(Int[], -1)
+    @test pushfirst!(o) === o
+    @test axes(o, 1) == 0:-1
+    @test pushfirst!(o, 1) === o
+    @test axes(o, 1) == 0:0
+    @test o[end] == 1
+    @test pushfirst!(o, 2, 3) === o
+    @test axes(o, 1) == 0:2
+    if VERSION >= v"1.5"
+        @test o[begin:begin+1] == [2, 3]
+    else
+        @test o[0:1] == [2, 3]
+    end
+
     # pop!
     o = OffsetVector([1, 2, 3], -1)
     @test pop!(o) == 3
     @test axes(o, 1) == 0:1
+
+    # popfirst!
+    o = OffsetVector([1, 2, 3], -1)
+    @test popfirst!(o) == 1
+    @test axes(o, 1) == 0:1
+
     # append!
     o = OffsetVector([1, 2, 3], -1)
     append!(o, [4, 5])
     @test axes(o, 1) == 0:4
+
     # empty!
     o = OffsetVector([1, 2, 3], -1)
     @test empty!(o) === o
