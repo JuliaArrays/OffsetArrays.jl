@@ -78,6 +78,11 @@ struct IdOffsetRange{T<:Integer,I<:AbstractUnitRange{T}} <: AbstractUnitRange{T}
     offset::T
 
     IdOffsetRange{T,I}(r::I, offset::T) where {T<:Integer,I<:AbstractUnitRange{T}} = new{T,I}(r, offset)
+    
+    #= This method is necessary to avoid a StackOverflowError in IdOffsetRange{T,I}(r::IdOffsetRange, offset::Integer)
+    The type signature in that method is more specific than IdOffsetRange{T,I}(r::I, offset::T), 
+    so it ends up calling itself if I is of type IdOffsetRange.
+    =#
     function IdOffsetRange{T,IdOffsetRange{T,I}}(r::IdOffsetRange{T,I}, offset::T) where {T<:Integer,I<:AbstractUnitRange{T}}
         new{T,IdOffsetRange{T,I}}(r, offset)
     end
@@ -86,20 +91,20 @@ end
 # Construction/coercion from arbitrary AbstractUnitRanges
 function IdOffsetRange{T,I}(r::AbstractUnitRange, offset::Integer = 0) where {T<:Integer,I<:AbstractUnitRange{T}}
     rc, o = offset_coerce(I, r)
-    return IdOffsetRange{T,I}(rc, convert(T, o+offset))
+    return IdOffsetRange{T,I}(rc, convert(T, o+offset)::T)
 end
 function IdOffsetRange{T}(r::AbstractUnitRange, offset::Integer = 0) where T<:Integer
-    rc = convert(AbstractUnitRange{T}, r)
-    return IdOffsetRange{T,typeof(rc)}(rc, convert(T, offset))
+    rc = convert(AbstractUnitRange{T}, r)::AbstractUnitRange{T}
+    return IdOffsetRange{T,typeof(rc)}(rc, convert(T, offset)::T)
 end
 IdOffsetRange(r::AbstractUnitRange{T}, offset::Integer = 0) where T<:Integer =
-    IdOffsetRange{T,typeof(r)}(r, convert(T, offset))
+    IdOffsetRange{T,typeof(r)}(r, convert(T, offset)::T)
 
 # Coercion from other IdOffsetRanges
 IdOffsetRange{T,I}(r::IdOffsetRange{T,I}) where {T<:Integer,I<:AbstractUnitRange{T}} = r
 function IdOffsetRange{T,I}(r::IdOffsetRange, offset::Integer = 0) where {T<:Integer,I<:AbstractUnitRange{T}}
     rc, offset_rc = offset_coerce(I, r.parent)
-    return IdOffsetRange{T,I}(rc, convert(T, r.offset + offset + offset_rc))
+    return IdOffsetRange{T,I}(rc, convert(T, r.offset + offset + offset_rc)::T)
 end
 function IdOffsetRange{T}(r::IdOffsetRange, offset::Integer = 0) where T<:Integer
     return IdOffsetRange{T}(r.parent, r.offset + offset)
@@ -125,7 +130,7 @@ end
 
 # Fallback, specialze this method if `convert(I, r)` doesn't do what you need
 offset_coerce(::Type{I}, r::AbstractUnitRange) where I<:AbstractUnitRange =
-    convert(I, r), 0
+    convert(I, r)::I, 0
 
 @inline Base.parent(r::IdOffsetRange) = r.parent
 @inline Base.axes(r::IdOffsetRange) = (Base.axes1(r),)
