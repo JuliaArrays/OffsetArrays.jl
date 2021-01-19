@@ -977,9 +977,9 @@ end
     a = OffsetArray([1 2; 3 4], -1:0, 5:6)
     io = IOBuffer()
     show(io, axes(a, 1))
-    @test String(take!(io)) == "OffsetArrays.IdOffsetRange(-1:0)"
+    @test String(take!(io)) == "OffsetArrays.IdOffsetRange(1:2, -2)"
     show(io, axes(a, 2))
-    @test String(take!(io)) == "OffsetArrays.IdOffsetRange(5:6)"
+    @test String(take!(io)) == "OffsetArrays.IdOffsetRange(1:2, 4)"
 
     @test Base.inds2string(axes(a)) == Base.inds2string(map(UnitRange, axes(a)))
 

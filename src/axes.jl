@@ -1,5 +1,5 @@
 """
-    ro = IdOffsetRange(r::AbstractUnitRange, offset=0)
+    ro = IdOffsetRange(r::AbstractUnitRange, offset = 0)
 
 Construct an "identity offset range". Numerically, `collect(ro) == collect(r) .+ offset`,
 with the additional property that `axes(ro, 1) = axes(r, 1) .+ offset`.
@@ -11,10 +11,13 @@ i.e., it's the "identity," which is the origin of the "Id" in `IdOffsetRange`.
 The most common case is shifting a range that starts at 1 (either `1:n` or `Base.OneTo(n)`):
 ```jldoctest; setup=:(import OffsetArrays)
 julia> ro = OffsetArrays.IdOffsetRange(1:3, -2)
-OffsetArrays.IdOffsetRange(-1:1)
+OffsetArrays.IdOffsetRange(1:3, -2)
 
 julia> axes(ro, 1)
-OffsetArrays.IdOffsetRange(-1:1)
+OffsetArrays.IdOffsetRange(1:3, -2)
+
+julia> axes(ro, 1) == -1:1
+true
 
 julia> ro[-1]
 -1
@@ -26,10 +29,10 @@ ERROR: BoundsError: attempt to access 3-element UnitRange{$Int} at index [5]
 If the range doesn't start at 1, the values may be different from the indices:
 ```jldoctest; setup=:(import OffsetArrays)
 julia> ro = OffsetArrays.IdOffsetRange(11:13, -2)
-OffsetArrays.IdOffsetRange(9:11)
+OffsetArrays.IdOffsetRange(11:13, -2)
 
 julia> axes(ro, 1)     # 11:13 is indexed by 1:3, and the offset is also applied to the axes
-OffsetArrays.IdOffsetRange(-1:1)
+OffsetArrays.IdOffsetRange(1:3, -2)
 
 julia> ro[-1]
 9
@@ -174,7 +177,7 @@ Broadcast.broadcasted(::Base.Broadcast.DefaultArrayStyle{1}, ::typeof(+), r::IdO
 Broadcast.broadcasted(::Base.Broadcast.DefaultArrayStyle{1}, ::typeof(+), x::Integer, r::IdOffsetRange{T}) where T =
     IdOffsetRange{T}(x .+ r.parent, r.offset)
 
-Base.show(io::IO, r::IdOffsetRange) = print(io, "OffsetArrays.IdOffsetRange(",first(r), ':', last(r),")")
+Base.show(io::IO, r::IdOffsetRange) = print(io, "OffsetArrays.IdOffsetRange(",UnitRange(r.parent), ", ", r.offset,")")
 
 # Optimizations
 @inline Base.checkindex(::Type{Bool}, inds::IdOffsetRange, i::Real) = Base.checkindex(Bool, inds.parent, i - inds.offset)

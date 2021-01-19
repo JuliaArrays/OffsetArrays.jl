@@ -100,7 +100,7 @@ The coefficients of this polynomial are a naturally `-1` based list, since the `
 (counting from `-1`) `6, 5, -2, 3, 1` is the coefficient corresponding to the `n`th power of `x`. This Laurent polynomial can be evaluated at say `x = 2` as follows.
 
 ```jldoctest; setup = :(using OffsetArrays)
-julia> coeffs = OffsetVector([6, 5, -2, 3, 1], -1:3)
+julia> coeffs = OffsetVector(Int64[6, 5, -2, 3, 1], -1:3)
 5-element OffsetArray(::Vector{Int64}, -1:3) with eltype Int64 with indices -1:3:
   6
   5
