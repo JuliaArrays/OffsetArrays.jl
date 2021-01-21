@@ -1351,7 +1351,10 @@ Base.getindex(x::PointlessWrapper, i...) = x.parent[i...]
     @inferred no_offset_view(O2)
 
     P = PointlessWrapper(A)
-    @test @inferred(no_offset_view(P)) == P
+    @test @inferred(no_offset_view(P)) === P
+    @test @inferred(no_offset_view(A)) === A
+    a0 = reshape([1])
+    @test @inferred(no_offset_view(a0)) === a0
 
     # generic fallback
     A = collect(reshape(1:12, 3, 4))
