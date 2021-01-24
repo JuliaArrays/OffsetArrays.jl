@@ -179,6 +179,16 @@ Base.show(io::IO, r::IdOffsetRange) = print(io, "OffsetArrays.IdOffsetRange(",fi
 # Optimizations
 @inline Base.checkindex(::Type{Bool}, inds::IdOffsetRange, i::Real) = Base.checkindex(Bool, inds.parent, i - inds.offset)
 
+# issue 194
+# The indexing operation A[] gets mapped to A[1]. 
+# The bounds-checking for this needs to be handled separately for AbstractVectors
+# See https://github.com/JuliaLang/julia/issues/39379 for this issue reported in Base
+# Once a PR fixing it is merged, we may limit our fix to earlier Julia versions
+@inline function Base.checkbounds_indices(::Type{Bool}, IA::Tuple{IdOffsetRange}, ::Tuple{})
+    x = IA[1]
+    length(x) == 1 && first(x) == one(eltype(x))
+end
+
 if VERSION < v"1.5.2"
     # issue 100, 133: IdOffsetRange as another index-preserving case shouldn't comtribute offsets
     # fixed by https://github.com/JuliaLang/julia/pull/37204
