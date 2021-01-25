@@ -711,6 +711,22 @@ end
         @test setindex!(A, 2, 4) === A
         @test A[4] == 2
     end
+
+    @testset "issue 194" begin
+        A = OffsetArray([0], 1);
+        @test Base.checkbounds_indices(Bool, axes(A), ()) == false
+        @test_throws BoundsError A[]
+        A = OffsetArray([6], 1:1)
+        @test A[] == 6
+
+        A = OffsetArray(reshape(1:4, 2, 2), 2, 2);
+        @test Base.checkbounds_indices(Bool, axes(A), ()) == false
+        @test_throws BoundsError A[]
+        A = OffsetArray(reshape([6], 1, 1), 1:1, 1:1);
+        @test A[] == 6
+        A = OffsetArray(A, 1:1, 2:2);
+        @test A[] == 6
+    end
 end
 
 @testset "Vector indexing" begin
