@@ -943,6 +943,11 @@ end
     d = OffsetArray(c, 1:2)
     @test same_value(d, c)
     @test axes(d,1) == 1:2
+
+    # Issue 128
+    a = OffsetArray(1:3, 0:2);
+    b = @view a[0]
+    @test b[] == b[1] == 1
 end
 
 @testset "iteration" begin
