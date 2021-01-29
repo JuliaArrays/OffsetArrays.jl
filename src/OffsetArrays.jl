@@ -507,6 +507,12 @@ if VERSION < v"1.1.0-DEV.783"
     Base.copyfirst!(dest::OffsetArray, src::OffsetArray) = (maximum!(parent(dest), parent(src)); return dest)
 end
 
+if VERSION <= v"1.7.0-DEV.400"
+    # https://github.com/JuliaLang/julia/pull/39393
+    # index for zero-argument getindex should be first linear index instead of 1 (#194)
+    Base._to_linear_index(A::OffsetArray) = first(LinearIndices(A))
+end
+
 ##
 # Adapt allows for automatic conversion of CPU OffsetArrays to GPU OffsetArrays
 ##

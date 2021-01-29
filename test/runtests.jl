@@ -712,20 +712,13 @@ end
         @test A[4] == 2
     end
 
-    @testset "issue 194" begin
-        A = OffsetArray([0], 1);
-        @test Base.checkbounds_indices(Bool, axes(A), ()) == false
-        @test_throws BoundsError A[]
-        A = OffsetArray([6], 1:1)
-        @test A[] == 6
-
-        A = OffsetArray(reshape(1:4, 2, 2), 2, 2);
-        @test Base.checkbounds_indices(Bool, axes(A), ()) == false
-        @test_throws BoundsError A[]
-        A = OffsetArray(reshape([6], 1, 1), 1:1, 1:1);
-        @test A[] == 6
-        A = OffsetArray(A, 1:1, 2:2);
-        @test A[] == 6
+    @testset "Zero-index indexing (#194)" begin
+        @test OffsetArray([6], 2:2)[] == 6
+        @test OffsetArray(fill(6, 1, 1), 2:2, 3:3)[] == 6
+        @test OffsetArray(fill(6))[] == 6
+        @test_throws BoundsError OffsetArray([6,7], 2:3)[]
+        @test_throws BoundsError OffsetArray([6 7], 2:2, 2:3)[]
+        @test_throws BoundsError OffsetArray([], 2:1)[]
     end
 end
 
