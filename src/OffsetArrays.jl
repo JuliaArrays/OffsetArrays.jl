@@ -238,10 +238,13 @@ Base.eachindex(::IndexLinear, A::OffsetVector)   = axes(A, 1)
 
 # Issue 128
 # See https://github.com/JuliaLang/julia/issues/37274 for the issue reported in Base
-# We might not need this if the issue in Base is fixed, at that point we may impose an upper bound
-@inline function Base.compute_linindex(A::OffsetVector, I::NTuple{N,Any}) where N
-    IP = Base.fill_to_length(axes(A), Base.OneTo(1), Val(N))
-    Base.compute_linindex(first(LinearIndices(A)), 1, IP, I)
+# The fix https://github.com/JuliaLang/julia/pull/39404 should be available on v1.6
+# The following method is added on older Julia versions to ensure correct behavior for OffsetVectors
+if VERSION < v"1.6"
+    @inline function Base.compute_linindex(A::OffsetVector, I::NTuple{N,Any}) where N
+        IP = Base.fill_to_length(axes(A), Base.OneTo(1), Val(N))
+        Base.compute_linindex(first(LinearIndices(A)), 1, IP, I)
+    end
 end
 
 Base.similar(A::OffsetArray, ::Type{T}, dims::Dims) where T =
