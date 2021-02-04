@@ -236,6 +236,17 @@ Base.eachindex(::IndexLinear, A::OffsetVector)   = axes(A, 1)
 @inline Base.axes(A::OffsetArray, d) = d <= ndims(A) ? IdOffsetRange(axes(parent(A), d), A.offsets[d]) : IdOffsetRange(axes(parent(A), d))
 @inline Base.axes1(A::OffsetArray{T,0}) where {T} = IdOffsetRange(axes(parent(A), 1))  # we only need to specialize this one
 
+# Issue 128
+# See https://github.com/JuliaLang/julia/issues/37274 for the issue reported in Base
+# The fix https://github.com/JuliaLang/julia/pull/39404 should be available on v1.6
+# The following method is added on older Julia versions to ensure correct behavior for OffsetVectors
+if VERSION < v"1.6"
+    @inline function Base.compute_linindex(A::OffsetVector, I::NTuple{N,Any}) where N
+        IP = Base.fill_to_length(axes(A), Base.OneTo(1), Val(N))
+        Base.compute_linindex(first(LinearIndices(A)), 1, IP, I)
+    end
+end
+
 Base.similar(A::OffsetArray, ::Type{T}, dims::Dims) where T =
     similar(parent(A), T, dims)
 function Base.similar(A::AbstractArray, ::Type{T}, inds::Tuple{OffsetAxisKnownLength,Vararg{OffsetAxisKnownLength}}) where T
