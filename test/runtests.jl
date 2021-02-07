@@ -1429,6 +1429,8 @@ Base.getindex(x::PointlessWrapper, i...) = x.parent[i...]
     @test N[-3, -4] == 1
     V = no_offset_view(N)
     @test collect(V) == A
+    A = reshape(view([5], 1, 1))
+    @test no_offset_view(A) == A
 
     # bidirectional
     B = BidirectionalVector([1, 2, 3])
@@ -1436,6 +1438,28 @@ Base.getindex(x::PointlessWrapper, i...) = x.parent[i...]
     OB = OffsetArrays.no_offset_view(B)
     @test axes(OB, 1) == 1:4
     @test collect(OB) == 0:3
+
+    # issue #198
+    offax = axes(OffsetVector(1:10, -5), 1)
+    noffax = OffsetArrays.no_offset_view(offax)
+    @test noffax == -4:5
+    @test axes(noffax, 1) == 1:10   # ideally covered by the above, but current it isn't
+    @test isa(noffax, AbstractUnitRange)
+
+    # SubArrays
+    A = reshape(1:12, 3, 4)
+    V = view(A, OffsetArrays.IdentityUnitRange(2:3), OffsetArrays.IdentityUnitRange(2:3))
+    @test OffsetArrays.no_offset_view(V) == [5 8; 6 9]
+    V = view(A, OffsetArrays.IdentityUnitRange(2:3), 2)
+    @test V != [5;6]
+    @test OffsetArrays.no_offset_view(V) == [5;6]
+    O = OffsetArray(A, -1:1, 0:3)
+    V = view(O, 0:1, 1:2)
+    @test V == OffsetArrays.no_offset_view(V) == [5 8; 6 9]
+    r1, r2 = OffsetArrays.IdOffsetRange(1:3, -2), OffsetArrays.IdentityUnitRange(2:3)
+    V = view(O, r1, r2)
+    @test V != collect(V)
+    @test OffsetArrays.no_offset_view(V) == collect(V)
 end
 
 @testset "no nesting" begin
