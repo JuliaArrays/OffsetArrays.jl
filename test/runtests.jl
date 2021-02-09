@@ -1446,6 +1446,9 @@ Base.getindex(x::PointlessWrapper, i...) = x.parent[i...]
     @test axes(noffax, 1) == 1:10   # ideally covered by the above, but current it isn't
     @test isa(noffax, AbstractUnitRange)
 
+    r = Base.OneTo(4)
+    @test OffsetArrays.no_offset_view(r) isa typeof(r)
+
     # SubArrays
     A = reshape(1:12, 3, 4)
     V = view(A, OffsetArrays.IdentityUnitRange(2:3), OffsetArrays.IdentityUnitRange(2:3))
