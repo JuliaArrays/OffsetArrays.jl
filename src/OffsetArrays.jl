@@ -436,6 +436,7 @@ julia> A
 """
 no_offset_view(A::OffsetArray) = no_offset_view(parent(A))
 no_offset_view(a::AbstractUnitRange) = UnitRange(a)
+no_offset_view(a::Base.Slice) = Base.Slice(UnitRange(a))
 no_offset_view(a::Array) = a
 no_offset_view(i::Number) = i
 no_offset_view(A::AbstractArray) = _no_offset_view(axes(A), A)
