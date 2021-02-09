@@ -41,7 +41,7 @@ end
 end
 
 @testset "IdOffsetRange" begin
-    
+
     function check_indexed_by(r, rindx)
         for i in rindx
             r[i]
@@ -1522,6 +1522,7 @@ end
 @testset "Adapt" begin
     # We need another storage type, CUDA.jl defines one but we can't use that for CI
     # let's define an appropriate method for SArrays
+    Adapt.adapt_storage(::Type{SA}, xs::Array) where SA<:SArray         = convert(SA, xs)   # ambiguity
     Adapt.adapt_storage(::Type{SA}, xs::AbstractArray) where SA<:SArray = convert(SA, xs)
     arr = OffsetArray(rand(3, 3), -1:1, -1:1)
     s_arr = adapt(SMatrix{3,3}, arr)
