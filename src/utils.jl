@@ -71,6 +71,3 @@ function _checkindices(N::Integer, indices, label)
     throw_argumenterror(N, indices, label) = throw(ArgumentError(label*" $indices are not compatible with a $(N)D array"))
     N == length(indices) || throw_argumenterror(N, indices, label)
 end
-
-_unwrap(r::IdOffsetRange) = r.parent .+ r.offset
-_unwrap(r::IdentityUnitRange) = r.indices
