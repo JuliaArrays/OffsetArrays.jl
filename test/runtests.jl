@@ -1003,6 +1003,12 @@ end
     show(io, MIME"text/plain"(), OffsetArray(3:5, 0:2))
     @test String(take!(io)) == "3:5 with indices 0:2"
 
+    # issue #198
+    r = axes(OffsetVector(1:10, -5), 1)
+    a = OffsetVector(r, 5)
+    show(io, a)
+    @test String(take!(io)) == "$(repr(r)) with indices $(UnitRange(axes(a,1)))"
+
     d = Diagonal([1,2,3])
     Base.print_array(io, d)
     s1 = String(take!(io))
