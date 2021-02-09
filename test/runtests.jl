@@ -1449,10 +1449,14 @@ Base.getindex(x::PointlessWrapper, i...) = x.parent[i...]
     # SubArrays
     A = reshape(1:12, 3, 4)
     V = view(A, OffsetArrays.IdentityUnitRange(2:3), OffsetArrays.IdentityUnitRange(2:3))
-    @test OffsetArrays.no_offset_view(V) == [5 8; 6 9]
+    if collect(V) == [5 8; 6 9]   # julia 1.0 has a bug here
+        @test OffsetArrays.no_offset_view(V) == [5 8; 6 9]
+    end
     V = view(A, OffsetArrays.IdentityUnitRange(2:3), 2)
     @test V != [5;6]
-    @test OffsetArrays.no_offset_view(V) == [5;6]
+    if collect(V) == [5;6]
+        @test OffsetArrays.no_offset_view(V) == [5;6]
+    end
     O = OffsetArray(A, -1:1, 0:3)
     V = view(O, 0:1, 1:2)
     @test V == OffsetArrays.no_offset_view(V) == [5 8; 6 9]
@@ -1461,7 +1465,10 @@ Base.getindex(x::PointlessWrapper, i...) = x.parent[i...]
     @test V != collect(V)
     @test OffsetArrays.no_offset_view(V) == collect(V)
     V = @view O[:,:]
-    @test IndexStyle(A) == IndexStyle(O) == IndexStyle(V) == IndexStyle(OffsetArrays.no_offset_view(V)) == IndexLinear()
+    if isdefined(Base, :IdentityUnitRange)
+        # If `Slice` is distinguished from `IdentityUnitRange`
+        @test IndexStyle(A) == IndexStyle(O) == IndexStyle(V) == IndexStyle(OffsetArrays.no_offset_view(V)) == IndexLinear()
+    end
 end
 
 @testset "no nesting" begin
