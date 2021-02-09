@@ -434,16 +434,18 @@ julia> A
   2  4  6
 ```
 """
-function no_offset_view(A::AbstractArray)
-    if Base.has_offset_axes(A)
-        OffsetArray(A, Origin(1))
-    else
-        A
-    end
-end
-
 no_offset_view(A::OffsetArray) = no_offset_view(parent(A))
+no_offset_view(a::AbstractUnitRange) = UnitRange(a)
+if isdefined(Base, :IdentityUnitRange)
+    no_offset_view(a::Base.Slice) = Base.Slice(UnitRange(a))  # valid only if Slice is distinguished from IdentityUnitRange
+    no_offset_view(S::SubArray) = view(parent(S), map(no_offset_view, parentindices(S))...)
+end
 no_offset_view(a::Array) = a
+no_offset_view(i::Number) = i
+no_offset_view(A::AbstractArray) = _no_offset_view(axes(A), A)
+_no_offset_view(::Tuple{}, A::AbstractArray{T,0}) where T = A
+_no_offset_view(::Tuple{<:Base.OneTo,Vararg{<:Base.OneTo}}, A::AbstractArray) = A
+_no_offset_view(::Any, A::AbstractArray) = OffsetArray(A, Origin(1))
 
 ####
 # work around for segfault in searchsorted*

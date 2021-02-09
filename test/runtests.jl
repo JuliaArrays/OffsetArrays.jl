@@ -41,7 +41,7 @@ end
 end
 
 @testset "IdOffsetRange" begin
-    
+
     function check_indexed_by(r, rindx)
         for i in rindx
             r[i]
@@ -1403,6 +1403,7 @@ end
 Base.parent(x::PointlessWrapper) = x.parent
 Base.size(x::PointlessWrapper) = size(parent(x))
 Base.axes(x::PointlessWrapper) = axes(parent(x))
+Base.getindex(x::PointlessWrapper, i...) = x.parent[i...]
 
 @testset "no offset view" begin
     # OffsetArray fallback
@@ -1415,7 +1416,12 @@ Base.axes(x::PointlessWrapper) = axes(parent(x))
     @inferred no_offset_view(O2)
 
     P = PointlessWrapper(A)
-    @test no_offset_view(P) ≡ P
+    @test @inferred(no_offset_view(P)) === P
+    @test @inferred(no_offset_view(A)) === A
+    a0 = reshape([1])
+    @test @inferred(no_offset_view(a0)) === a0
+    a0v = view(a0)
+    @test @inferred(no_offset_view(a0v)) === a0v
 
     # generic fallback
     A = collect(reshape(1:12, 3, 4))
@@ -1423,6 +1429,8 @@ Base.axes(x::PointlessWrapper) = axes(parent(x))
     @test N[-3, -4] == 1
     V = no_offset_view(N)
     @test collect(V) == A
+    A = reshape(view([5], 1, 1))
+    @test no_offset_view(A) == A
 
     # bidirectional
     B = BidirectionalVector([1, 2, 3])
@@ -1430,6 +1438,34 @@ Base.axes(x::PointlessWrapper) = axes(parent(x))
     OB = OffsetArrays.no_offset_view(B)
     @test axes(OB, 1) == 1:4
     @test collect(OB) == 0:3
+
+    # issue #198
+    offax = axes(OffsetVector(1:10, -5), 1)
+    noffax = OffsetArrays.no_offset_view(offax)
+    @test noffax == -4:5
+    @test axes(noffax, 1) == 1:10   # ideally covered by the above, but current it isn't
+    @test isa(noffax, AbstractUnitRange)
+
+    # SubArrays
+    A = reshape(1:12, 3, 4)
+    V = view(A, OffsetArrays.IdentityUnitRange(2:3), OffsetArrays.IdentityUnitRange(2:3))
+    if collect(V) == [5 8; 6 9]   # julia 1.0 has a bug here
+        @test OffsetArrays.no_offset_view(V) == [5 8; 6 9]
+    end
+    V = view(A, OffsetArrays.IdentityUnitRange(2:3), 2)
+    @test V != [5;6]
+    if collect(V) == [5;6]
+        @test OffsetArrays.no_offset_view(V) == [5;6]
+    end
+    O = OffsetArray(A, -1:1, 0:3)
+    V = view(O, 0:1, 1:2)
+    @test V == OffsetArrays.no_offset_view(V) == [5 8; 6 9]
+    r1, r2 = OffsetArrays.IdOffsetRange(1:3, -2), OffsetArrays.IdentityUnitRange(2:3)
+    V = view(O, r1, r2)
+    @test V != collect(V)
+    @test OffsetArrays.no_offset_view(V) == collect(V)
+    V = @view O[:,:]
+    @test IndexStyle(A) == IndexStyle(O) == IndexStyle(V) == IndexStyle(OffsetArrays.no_offset_view(V)) == IndexLinear()
 end
 
 @testset "no nesting" begin
@@ -1490,6 +1526,7 @@ end
 @testset "Adapt" begin
     # We need another storage type, CUDA.jl defines one but we can't use that for CI
     # let's define an appropriate method for SArrays
+    Adapt.adapt_storage(::Type{SA}, xs::Array) where SA<:SArray         = convert(SA, xs)   # ambiguity
     Adapt.adapt_storage(::Type{SA}, xs::AbstractArray) where SA<:SArray = convert(SA, xs)
     arr = OffsetArray(rand(3, 3), -1:1, -1:1)
     s_arr = adapt(SMatrix{3,3}, arr)
