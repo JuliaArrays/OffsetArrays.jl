@@ -353,18 +353,18 @@ end
 
 for OR in [:IIUR, :IdOffsetRange]
     for R in [:StepRange, :StepRangeLen, :LinRange, :UnitRange]
-        @eval @propagate_inbounds Base.getindex(r::$R, s::$OR) = OffsetArray(r[_unwrap(s)], axes(s))
+        @eval @propagate_inbounds Base.getindex(r::$R, s::$OR) = OffsetArray(r[no_offset_view(s)], axes(s))
     end
 
     # this method is needed for ambiguity resolution
     @eval @propagate_inbounds Base.getindex(r::StepRangeLen{T,<:Base.TwicePrecision,<:Base.TwicePrecision}, s::$OR) where T =
-    OffsetArray(r[_unwrap(s)], axes(s))
+    OffsetArray(r[no_offset_view(s)], axes(s))
 end
 
 #= Integer UnitRanges may return an appropriate AbstractUnitRange{<:Integer}, as the result may be used in indexing, and
 indexing is faster with ranges =#
-@propagate_inbounds Base.getindex(r::UnitRange{<:Integer}, s::IdOffsetRange) = IdOffsetRange(r[_unwrap(s)] .- s.offset, s.offset)
-@propagate_inbounds Base.getindex(r::UnitRange{<:Integer}, s::IIUR) = IdentityUnitRange(r[_unwrap(s)])
+@propagate_inbounds Base.getindex(r::UnitRange{<:Integer}, s::IdOffsetRange) = IdOffsetRange(r[no_offset_view(s)] .- s.offset, s.offset)
+@propagate_inbounds Base.getindex(r::UnitRange{<:Integer}, s::IIUR) = IdentityUnitRange(r[no_offset_view(s)])
 
 function Base.show(io::IO, r::OffsetRange)
     show(io, r.parent)
@@ -435,7 +435,6 @@ julia> A
 ```
 """
 no_offset_view(A::OffsetArray) = no_offset_view(parent(A))
-no_offset_view(a::AbstractUnitRange) = UnitRange(a)
 if isdefined(Base, :IdentityUnitRange)
     no_offset_view(a::Base.Slice) = Base.Slice(UnitRange(a))  # valid only if Slice is distinguished from IdentityUnitRange
     no_offset_view(S::SubArray) = view(parent(S), map(no_offset_view, parentindices(S))...)
@@ -445,7 +444,10 @@ no_offset_view(i::Number) = i
 no_offset_view(A::AbstractArray) = _no_offset_view(axes(A), A)
 _no_offset_view(::Tuple{}, A::AbstractArray{T,0}) where T = A
 _no_offset_view(::Tuple{<:Base.OneTo,Vararg{<:Base.OneTo}}, A::AbstractArray) = A
+# the following method is needed for ambiguity resolution
+_no_offset_view(::Tuple{<:Base.OneTo,Vararg{<:Base.OneTo}}, A::AbstractUnitRange) = A
 _no_offset_view(::Any, A::AbstractArray) = OffsetArray(A, Origin(1))
+_no_offset_view(::Any, A::AbstractUnitRange) = UnitRange(A)
 
 ####
 # work around for segfault in searchsorted*
