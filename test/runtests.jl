@@ -1465,10 +1465,7 @@ Base.getindex(x::PointlessWrapper, i...) = x.parent[i...]
     @test V != collect(V)
     @test OffsetArrays.no_offset_view(V) == collect(V)
     V = @view O[:,:]
-    if isdefined(Base, :IdentityUnitRange)
-        # If `Slice` is distinguished from `IdentityUnitRange`
-        @test IndexStyle(A) == IndexStyle(O) == IndexStyle(V) == IndexStyle(OffsetArrays.no_offset_view(V)) == IndexLinear()
-    end
+    @test IndexStyle(A) == IndexStyle(O) == IndexStyle(V) == IndexStyle(OffsetArrays.no_offset_view(V)) == IndexLinear()
 end
 
 @testset "no nesting" begin
