@@ -1007,7 +1007,7 @@ end
     r = axes(OffsetVector(1:10, -5), 1)
     a = OffsetVector(r, 5)
     show(io, a)
-    @test String(take!(io)) == "$(repr(r)) with indices $(UnitRange(axes(a,1)))"
+    @test String(take!(io)) == "$(UnitRange(r)) with indices $(UnitRange(axes(a,1)))"
 
     d = Diagonal([1,2,3])
     Base.print_array(io, d)
