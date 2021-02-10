@@ -327,6 +327,9 @@ end
     A
 end
 
+Base.copy(a::OffsetArray) = OffsetArray(copy(parent(a)), a.offsets)
+Base.in(x, A::OffsetArray) = in(x, parent(A))
+
 Base.strides(A::OffsetArray) = strides(parent(A))
 Base.elsize(::Type{OffsetArray{T,N,A}}) where {T,N,A} = Base.elsize(A)
 @inline Base.unsafe_convert(::Type{Ptr{T}}, A::OffsetArray{T}) where {T} = Base.unsafe_convert(Ptr{T}, parent(A))
@@ -338,6 +341,7 @@ Broadcast.broadcast_unalias(dest::OffsetArray, src::OffsetArray) = parent(dest) 
 ### Special handling for AbstractRange
 
 const OffsetRange{T} = OffsetArray{T,1,<:AbstractRange{T}}
+const OffsetUnitRange{T} = OffsetArray{T,1,<:AbstractUnitRange{T}}
 const IIUR = IdentityUnitRange{S} where S<:AbstractUnitRange{T} where T<:Integer
 
 Base.step(a::OffsetRange) = step(parent(a))
@@ -365,6 +369,19 @@ end
 indexing is faster with ranges =#
 @propagate_inbounds Base.getindex(r::UnitRange{<:Integer}, s::IdOffsetRange) = IdOffsetRange(r[no_offset_view(s)] .- s.offset, s.offset)
 @propagate_inbounds Base.getindex(r::UnitRange{<:Integer}, s::IIUR) = IdentityUnitRange(r[no_offset_view(s)])
+
+# Reductions on ranges are more efficient, so we may convert an OffsetUnitRange to an IdOffsetRange
+# with the same values and axes.
+function Base.mapreduce(f, op, As::OffsetUnitRange...; kw...)
+    ofs = map(A -> first(axes(A,1)) - 1, As)
+    AIds = map((A, of) -> IdOffsetRange(UnitRange(parent(A) .- of), of), As, ofs)
+    mapreduce(f, op, AIds...; kw...)
+end
+
+# minimum and maximum need to be specialized as these don't call mapreduce for AbstractRange arguments
+for f in [:minimum, :maximum, :extrema]
+    @eval Base.$f(r::OffsetRange) = $f(parent(r))
+end
 
 function Base.show(io::IO, r::OffsetRange)
     show(io, r.parent)
