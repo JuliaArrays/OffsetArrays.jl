@@ -1297,7 +1297,9 @@ end
     @test clamp.(A, (amax+amin)/2, amax) == OffsetArray(clamp.(parent(A), (amax+amin)/2, amax), axes(A))
 
     @testset "mapreduce for OffsetRange" begin
-        for r in [5:100, IdOffsetRange(1:100, 4), OffsetArrays.IdOffsetRange(4:5), ]
+        for r in [5:100, IdOffsetRange(1:100, 4), OffsetArrays.IdOffsetRange(4:5), # AbstractUnitRanges
+            2:4:14, 1.5:1.0:10.5, # AbstractRanges
+            ]
             a = OffsetVector(r, 2);
             @test mapreduce(identity, +, a) == mapreduce(identity, +, r)
             @test mapreduce(x -> x^2, (x,y) -> x, a) == mapreduce(x -> x^2, (x,y) -> x, r)
