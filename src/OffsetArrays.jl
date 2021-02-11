@@ -370,16 +370,16 @@ indexing is faster with ranges =#
 @propagate_inbounds Base.getindex(r::UnitRange{<:Integer}, s::IdOffsetRange) = IdOffsetRange(r[no_offset_view(s)] .- s.offset, s.offset)
 @propagate_inbounds Base.getindex(r::UnitRange{<:Integer}, s::IIUR) = IdentityUnitRange(r[no_offset_view(s)])
 
-# Reductions on ranges are more efficient, so we may convert an OffsetUnitRange to an IdOffsetRange
-# with the same values and axes.
+# mapreduce is faster with an IdOffsetRange than with an OffsetUnitRange
+# We therefore convert OffsetUnitRanges to IdOffsetRanges with the same values and axes
 function Base.mapreduce(f, op, As::OffsetUnitRange...; kw...)
     ofs = map(A -> first(axes(A,1)) - 1, As)
     AIds = map((A, of) -> IdOffsetRange(UnitRange(parent(A) .- of), of), As, ofs)
     mapreduce(f, op, AIds...; kw...)
 end
 
-# minimum and maximum need to be specialized as these don't call mapreduce for AbstractRange arguments
-for f in [:minimum, :maximum, :extrema]
+# Optimize certain reductions that treat an OffsetVector as a list 
+for f in [:minimum, :maximum, :extrema, :sum]
     @eval Base.$f(r::OffsetRange) = $f(parent(r))
 end
 
