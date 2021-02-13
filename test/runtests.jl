@@ -1004,10 +1004,11 @@ end
     @test String(take!(io)) == "3:5 with indices 0:2"
 
     # issue #198
-    r = axes(OffsetVector(1:10, -5), 1)
-    a = OffsetVector(r, 5)
-    show(io, a)
-    @test String(take!(io)) == "$(UnitRange(r)) with indices $(UnitRange(axes(a,1)))"
+    for r in [axes(OffsetVector(1:10, -5), 1), 1:1:2, 1.0:1.0:2.0, 1:-1:-5]
+        a = OffsetVector(r, 5)
+        show(io, a)
+        @test String(take!(io)) == "$r with indices $(UnitRange(axes(a,1)))"
+    end
 
     d = Diagonal([1,2,3])
     Base.print_array(io, d)
