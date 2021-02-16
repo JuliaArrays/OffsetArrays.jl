@@ -740,6 +740,27 @@ end
     @test A[0, 3:4] == S[0, 3:4] == [1,3]
     @test A[1, [4,3]] == S[1, [4,3]] == [4,2]
     @test A[:, :] == S[:, :] == A
+
+    r1 = OffsetArray(IdentityUnitRange(100:1000), 3)
+    r2 = r1[:] # is equivalent to copy(r1)
+    @test r2 == r1 # this could be ===, but we choose a weaker test
+end
+
+# Useful for testing indexing
+struct ZeroBasedRange{T,A<:AbstractRange{T}} <: AbstractRange{T}
+    a :: A
+    function ZeroBasedRange(a::AbstractRange{T}) where {T}
+        @assert !Base.has_offset_axes(a)
+        new{T, typeof(a)}(a)
+    end
+end
+Base.size(A::ZeroBasedRange) = size(A.a)
+Base.axes(A::ZeroBasedRange) = map(x -> 0:x-1, size(A.a))
+Base.getindex(A::ZeroBasedRange, i::Int) = A.a[i + 1]
+Base.step(A::ZeroBasedRange) = step(A.a)
+function Base.show(io::IO, A::ZeroBasedRange)
+    show(io, A.a)
+    print(io, " with indices $(axes(A,1))")
 end
 
 @testset "Vector indexing with offset ranges" begin
@@ -764,6 +785,74 @@ end
     @test axes(a[ax]) == axes(ax)
     for i in axes(ax,1)
         @test a[ax[i]] == a[ax][i]
+    end
+
+    for r1 in [OffsetArray(10:1000, 3), OffsetArray(10:3:1000, 3), 
+        OffsetArray(10.0:3:1000.0, 3), 
+        OffsetArray(IdOffsetRange(10:1000, 1), 3),
+        OffsetArray(IdOffsetRange(IdOffsetRange(10:1000, -4), 1), 3)]
+
+        for r2 in [OffsetArray(5:80, 40), OffsetArray(5:2:80, 40), 
+            OffsetArray(IdentityUnitRange(5:80), 2), 
+            OffsetArray(IdOffsetRange(5:80, 1), 3), 
+            OffsetArray(IdOffsetRange(IdOffsetRange(5:80, 4), 1), 3),
+            OffsetArray(IdOffsetRange(IdentityUnitRange(5:80), 1), 3),
+            OffsetArray(IdentityUnitRange(IdOffsetRange(5:80, 1)), 3),
+            ]
+
+            r12 = r1[r2]
+            for i in eachindex(r2)
+                @test begin 
+                    res = r12[i] == r1[r2[i]]
+                    if !res
+                        @show r1 r2
+                    end
+                    res
+                end
+            end
+            @test first(r12) == r1[first(r2)]
+            @test last(r12) == r1[last(r2)]
+            @test axes(r12, 1) == axes(r2, 1)
+        end
+
+        for r2 in [IdOffsetRange(5:80, 1), 
+            IdentityUnitRange(5:80),
+            IdOffsetRange(IdOffsetRange(5:80, 2), 1), 
+            IdOffsetRange(IdOffsetRange(IdOffsetRange(5:80, -1), 2), 1),
+            IdentityUnitRange(IdOffsetRange(1:10, 5)), 
+            IdOffsetRange(IdentityUnitRange(15:20), -2),
+            ]
+
+            r12 = r1[r2]
+            for i in eachindex(r2)
+                @test begin 
+                    res = r12[i] == r1[r2[i]]
+                    if !res
+                        @show r1 r2
+                    end
+                    res
+                end
+            end
+            @test first(r12) == r1[first(r2)]
+            @test last(r12) == r1[last(r2)]
+            @test axes(r12, 1) == axes(r2, 1)
+        end
+    end
+
+    r1 = ZeroBasedRange(4:100)
+    r2 = OffsetArray(5:8, 3)
+    r12 = r1[r2]
+    @test axes(r12,1) == axes(r2,1)
+    for i in eachindex(r2)
+        @test r12[i] == r1[r2[i]]
+    end
+
+    r1 = OffsetArray(4:100, -3)
+    r2 = ZeroBasedRange(5:8)
+    r12 = r1[r2]
+    @test axes(r12,1) == axes(r2,1)
+    for i in eachindex(r2)
+        @test r12[i] == r1[r2[i]]
     end
 end
 

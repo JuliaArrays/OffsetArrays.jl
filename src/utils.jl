@@ -71,3 +71,6 @@ function _checkindices(N::Integer, indices, label)
     throw_argumenterror(N, indices, label) = throw(ArgumentError(label*" $indices are not compatible with a $(N)D array"))
     N == length(indices) || throw_argumenterror(N, indices, label)
 end
+
+_maybewrapOffsetArray(A, ax::Tuple{Base.OneTo, Vararg{Base.OneTo}}) = A
+_maybewrapOffsetArray(A, ax) = OffsetArray(A, ax)

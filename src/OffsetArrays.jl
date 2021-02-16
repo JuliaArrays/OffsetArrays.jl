@@ -342,14 +342,14 @@ const IIUR = IdentityUnitRange{S} where S<:AbstractUnitRange{T} where T<:Integer
 
 Base.step(a::OffsetRange) = step(parent(a))
 
-@propagate_inbounds Base.getindex(a::OffsetRange, r::OffsetRange) = OffsetArray(a[parent(r)], r.offsets)
-@propagate_inbounds function Base.getindex(a::OffsetRange, r::IdOffsetRange)
-    OffsetArray(a.parent[r.parent .+ (r.offset - a.offsets[1])], r.offset)
+@propagate_inbounds function Base.getindex(a::OffsetRange, r::OffsetRange)
+    OffsetArray(a.parent[r.parent .- a.offsets[1]], axes(r))
 end
-@propagate_inbounds Base.getindex(r::OffsetRange, s::IIUR) =
-    OffsetArray(r[s.indices], s)
-@propagate_inbounds Base.getindex(a::OffsetRange, r::AbstractRange) = a.parent[r .- a.offsets[1]]
-@propagate_inbounds Base.getindex(a::AbstractRange, r::OffsetRange) = OffsetArray(a[parent(r)], r.offsets)
+@propagate_inbounds function Base.getindex(a::OffsetRange, r::IdOffsetRange)
+    OffsetArray(a.parent[r.parent .+ (r.offset - a.offsets[1])], axes(r))
+end
+@propagate_inbounds Base.getindex(a::OffsetRange, r::AbstractRange) = _maybewrapOffsetArray(a.parent[r .- a.offsets[1]], axes(r))
+@propagate_inbounds Base.getindex(a::AbstractRange, r::OffsetRange) = OffsetArray(a[parent(r)], axes(r))
 
 for OR in [:IIUR, :IdOffsetRange]
     for R in [:StepRange, :StepRangeLen, :LinRange, :UnitRange]
@@ -365,6 +365,8 @@ end
 indexing is faster with ranges =#
 @propagate_inbounds Base.getindex(r::UnitRange{<:Integer}, s::IdOffsetRange) = IdOffsetRange(r[no_offset_view(s)] .- s.offset, s.offset)
 @propagate_inbounds Base.getindex(r::UnitRange{<:Integer}, s::IIUR) = IdentityUnitRange(r[no_offset_view(s)])
+
+Base.getindex(a::OffsetRange, ::Colon) = OffsetArray(a.parent[:], a.offsets)
 
 function Base.show(io::IO, r::OffsetRange)
     show(io, UnitRange(r.parent))

@@ -159,6 +159,10 @@ end
 @propagate_inbounds function Base.getindex(r::IdOffsetRange, s::AbstractUnitRange{<:Integer})
     return r.parent[s .- r.offset] .+ r.offset
 end
+# The following method is required to avoid falling back to getindex(::AbstractUnitRange, ::StepRange{<:Integer})
+@propagate_inbounds function Base.getindex(r::IdOffsetRange, s::StepRange{<:Integer})
+    return r.parent[s .- r.offset] .+ r.offset
+end
 @propagate_inbounds function Base.getindex(r::IdOffsetRange, s::IdentityUnitRange)
     return IdOffsetRange(r.parent[s .- r.offset], r.offset)
 end
