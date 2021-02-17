@@ -367,7 +367,7 @@ indexing is faster with ranges =#
 @propagate_inbounds Base.getindex(r::UnitRange{<:Integer}, s::IIUR) = IdentityUnitRange(r[no_offset_view(s)])
 
 function Base.show(io::IO, r::OffsetRange)
-    show(io, UnitRange(r.parent))
+    show(io, r.parent)
     print(io, " with indices ", UnitRange(axes(r, 1)))
 end
 Base.show(io::IO, ::MIME"text/plain", r::OffsetRange) = show(io, r)
