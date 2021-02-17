@@ -327,7 +327,6 @@ end
     A
 end
 
-Base.copy(a::OffsetArray) = OffsetArray(copy(parent(a)), a.offsets)
 Base.in(x, A::OffsetArray) = in(x, parent(A))
 
 Base.strides(A::OffsetArray) = strides(parent(A))
