@@ -744,6 +744,53 @@ end
     r1 = OffsetArray(IdentityUnitRange(100:1000), 3)
     r2 = r1[:] # is equivalent to copy(r1)
     @test r2 == r1 # this could be ===, but we choose a weaker test
+
+    for r1 in [1:1000, 1:3:1000, 1.0:3.0:1000.0, # 1-based index
+        OffsetArray(10:1000, 0), # 1-based index
+        OffsetArray(10:3:1000, 3), # offset index
+        OffsetArray(10.0:3:1000.0, 0), # 1-based index
+        OffsetArray(10.0:3:1000.0, 3), # offset index
+        OffsetArray(IdOffsetRange(10:1000, 1), -1), # 1-based index
+        OffsetArray(IdOffsetRange(10:1000, 1), 3), # offset index
+        OffsetArray(IdOffsetRange(IdOffsetRange(10:1000, -4), 1), 3), # 1-based index
+        OffsetArray(IdOffsetRange(IdOffsetRange(10:1000, -1), 1), 3), # offset index
+        ]
+
+        for r2 in [OffsetArray(5:80, 0), OffsetArray(5:2:80, 0), 
+            OffsetArray(IdentityUnitRange(5:80), -4), 
+            OffsetArray(IdOffsetRange(5:80), 0)]
+
+            r12 = r1[r2]
+            for i in eachindex(r2)
+                @test begin 
+                    res = r12[i] == r1[r2[i]]
+                    if !res
+                        @show r1 r2
+                    end
+                    res
+                end
+            end
+            @test first(r12) == r1[first(r2)]
+            @test last(r12) == r1[last(r2)]
+            @test axes(r12, 1) == axes(r2, 1)
+        end
+
+        for r2 in [5:80, 5:2:80, IdOffsetRange(5:80)]
+            r12 = r1[r2]
+            for i in eachindex(r2)
+                @test begin 
+                    res = r12[i] == r1[r2[i]]
+                    if !res
+                        @show r1 r2
+                    end
+                    res
+                end
+            end
+            @test first(r12) == r1[first(r2)]
+            @test last(r12) == r1[last(r2)]
+            @test axes(r12, 1) == axes(r2, 1)
+        end
+    end
 end
 
 # Useful for testing indexing
@@ -805,10 +852,17 @@ end
         @test a[ax[i]] == a[ax][i]
     end
 
-    for r1 in [OffsetArray(10:1000, 3), OffsetArray(10:3:1000, 3), 
-        OffsetArray(10.0:3:1000.0, 3), 
-        OffsetArray(IdOffsetRange(10:1000, 1), 3),
-        OffsetArray(IdOffsetRange(IdOffsetRange(10:1000, -4), 1), 3)]
+    for r1 in [OffsetArray(10:1000, 0), # 1-based index
+        OffsetArray(10:1000, 3), # offset index
+        OffsetArray(10:3:1000, 0), # 1-based index
+        OffsetArray(10:3:1000, 3), # offset index
+        OffsetArray(10.0:3:1000.0, 0), # 1-based index
+        OffsetArray(10.0:3:1000.0, 3), # offset index
+        OffsetArray(IdOffsetRange(10:1000, -3), 3), # 1-based index
+        OffsetArray(IdOffsetRange(10:1000, 1), 3), # offset index
+        OffsetArray(IdOffsetRange(IdOffsetRange(10:1000, -4), 1), 3), # 1-based index
+        OffsetArray(IdOffsetRange(IdOffsetRange(10:1000, -1), 1), 3), # offset index
+        ]
 
         for r2 in [OffsetArray(5:80, 40), OffsetArray(5:2:80, 40), 
             OffsetArray(IdentityUnitRange(5:80), 2), 
