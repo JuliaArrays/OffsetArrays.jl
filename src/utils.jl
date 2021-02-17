@@ -74,3 +74,6 @@ end
 
 _maybewrapOffsetArray(A, ax::Tuple{Base.OneTo, Vararg{Base.OneTo}}) = A
 _maybewrapOffsetArray(A, ax) = OffsetArray(A, ax)
+
+_maybewrapIdOffsetRange(r, of, ::Base.OneTo) = r
+_maybewrapIdOffsetRange(r, of, ::Any) = IdOffsetRange(r, of)

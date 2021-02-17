@@ -763,6 +763,24 @@ function Base.show(io::IO, A::ZeroBasedRange)
     print(io, " with indices $(axes(A,1))")
 end
 
+struct ZeroBasedUnitRange{T,A<:AbstractUnitRange{T}} <: AbstractUnitRange{T}
+    a :: A
+    function ZeroBasedUnitRange(a::AbstractUnitRange{T}) where {T}
+        @assert !Base.has_offset_axes(a)
+        new{T, typeof(a)}(a)
+    end
+end
+Base.first(A::ZeroBasedUnitRange) = first(A.a)
+Base.length(A::ZeroBasedUnitRange) = length(A.a)
+Base.size(A::ZeroBasedUnitRange) = size(A.a)
+Base.axes(A::ZeroBasedUnitRange) = map(x -> 0:x-1, size(A.a))
+Base.getindex(A::ZeroBasedUnitRange, i::Int) = A.a[i + 1]
+Base.step(A::ZeroBasedUnitRange) = step(A.a)
+function Base.show(io::IO, A::ZeroBasedUnitRange)
+    show(io, A.a)
+    print(io, " with indices $(axes(A,1))")
+end
+
 @testset "Vector indexing with offset ranges" begin
     r = OffsetArray(8:10, -1:1)
     r1 = r[0:1]
@@ -851,6 +869,14 @@ end
     r2 = ZeroBasedRange(5:8)
     r12 = r1[r2]
     @test axes(r12,1) == axes(r2,1)
+    for i in eachindex(r2)
+        @test r12[i] == r1[r2[i]]
+    end
+
+    r1 = IdOffsetRange(3:10, 2)
+    r2 = ZeroBasedUnitRange(UnitRange(axes(r1,1)))
+    r12 = r1[r2]
+    @test axes(r12) == axes(r2)
     for i in eachindex(r2)
         @test r12[i] == r1[r2[i]]
     end
