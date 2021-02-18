@@ -72,8 +72,10 @@ function _checkindices(N::Integer, indices, label)
     N == length(indices) || throw_argumenterror(N, indices, label)
 end
 
-_maybewrapOffsetArray(A, ax::Tuple{Base.OneTo, Vararg{Base.OneTo}}) = A
-_maybewrapOffsetArray(A, ax) = OffsetArray(A, ax)
+_maybewrapaxes(A::AbstractVector, ::Base.OneTo) = no_offset_view(A)
+_maybewrapaxes(A::AbstractVector, ax) = OffsetArray(A, ax)
 
-_maybewrapIdOffsetRange(r, of, ::Base.OneTo) = r
-_maybewrapIdOffsetRange(r, of, ::Any) = IdOffsetRange(r, of)
+_maybewrapoffset(r::AbstractUnitRange, of, ::Base.OneTo) = no_offset_view(r)
+_maybewrapoffset(r::AbstractVector, of, ::Base.OneTo) = no_offset_view(r)
+_maybewrapoffset(r::AbstractUnitRange, of, ::Any) = IdOffsetRange(UnitRange(r), of)
+_maybewrapoffset(r::AbstractVector, of, axs) = OffsetArray(r .+ of, axs)

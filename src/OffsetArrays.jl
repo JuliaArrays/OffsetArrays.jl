@@ -348,7 +348,7 @@ end
 @propagate_inbounds function Base.getindex(a::OffsetRange, r::IdOffsetRange)
     OffsetArray(a.parent[r.parent .+ (r.offset - a.offsets[1])], axes(r))
 end
-@propagate_inbounds Base.getindex(a::OffsetRange, r::AbstractRange) = _maybewrapOffsetArray(a.parent[r .- a.offsets[1]], axes(r))
+@propagate_inbounds Base.getindex(a::OffsetRange, r::AbstractRange) = _maybewrapaxes(a.parent[r .- a.offsets[1]], axes(r,1))
 @propagate_inbounds Base.getindex(a::AbstractRange, r::OffsetRange) = OffsetArray(a[parent(r)], axes(r))
 
 for OR in [:IIUR, :IdOffsetRange]
