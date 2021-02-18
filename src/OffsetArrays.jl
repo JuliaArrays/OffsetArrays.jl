@@ -359,12 +359,15 @@ for OR in [:IIUR, :IdOffsetRange]
     # this method is needed for ambiguity resolution
     @eval @propagate_inbounds Base.getindex(r::StepRangeLen{T,<:Base.TwicePrecision,<:Base.TwicePrecision}, s::$OR) where T =
     OffsetArray(r[no_offset_view(s)], axes(s))
+    
+    #= Integer UnitRanges may return an appropriate AbstractUnitRange{<:Integer}, as the result may be used in indexing, and
+    indexing is faster with ranges =#
+    @eval @propagate_inbounds function Base.getindex(r::UnitRange{<:Integer}, s::$OR)
+        rs = r[no_offset_view(s)]
+        offset_s = first(axes(s,1)) - 1
+        IdOffsetRange(UnitRange(rs .- offset_s), offset_s)
+    end
 end
-
-#= Integer UnitRanges may return an appropriate AbstractUnitRange{<:Integer}, as the result may be used in indexing, and
-indexing is faster with ranges =#
-@propagate_inbounds Base.getindex(r::UnitRange{<:Integer}, s::IdOffsetRange) = IdOffsetRange(r[no_offset_view(s)] .- s.offset, s.offset)
-@propagate_inbounds Base.getindex(r::UnitRange{<:Integer}, s::IIUR) = IdentityUnitRange(r[no_offset_view(s)])
 
 Base.getindex(a::OffsetRange, ::Colon) = OffsetArray(a.parent[:], a.offsets)
 

@@ -50,6 +50,7 @@ for Z in [:ZeroBasedRange, :ZeroBasedUnitRange]
     @eval Base.axes(A::$Z) = map(x -> 0:x-1, size(A.a))
     @eval Base.getindex(A::$Z, i::Int) = A.a[i + 1]
     @eval Base.step(A::$Z) = step(A.a)
+    @eval OffsetArrays.no_offset_view(A::$Z) = A.a
     @eval function Base.show(io::IO, A::$Z)
         show(io, A.a)
         print(io, " with indices $(axes(A,1))")
@@ -60,6 +61,16 @@ for Z in [:ZeroBasedRange, :ZeroBasedUnitRange]
             @boundscheck checkbounds(A, r)
             OffsetArray(A.a[r .+ 1], axes(r))
         end
+    end
+    for R in [:UnitRange, :StepRange, :StepRangeLen, :LinRange]
+        @eval @inline function Base.getindex(A::$R, r::$Z)
+            @boundscheck checkbounds(A, r)
+            OffsetArray(A[r.a], axes(r))
+        end
+    end
+    @eval @inline function Base.getindex(A::StepRangeLen{<:Any,<:Base.TwicePrecision,<:Base.TwicePrecision}, r::$Z)
+        @boundscheck checkbounds(A, r)
+        OffsetArray(A[r.a], axes(r))
     end
 end
 
@@ -761,17 +772,20 @@ end
     end
 end
 
+_comp(::Type{<:Integer}) = ==
+_comp(::Type{<:Real}) = ≈
 function test_indexing_axes_and_vals(r1, r2)
     r12 = r1[r2]
+    op = _comp(eltype(r1))
     if axes(r12, 1) != axes(r2, 1)
         @show r1 r2 r12 axes(r12, 1) axes(r2, 1)
     end
     @test axes(r12, 1) == axes(r2, 1)
     if axes(r12, 1) == axes(r2, 1)
-        @test first(r12) == r1[first(r2)]
-        @test last(r12) == r1[last(r2)]
+        @test op(first(r12), r1[first(r2)])
+        @test op(last(r12), r1[last(r2)])
         for i in eachindex(r2)
-            @test r12[i] == r1[r2[i]]
+            @test op(r12[i], r1[r2[i]])
         end
     end
 end
@@ -799,7 +813,8 @@ end
     r2 = r1[:] # is equivalent to copy(r1)
     @test r2 == r1 # this could be ===, but we choose a weaker test
 
-    for r1 in [1:1000, 1:3:1000, 1.0:3.0:1000.0, # 1-based index
+    for r1 in [
+        # AbstractArrays
         OffsetArray(10:1000, 0), # 1-based index
         OffsetArray(10:3:1000, 3), # offset index
         OffsetArray(10.0:3:1000.0, 0), # 1-based index
@@ -809,21 +824,35 @@ end
         OffsetArray(IdOffsetRange(IdOffsetRange(10:1000, -4), 1), 3), # 1-based index
         OffsetArray(IdOffsetRange(IdOffsetRange(10:1000, -1), 1), 3), # offset index
 
+        # AbstractRanges
+        1:1000, 
+        1:3:1000, 
+        1.0:3.0:1000.0,
         IdOffsetRange(ZeroBasedUnitRange(1:1000), 1), # 1-based index
         IdOffsetRange(ZeroBasedUnitRange(1:1000), 2), # offset index
+        ZeroBasedUnitRange(1:1000), # offset range
+        ZeroBasedRange(1:1000), # offset range
+        ZeroBasedRange(1:1:1000), # offset range
         ]
 
-        # AbstractArrays
-        for r2 in [OffsetArray(5:80, 0), OffsetArray(5:2:80, 0), 
+        # AbstractArrays with 1-based indices
+        for r2 in [
+            OffsetArray(5:80, 0), 
+            OffsetArray(5:2:80, 0), 
             OffsetArray(IdentityUnitRange(5:80), -4), 
-            OffsetArray(IdOffsetRange(5:80), 0)]
+            OffsetArray(IdOffsetRange(5:80), 0),
+            ]
 
             test_indexing_axes_and_vals(r1, r2)
         end
 
-        # AbstractRanges
-        for r2 in [5:80, 5:2:80, IdOffsetRange(5:80), 
-            IdOffsetRange(ZeroBasedUnitRange(4:79), 1)]
+        # AbstractRanges with 1-based indices
+        for r2 in [
+            5:80, 
+            5:2:80, 
+            IdOffsetRange(5:80), 
+            IdOffsetRange(ZeroBasedUnitRange(4:79), 1),
+            ]
 
             test_indexing_axes_and_vals(r1, r2)
         end
@@ -854,7 +883,9 @@ end
         @test a[ax[i]] == a[ax][i]
     end
 
-    for r1 in [OffsetArray(10:1000, 0), # 1-based index
+    for r1 in [
+        # AbstractArrays
+        OffsetArray(10:1000, 0), # 1-based index
         OffsetArray(10:1000, 3), # offset index
         OffsetArray(10:3:1000, 0), # 1-based index
         OffsetArray(10:3:1000, 3), # offset index
@@ -865,14 +896,22 @@ end
         OffsetArray(IdOffsetRange(IdOffsetRange(10:1000, -4), 1), 3), # 1-based index
         OffsetArray(IdOffsetRange(IdOffsetRange(10:1000, -1), 1), 3), # offset index
 
+        # AbstractRanges
+        1:1000,
+        1:2:2000,
+        1.0:2.0:2000.0,
+        LinRange(1.0, 2000.0, 2000),
+        IdOffsetRange(1:1000, 0), # 1-based index
         IdOffsetRange(ZeroBasedUnitRange(1:1000), 1), # 1-based index
         IdOffsetRange(ZeroBasedUnitRange(1:1000), 2), # offset index
         IdentityUnitRange(ZeroBasedUnitRange(1:1000)), # 1-based index
         ZeroBasedUnitRange(1:1000), # offset index
+        ZeroBasedRange(1:1000), # offset index
+        ZeroBasedRange(1:1:1000), # offset index
         ZeroBasedUnitRange(IdentityUnitRange(1:1000)), # offset index
         ]
 
-        # AbstractArrays
+        # AbstractArrays with offset axes
         for r2 in [OffsetArray(5:80, 40), OffsetArray(5:2:80, 40), 
             OffsetArray(IdentityUnitRange(5:80), 2), 
             OffsetArray(IdOffsetRange(5:80, 1), 3), 
@@ -884,7 +923,7 @@ end
             test_indexing_axes_and_vals(r1, r2)
         end
 
-        # AbstractRanges
+        # AbstractRanges with offset axes
         for r2 in [IdOffsetRange(5:80, 1),
             IdentityUnitRange(5:80),
             IdOffsetRange(IdOffsetRange(5:80, 2), 1), 
@@ -892,34 +931,12 @@ end
             IdentityUnitRange(IdOffsetRange(1:10, 5)), 
             IdOffsetRange(IdentityUnitRange(15:20), -2),
             ZeroBasedUnitRange(5:80),
+            ZeroBasedRange(5:80),
+            ZeroBasedRange(5:2:80),
             ]
 
             test_indexing_axes_and_vals(r1, r2)
         end
-    end
-
-    r1 = ZeroBasedRange(4:100)
-    r2 = OffsetArray(5:8, 3)
-    r12 = r1[r2]
-    @test axes(r12,1) == axes(r2,1)
-    for i in eachindex(r2)
-        @test r12[i] == r1[r2[i]]
-    end
-
-    r1 = OffsetArray(4:100, -3)
-    r2 = ZeroBasedRange(5:8)
-    r12 = r1[r2]
-    @test axes(r12,1) == axes(r2,1)
-    for i in eachindex(r2)
-        @test r12[i] == r1[r2[i]]
-    end
-
-    r1 = IdOffsetRange(3:10, 2)
-    r2 = ZeroBasedUnitRange(UnitRange(axes(r1,1)))
-    r12 = r1[r2]
-    @test axes(r12) == axes(r2)
-    for i in eachindex(r2)
-        @test r12[i] == r1[r2[i]]
     end
 end
 
