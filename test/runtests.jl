@@ -24,6 +24,56 @@ struct TupleOfRanges{N}
     x ::NTuple{N, UnitRange{Int}}
 end
 
+# Useful for testing indexing
+struct ZeroBasedRange{T,A<:AbstractRange{T}} <: AbstractRange{T}
+    a :: A
+    function ZeroBasedRange(a::AbstractRange{T}) where {T}
+        @assert !Base.has_offset_axes(a)
+        new{T, typeof(a)}(a)
+    end
+end
+
+struct ZeroBasedUnitRange{T,A<:AbstractUnitRange{T}} <: AbstractUnitRange{T}
+    a :: A
+    function ZeroBasedUnitRange(a::AbstractUnitRange{T}) where {T}
+        @assert !Base.has_offset_axes(a)
+        new{T, typeof(a)}(a)
+    end
+end
+
+for Z in [:ZeroBasedRange, :ZeroBasedUnitRange]
+    @eval Base.parent(A::$Z) = A.a
+    @eval Base.first(A::$Z) = first(A.a)
+    @eval Base.length(A::$Z) = length(A.a)
+    @eval Base.last(A::$Z) = last(A.a)
+    @eval Base.size(A::$Z) = size(A.a)
+    @eval Base.axes(A::$Z) = map(x -> 0:x-1, size(A.a))
+    @eval Base.getindex(A::$Z, i::Int) = A.a[i + 1]
+    @eval Base.step(A::$Z) = step(A.a)
+    @eval OffsetArrays.no_offset_view(A::$Z) = A.a
+    @eval function Base.show(io::IO, A::$Z)
+        show(io, A.a)
+        print(io, " with indices $(axes(A,1))")
+    end
+
+    for R in [:AbstractRange, :AbstractUnitRange, :StepRange]
+        @eval @inline function Base.getindex(A::$Z, r::$R{<:Integer})
+            @boundscheck checkbounds(A, r)
+            OffsetArray(A.a[r .+ 1], axes(r))
+        end
+    end
+    for R in [:UnitRange, :StepRange, :StepRangeLen, :LinRange]
+        @eval @inline function Base.getindex(A::$R, r::$Z)
+            @boundscheck checkbounds(A, r)
+            OffsetArray(A[r.a], axes(r))
+        end
+    end
+    @eval @inline function Base.getindex(A::StepRangeLen{<:Any,<:Base.TwicePrecision,<:Base.TwicePrecision}, r::$Z)
+        @boundscheck checkbounds(A, r)
+        OffsetArray(A[r.a], axes(r))
+    end
+end
+
 function same_value(r1, r2)
     length(r1) == length(r2) || return false
     for (v1, v2) in zip(r1, r2)
@@ -722,6 +772,24 @@ end
     end
 end
 
+_comp(::Type{<:Integer}) = ==
+_comp(::Type{<:Real}) = ≈
+function test_indexing_axes_and_vals(r1, r2)
+    r12 = r1[r2]
+    op = _comp(eltype(r1))
+    if axes(r12, 1) != axes(r2, 1)
+        @show r1 r2 r12 axes(r12, 1) axes(r2, 1)
+    end
+    @test axes(r12, 1) == axes(r2, 1)
+    if axes(r12, 1) == axes(r2, 1)
+        @test op(first(r12), r1[first(r2)])
+        @test op(last(r12), r1[last(r2)])
+        for i in eachindex(r2)
+            @test op(r12[i], r1[r2[i]])
+        end
+    end
+end
+
 @testset "Vector indexing" begin
     A0 = [1 3; 2 4]
     A = OffsetArray(A0, (-1,2))
@@ -740,6 +808,55 @@ end
     @test A[0, 3:4] == S[0, 3:4] == [1,3]
     @test A[1, [4,3]] == S[1, [4,3]] == [4,2]
     @test A[:, :] == S[:, :] == A
+
+    r1 = OffsetArray(IdentityUnitRange(100:1000), 3)
+    r2 = r1[:]
+    @test r2 == r1
+
+    for r1 in [
+        # AbstractArrays
+        OffsetArray(10:1000, 0), # 1-based index
+        OffsetArray(10:3:1000, 3), # offset index
+        OffsetArray(10.0:3:1000.0, 0), # 1-based index
+        OffsetArray(10.0:3:1000.0, 3), # offset index
+        OffsetArray(IdOffsetRange(10:1000, 1), -1), # 1-based index
+        OffsetArray(IdOffsetRange(10:1000, 1), 3), # offset index
+        OffsetArray(IdOffsetRange(IdOffsetRange(10:1000, -4), 1), 3), # 1-based index
+        OffsetArray(IdOffsetRange(IdOffsetRange(10:1000, -1), 1), 3), # offset index
+
+        # AbstractRanges
+        1:1000, 
+        1:3:1000, 
+        1.0:3.0:1000.0,
+        IdOffsetRange(ZeroBasedUnitRange(1:1000), 1), # 1-based index
+        IdOffsetRange(ZeroBasedUnitRange(1:1000), 2), # offset index
+        ZeroBasedUnitRange(1:1000), # offset range
+        ZeroBasedRange(1:1000), # offset range
+        ZeroBasedRange(1:1:1000), # offset range
+        ]
+
+        # AbstractArrays with 1-based indices
+        for r2 in [
+            OffsetArray(5:80, 0), 
+            OffsetArray(5:2:80, 0), 
+            OffsetArray(IdentityUnitRange(5:80), -4), 
+            OffsetArray(IdOffsetRange(5:80), 0),
+            ]
+
+            test_indexing_axes_and_vals(r1, r2)
+        end
+
+        # AbstractRanges with 1-based indices
+        for r2 in [
+            5:80, 
+            5:2:80, 
+            IdOffsetRange(5:80), 
+            IdOffsetRange(ZeroBasedUnitRange(4:79), 1),
+            ]
+
+            test_indexing_axes_and_vals(r1, r2)
+        end
+    end
 end
 
 @testset "Vector indexing with offset ranges" begin
@@ -764,6 +881,62 @@ end
     @test axes(a[ax]) == axes(ax)
     for i in axes(ax,1)
         @test a[ax[i]] == a[ax][i]
+    end
+
+    for r1 in [
+        # AbstractArrays
+        OffsetArray(10:1000, 0), # 1-based index
+        OffsetArray(10:1000, 3), # offset index
+        OffsetArray(10:3:1000, 0), # 1-based index
+        OffsetArray(10:3:1000, 3), # offset index
+        OffsetArray(10.0:3:1000.0, 0), # 1-based index
+        OffsetArray(10.0:3:1000.0, 3), # offset index
+        OffsetArray(IdOffsetRange(10:1000, -3), 3), # 1-based index
+        OffsetArray(IdOffsetRange(10:1000, 1), 3), # offset index
+        OffsetArray(IdOffsetRange(IdOffsetRange(10:1000, -4), 1), 3), # 1-based index
+        OffsetArray(IdOffsetRange(IdOffsetRange(10:1000, -1), 1), 3), # offset index
+
+        # AbstractRanges
+        1:1000,
+        1:2:2000,
+        1.0:2.0:2000.0,
+        LinRange(1.0, 2000.0, 2000),
+        IdOffsetRange(1:1000, 0), # 1-based index
+        IdOffsetRange(ZeroBasedUnitRange(1:1000), 1), # 1-based index
+        IdOffsetRange(ZeroBasedUnitRange(1:1000), 2), # offset index
+        IdentityUnitRange(ZeroBasedUnitRange(1:1000)), # 1-based index
+        ZeroBasedUnitRange(1:1000), # offset index
+        ZeroBasedRange(1:1000), # offset index
+        ZeroBasedRange(1:1:1000), # offset index
+        ZeroBasedUnitRange(IdentityUnitRange(1:1000)), # offset index
+        ]
+
+        # AbstractArrays with offset axes
+        for r2 in [OffsetArray(5:80, 40), OffsetArray(5:2:80, 40), 
+            OffsetArray(IdentityUnitRange(5:80), 2), 
+            OffsetArray(IdOffsetRange(5:80, 1), 3), 
+            OffsetArray(IdOffsetRange(IdOffsetRange(5:80, 4), 1), 3),
+            OffsetArray(IdOffsetRange(IdentityUnitRange(5:80), 1), 3),
+            OffsetArray(IdentityUnitRange(IdOffsetRange(5:80, 1)), 3),
+            ]
+
+            test_indexing_axes_and_vals(r1, r2)
+        end
+
+        # AbstractRanges with offset axes
+        for r2 in [IdOffsetRange(5:80, 1),
+            IdentityUnitRange(5:80),
+            IdOffsetRange(IdOffsetRange(5:80, 2), 1), 
+            IdOffsetRange(IdOffsetRange(IdOffsetRange(5:80, -1), 2), 1),
+            IdentityUnitRange(IdOffsetRange(1:10, 5)), 
+            IdOffsetRange(IdentityUnitRange(15:20), -2),
+            ZeroBasedUnitRange(5:80),
+            ZeroBasedRange(5:80),
+            ZeroBasedRange(5:2:80),
+            ]
+
+            test_indexing_axes_and_vals(r1, r2)
+        end
     end
 end
 

@@ -71,3 +71,11 @@ function _checkindices(N::Integer, indices, label)
     throw_argumenterror(N, indices, label) = throw(ArgumentError(label*" $indices are not compatible with a $(N)D array"))
     N == length(indices) || throw_argumenterror(N, indices, label)
 end
+
+_maybewrapaxes(A::AbstractVector, ::Base.OneTo) = no_offset_view(A)
+_maybewrapaxes(A::AbstractVector, ax) = OffsetArray(A, ax)
+
+_maybewrapoffset(r::AbstractUnitRange, of, ::Base.OneTo) = no_offset_view(r)
+_maybewrapoffset(r::AbstractVector, of, ::Base.OneTo) = no_offset_view(r)
+_maybewrapoffset(r::AbstractUnitRange, of, ::Any) = IdOffsetRange(UnitRange(r), of)
+_maybewrapoffset(r::AbstractVector, of, axs) = OffsetArray(r .+ of, axs)

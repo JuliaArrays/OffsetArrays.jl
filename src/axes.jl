@@ -157,13 +157,14 @@ end
 
 @propagate_inbounds Base.getindex(r::IdOffsetRange, i::Integer) = r.parent[i - r.offset] + r.offset
 @propagate_inbounds function Base.getindex(r::IdOffsetRange, s::AbstractUnitRange{<:Integer})
-    return r.parent[s .- r.offset] .+ r.offset
+    offset_s = first(axes(s,1)) - 1
+    pr = r.parent[s .- r.offset] .+ (r.offset - offset_s)
+    _maybewrapoffset(pr, offset_s, axes(s,1))
 end
-@propagate_inbounds function Base.getindex(r::IdOffsetRange, s::IdentityUnitRange)
-    return IdOffsetRange(r.parent[s .- r.offset], r.offset)
-end
-@propagate_inbounds function Base.getindex(r::IdOffsetRange, s::IdOffsetRange)
-    return IdOffsetRange(r.parent[s.parent .+ (s.offset - r.offset)] .+ (r.offset - s.offset), s.offset)
+# The following method is required to avoid falling back to getindex(::AbstractUnitRange, ::StepRange{<:Integer})
+@propagate_inbounds function Base.getindex(r::IdOffsetRange, s::StepRange{<:Integer})
+    rs = r.parent[s .- r.offset] .+ r.offset
+    return no_offset_view(rs)
 end
 
 # offset-preserve broadcasting
