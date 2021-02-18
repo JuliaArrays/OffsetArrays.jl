@@ -369,7 +369,8 @@ for OR in [:IIUR, :IdOffsetRange]
     end
 end
 
-Base.getindex(a::OffsetRange, ::Colon) = OffsetArray(a.parent[:], a.offsets)
+# This is technically breaking, so it might be incorporated in the next major release
+# Base.getindex(a::OffsetRange, ::Colon) = OffsetArray(a.parent[:], a.offsets)
 
 function Base.show(io::IO, r::OffsetRange)
     show(io, UnitRange(r.parent))
