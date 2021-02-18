@@ -810,8 +810,8 @@ end
     @test A[:, :] == S[:, :] == A
 
     r1 = OffsetArray(IdentityUnitRange(100:1000), 3)
-    r2 = r1[:] # is equivalent to copy(r1)
-    @test r2 == r1 # this could be ===, but we choose a weaker test
+    r2 = r1[:]
+    @test r2 == r1
 
     for r1 in [
         # AbstractArrays
