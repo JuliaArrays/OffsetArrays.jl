@@ -713,7 +713,11 @@ end
     @test_throws DimensionMismatch OffsetArray(A0, 0:2, 3:4)
     @test_throws DimensionMismatch OffsetArray(A0, 0:1, 2:4)
     @test eachindex(IndexLinear(), A) == eachindex(IndexLinear(), parent(A))
-    @test eachindex(IndexCartesian(), A) == CartesianIndices(A)
+    @test eachindex(IndexCartesian(), A) == CartesianIndices(A) == CartesianIndices(axes(A))
+    @test eachindex(S) == eachindex(IndexCartesian(), S) == CartesianIndices(S)
+    @test eachindex(IndexLinear(), S) == eachindex(IndexLinear(), A0)
+    A = ones(5:6)
+    @test eachindex(IndexLinear(), A) === axes(A, 1)
 end
 
 @testset "Scalar indexing" begin

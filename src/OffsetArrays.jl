@@ -226,11 +226,7 @@ Base.parent(A::OffsetArray) = A.parent
 #       The goal would be to have `OffsetArray(CuArray) .+ 1 == OffsetArray{CuArray}`.
 # Base.Broadcast.BroadcastStyle(::Type{<:OffsetArray{<:Any, <:Any, AA}}) where AA = Base.Broadcast.BroadcastStyle(AA)
 
-Base.eachindex(::IndexCartesian, A::OffsetArray) = CartesianIndices(axes(A))
-Base.eachindex(::IndexLinear, A::OffsetVector)   = axes(A, 1)
-
 @inline Base.size(A::OffsetArray) = size(parent(A))
-@inline Base.size(A::OffsetArray, d) = size(parent(A), d)
 
 @inline Base.axes(A::OffsetArray) = map(IdOffsetRange, axes(parent(A)), A.offsets)
 @inline Base.axes(A::OffsetArray, d) = d <= ndims(A) ? IdOffsetRange(axes(parent(A), d), A.offsets[d]) : IdOffsetRange(axes(parent(A), d))
