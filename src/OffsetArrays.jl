@@ -294,11 +294,16 @@ Base.falses(inds::NTuple{N, Union{Integer, AbstractUnitRange}}) where {N} =
 # and one obtains the result below.
 parentindex(r::IdOffsetRange, i) = i - r.offset
 
-@inline function Base.getindex(A::OffsetArray{T,N}, I::Vararg{Int,N}) where {T,N}
+@propagate_inbounds Base.getindex(A::OffsetArray{<:Any,0})  = A.parent[]
+
+@inline function Base.getindex(A::OffsetArray{<:Any,N}, I::Vararg{Int,N}) where N
     @boundscheck checkbounds(A, I...)
     J = map(parentindex, axes(A), I)
     @inbounds parent(A)[J...]
 end
+
+@propagate_inbounds Base.getindex(A::OffsetArray{<:Any,N}, c::Vararg{Colon,N}) where N = 
+    OffsetArray(A.parent[c...], A.offsets)
 
 @inline function Base.getindex(A::OffsetVector, i::Int)
     @boundscheck checkbounds(A, i)
@@ -324,6 +329,7 @@ end
 end
 
 Base.in(x, A::OffsetArray) = in(x, parent(A))
+Base.copy(A::OffsetArray) = OffsetArray(copy(A.parent), A.offsets)
 
 Base.strides(A::OffsetArray) = strides(parent(A))
 Base.elsize(::Type{OffsetArray{T,N,A}}) where {T,N,A} = Base.elsize(A)

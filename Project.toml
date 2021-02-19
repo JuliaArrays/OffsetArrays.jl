@@ -7,6 +7,12 @@ Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
 
 [compat]
 Adapt = "2, 3"
+Aqua = "0.5"
+CatIndices = "0.2"
+Documenter = "0.26"
+EllipsisNotation = "1"
+FillArrays = "0.11"
+StaticArrays = "1"
 julia = "0.7, 1"
 
 [extras]
@@ -15,9 +21,10 @@ CatIndices = "aafaddc9-749c-510e-ac4f-586e18779b91"
 DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 EllipsisNotation = "da5c29d0-fa7d-589e-88eb-ea29b0a81949"
+FillArrays = "1a297f60-69ca-5386-bcde-b61e274b549b"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Aqua", "CatIndices", "DelimitedFiles", "Documenter", "Test", "LinearAlgebra", "EllipsisNotation", "StaticArrays"]
+test = ["Aqua", "CatIndices", "DelimitedFiles", "Documenter", "Test", "LinearAlgebra", "EllipsisNotation", "StaticArrays", "FillArrays"]

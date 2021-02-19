@@ -8,6 +8,7 @@ using CatIndices: BidirectionalVector
 using EllipsisNotation
 using Adapt
 using StaticArrays
+using FillArrays
 
 DocMeta.setdocmeta!(OffsetArrays, :DocTestSetup, :(using OffsetArrays); recursive=true)
 
@@ -833,8 +834,21 @@ end
     @test A[:, :] == S[:, :] == A
 
     r1 = OffsetArray(IdentityUnitRange(100:1000), 3)
-    r2 = r1[:]
-    @test r2 == r1
+    @test r1[:] === r1
+
+    r2 = r1[:,:]
+    @test axes(r2, 1) == axes(r1, 1)
+    @test same_value(r1, r2)
+
+    s = @SVector[i for i in 1:3]
+    so = OffsetArray(s, 3)
+    @test so[:] === so
+
+    a = Ones(3, 2, 1)
+    ao = OffsetArray(a, axes(a))
+    @test ao[:,:,:] === ao
+    @test same_value(ao[:], ao)
+    @test same_value(ao[:,:], ao)
 
     for r1 in Any[
         # AbstractArrays
