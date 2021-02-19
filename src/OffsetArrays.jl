@@ -227,7 +227,6 @@ Base.parent(A::OffsetArray) = A.parent
 # Base.Broadcast.BroadcastStyle(::Type{<:OffsetArray{<:Any, <:Any, AA}}) where AA = Base.Broadcast.BroadcastStyle(AA)
 
 @inline Base.size(A::OffsetArray) = size(parent(A))
-@inline Base.size(A::OffsetArray, d) = size(parent(A), d)
 
 @inline Base.axes(A::OffsetArray) = map(IdOffsetRange, axes(parent(A)), A.offsets)
 @inline Base.axes(A::OffsetArray, d) = d <= ndims(A) ? IdOffsetRange(axes(parent(A), d), A.offsets[d]) : IdOffsetRange(axes(parent(A), d))
