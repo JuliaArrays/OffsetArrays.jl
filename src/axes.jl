@@ -11,10 +11,10 @@ i.e., it's the "identity," which is the origin of the "Id" in `IdOffsetRange`.
 The most common case is shifting a range that starts at 1 (either `1:n` or `Base.OneTo(n)`):
 ```jldoctest; setup=:(import OffsetArrays)
 julia> ro = OffsetArrays.IdOffsetRange(1:3, -2)
-OffsetArrays.IdOffsetRange(-1:1)
+OffsetArrays.IdOffsetRange(values=-1:1, indices=-1:1)
 
 julia> axes(ro, 1)
-OffsetArrays.IdOffsetRange(-1:1)
+OffsetArrays.IdOffsetRange(values=-1:1, indices=-1:1)
 
 julia> ro[-1]
 -1
@@ -26,10 +26,10 @@ ERROR: BoundsError: attempt to access 3-element UnitRange{$Int} at index [5]
 If the range doesn't start at 1, the values may be different from the indices:
 ```jldoctest; setup=:(import OffsetArrays)
 julia> ro = OffsetArrays.IdOffsetRange(11:13, -2)
-OffsetArrays.IdOffsetRange(9:11)
+OffsetArrays.IdOffsetRange(values=9:11, indices=-1:1)
 
 julia> axes(ro, 1)     # 11:13 is indexed by 1:3, and the offset is also applied to the axes
-OffsetArrays.IdOffsetRange(-1:1)
+OffsetArrays.IdOffsetRange(values=-1:1, indices=-1:1)
 
 julia> ro[-1]
 9
@@ -41,7 +41,7 @@ ERROR: BoundsError: attempt to access 3-element UnitRange{$Int} at index [5]
 # Extended help
 
 Construction/coercion preserves the (shifted) values of the input range, but may modify
-the indexes if required by the specified types. For example,
+the indices if required by the specified types. For example,
 
     r = OffsetArrays.IdOffsetRange{Int,UnitRange{Int}}(3:4)
 
@@ -78,10 +78,10 @@ struct IdOffsetRange{T<:Integer,I<:AbstractUnitRange{T}} <: AbstractUnitRange{T}
     offset::T
 
     IdOffsetRange{T,I}(r::I, offset::T) where {T<:Integer,I<:AbstractUnitRange{T}} = new{T,I}(r, offset)
-    
-    #= This method is necessary to avoid a StackOverflowError in IdOffsetRange{T,I}(r::IdOffsetRange, offset::Integer). 
-    The type signature in that method is more specific than IdOffsetRange{T,I}(r::I, offset::T), 
-    so it ends up calling itself if I <: IdOffsetRange. 
+
+    #= This method is necessary to avoid a StackOverflowError in IdOffsetRange{T,I}(r::IdOffsetRange, offset::Integer).
+    The type signature in that method is more specific than IdOffsetRange{T,I}(r::I, offset::T),
+    so it ends up calling itself if I <: IdOffsetRange.
     =#
     function IdOffsetRange{T,IdOffsetRange{T,I}}(r::IdOffsetRange{T,I}, offset::T) where {T<:Integer,I<:AbstractUnitRange{T}}
         new{T,IdOffsetRange{T,I}}(r, offset)
@@ -111,8 +111,15 @@ function IdOffsetRange{T}(r::IdOffsetRange, offset::Integer = 0) where T<:Intege
 end
 IdOffsetRange(r::IdOffsetRange) = r
 
+# Constructor to make `show` round-trippable
+function IdOffsetRange(; values::AbstractUnitRange{<:Integer}, indices::AbstractUnitRange{<:Integer})
+    length(values) == length(indices) || throw(ArgumentError("values and indices must have the same length"))
+    offset = first(indices) - 1
+    return IdOffsetRange(values .- offset, offset)
+end
+
 # TODO: uncomment these when Julia is ready
-# # Conversion preserves both the values and the indexes, throwing an InexactError if this
+# # Conversion preserves both the values and the indices, throwing an InexactError if this
 # # is not possible.
 # Base.convert(::Type{IdOffsetRange{T,I}}, r::IdOffsetRange{T,I}) where {T<:Integer,I<:AbstractUnitRange{T}} = r
 # Base.convert(::Type{IdOffsetRange{T,I}}, r::IdOffsetRange) where {T<:Integer,I<:AbstractUnitRange{T}} =
@@ -175,7 +182,7 @@ Broadcast.broadcasted(::Base.Broadcast.DefaultArrayStyle{1}, ::typeof(+), r::IdO
 Broadcast.broadcasted(::Base.Broadcast.DefaultArrayStyle{1}, ::typeof(+), x::Integer, r::IdOffsetRange{T}) where T =
     IdOffsetRange{T}(x .+ r.parent, r.offset)
 
-Base.show(io::IO, r::IdOffsetRange) = print(io, "OffsetArrays.IdOffsetRange(",first(r), ':', last(r),")")
+Base.show(io::IO, r::IdOffsetRange) = print(io, IdOffsetRange, "(values=",first(r), ':', last(r),", indices=",first(eachindex(r)),':',last(eachindex(r)), ")")
 
 # Optimizations
 @inline Base.checkindex(::Type{Bool}, inds::IdOffsetRange, i::Real) = Base.checkindex(Bool, inds.parent, i - inds.offset)

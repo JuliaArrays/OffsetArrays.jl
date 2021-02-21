@@ -163,6 +163,18 @@ end
     @test same_value(r2, 2:4)
     check_indexed_by(r2, 2:4)
 
+    # Constructor that's round-trippable with `show`
+    rrt = IdOffsetRange(values=7:9, indices=-1:1)
+    @test same_value(rrt, 7:9)
+    check_indexed_by(rrt, -1:1)
+    @test_throws ArgumentError IdOffsetRange(values=7:9, indices=-1:2)
+    @test_throws ArgumentError IdOffsetRange(values=7:9, indices=-1:0)
+    @test_throws TypeError IdOffsetRange(values=7:9, indices=-1)
+    @test_throws UndefKeywordError IdOffsetRange(values=7:9)
+    @test_throws UndefKeywordError IdOffsetRange(indices=-1:1)
+    @test_throws MethodError IdOffsetRange(7:9, indices=-1:1)
+    @test_throws MethodError IdOffsetRange(-1:1, values=7:9)
+
     # conversion preserves both the values and the axes, throwing an error if this is not possible
     @test @inferred(oftype(ro, ro)) === ro
     @test @inferred(convert(OffsetArrays.IdOffsetRange{Int}, ro)) === ro
@@ -1215,9 +1227,12 @@ end
     a = OffsetArray([1 2; 3 4], -1:0, 5:6)
     io = IOBuffer()
     show(io, axes(a, 1))
-    @test String(take!(io)) == "OffsetArrays.IdOffsetRange(-1:0)"
+    @test String(take!(io)) == "IdOffsetRange(values=-1:0, indices=-1:0)"   # not qualified because of the using OffsetArrays: IdOffsetRange at top
     show(io, axes(a, 2))
-    @test String(take!(io)) == "OffsetArrays.IdOffsetRange(5:6)"
+    @test String(take!(io)) == "IdOffsetRange(values=5:6, indices=5:6)"
+    rrtable = IdOffsetRange(values=7:9, indices=-1:1)
+    rrted = eval(Meta.parse(string(rrtable)))
+    @test pairs(rrtable) == pairs(rrted)
 
     @test Base.inds2string(axes(a)) == Base.inds2string(map(UnitRange, axes(a)))
 
