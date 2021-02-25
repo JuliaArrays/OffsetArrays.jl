@@ -867,10 +867,10 @@ end
     # The result should not be changed in this package.
     # Also Issue 209 for versions v"1,0.x"
     for r1 in [
-        UnitRange(1.0, 99.0), 
-        1:99, 
-        1:1:99, 
-        1.0:1.0:99.0, 
+        UnitRange(1.0, 99.0),
+        1:99,
+        1:1:99,
+        1.0:1.0:99.0,
         StepRangeLen(Float64(1), Float64(99), 99),
         LinRange(1, 99, 99),
         ]
