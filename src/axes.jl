@@ -175,7 +175,7 @@ end
 @propagate_inbounds Base.getindex(r::IdOffsetRange, i::Integer) = r.parent[i - r.offset] + r.offset
 @propagate_inbounds function Base.getindex(r::IdOffsetRange, s::AbstractUnitRange{<:Integer})
     offset_s = first(axes(s,1)) - 1
-    pr = r.parent[s .- r.offset] .+ (r.offset - offset_s)
+    pr = r.parent[s .- r.offset] .+ r.offset
     _maybewrapoffset(pr, offset_s, axes(s,1))
 end
 # The following method is required to avoid falling back to getindex(::AbstractUnitRange, ::StepRange{<:Integer})

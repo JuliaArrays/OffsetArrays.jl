@@ -80,5 +80,5 @@ _maybewrapaxes(A::AbstractVector, ax) = OffsetArray(A, ax)
 
 _maybewrapoffset(r::AbstractUnitRange, of, ::Base.OneTo) = no_offset_view(r)
 _maybewrapoffset(r::AbstractVector, of, ::Base.OneTo) = no_offset_view(r)
-_maybewrapoffset(r::AbstractUnitRange, of, ::Any) = IdOffsetRange(UnitRange(r), of)
-_maybewrapoffset(r::AbstractVector, of, axs) = OffsetArray(r .+ of, axs)
+_maybewrapoffset(r::AbstractUnitRange, of, ::Any) = IdOffsetRange(UnitRange(r .- of), of)
+_maybewrapoffset(r::AbstractVector, of, axs) = OffsetArray(r, axs)

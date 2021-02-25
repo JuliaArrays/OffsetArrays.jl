@@ -990,6 +990,9 @@ end
             ]
 
             test_indexing_axes_and_vals(r1, r2)
+            if axes(r2, 1) isa Base.OneTo
+                @test r1[r2] isa AbstractRange
+            end
         end
     end
 end
