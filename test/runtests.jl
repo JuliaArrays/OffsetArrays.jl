@@ -861,6 +861,24 @@ end
             test_indexing_axes_and_vals(r1, r2)
         end
     end
+
+    # Indexing with IdentityUnitRange(::Base.OneTo) is special as this has 1-based  
+    # indices and the indexing operation leads to the correct axes in Base.
+    # The result should not be changed in this package.
+    # Also Issue 209 for versions v"1,0.x"
+    for r1 in [
+        UnitRange(1.0, 99.0), 
+        1:99, 
+        1:1:99, 
+        1.0:1.0:99.0, 
+        StepRangeLen(Float64(1), Float64(99), 99),
+        LinRange(1, 99, 99),
+        ]
+
+        for r2 in [IdentityUnitRange(Base.OneTo(10))]
+            test_indexing_axes_and_vals(r1, r2)
+        end
+    end
 end
 
 @testset "Vector indexing with offset ranges" begin
