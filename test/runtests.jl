@@ -817,7 +817,7 @@ end
     r2 = r1[:]
     @test r2 == r1
 
-    for r1 in [
+    for r1 in Any[
         # AbstractArrays
         OffsetArray(10:1000, 0), # 1-based index
         OffsetArray(10:3:1000, 3), # offset index
@@ -829,9 +829,12 @@ end
         OffsetArray(IdOffsetRange(IdOffsetRange(10:1000, -1), 1), 3), # offset index
 
         # AbstractRanges
-        1:1000, 
-        1:3:1000, 
+        1:1000,
+        UnitRange(1.0, 1000.0),
+        1:3:1000,
         1.0:3.0:1000.0,
+        StepRangeLen(Float64(1), Float64(1000), 1000),
+        LinRange(1, 1000, 1000),
         IdOffsetRange(ZeroBasedUnitRange(1:1000), 1), # 1-based index
         IdOffsetRange(ZeroBasedUnitRange(1:1000), 2), # offset index
         ZeroBasedUnitRange(1:1000), # offset range
@@ -840,10 +843,10 @@ end
         ]
 
         # AbstractArrays with 1-based indices
-        for r2 in [
-            OffsetArray(5:80, 0), 
-            OffsetArray(5:2:80, 0), 
-            OffsetArray(IdentityUnitRange(5:80), -4), 
+        for r2 in Any[
+            OffsetArray(5:80, 0),
+            OffsetArray(5:2:80, 0),
+            OffsetArray(IdentityUnitRange(5:80), -4),
             OffsetArray(IdOffsetRange(5:80), 0),
             ]
 
@@ -851,10 +854,10 @@ end
         end
 
         # AbstractRanges with 1-based indices
-        for r2 in [
-            5:80, 
-            5:2:80, 
-            IdOffsetRange(5:80), 
+        for r2 in Any[
+            5:80,
+            5:2:80,
+            IdOffsetRange(5:80),
             IdOffsetRange(ZeroBasedUnitRange(4:79), 1),
             ]
 
@@ -862,11 +865,13 @@ end
         end
     end
 
-    # Indexing with IdentityUnitRange(::Base.OneTo) is special as this has 1-based  
-    # indices and the indexing operation leads to the correct axes in Base.
-    # The result should not be changed in this package.
-    # Also Issue 209 for versions v"1,0.x"
-    for r1 in [
+    # Indexing with IdentityUnitRange(::Base.OneTo) or Base.Slice(::OneTo) is special.
+    # This is because axes(::IdentityUnitRange{<:Base.OneTo}, 1) isa Base.OneTo, and not an IdentityUnitRange.
+    # These therefore may pass through no_offset_view unchanged.
+    # This had led to a stack-overflow in indexing, as getindex was using no_offset_view.
+    # Issue 209
+    for r1 in Any[
+        # This set of tests is for ranges r1 that have 1-based indices
         UnitRange(1.0, 99.0),
         1:99,
         1:1:99,
@@ -875,7 +880,12 @@ end
         LinRange(1, 99, 99),
         ]
 
-        for r2 in [IdentityUnitRange(Base.OneTo(10))]
+        for r2 in [
+            IdentityUnitRange(Base.OneTo(10)),
+            Base.Slice(Base.OneTo(10)),
+            IdOffsetRange(Base.OneTo(10)),
+            ]
+
             test_indexing_axes_and_vals(r1, r2)
         end
     end
@@ -905,7 +915,7 @@ end
         @test a[ax[i]] == a[ax][i]
     end
 
-    for r1 in [
+    for r1 in Any[
         # AbstractArrays
         OffsetArray(10:1000, 0), # 1-based index
         OffsetArray(10:1000, 3), # offset index
@@ -920,8 +930,10 @@ end
 
         # AbstractRanges
         1:1000,
+        UnitRange(1.0, 1000.0),
         1:2:2000,
         1.0:2.0:2000.0,
+        StepRangeLen(Float64(1), Float64(1000), 1000),
         LinRange(1.0, 2000.0, 2000),
         IdOffsetRange(1:1000, 0), # 1-based index
         IdOffsetRange(ZeroBasedUnitRange(1:1000), 1), # 1-based index
@@ -934,9 +946,10 @@ end
         ]
 
         # AbstractArrays with offset axes
-        for r2 in [OffsetArray(5:80, 40), OffsetArray(5:2:80, 40), 
-            OffsetArray(IdentityUnitRange(5:80), 2), 
-            OffsetArray(IdOffsetRange(5:80, 1), 3), 
+        for r2 in Any[OffsetArray(5:80, 40),
+            OffsetArray(5:2:80, 40),
+            OffsetArray(IdentityUnitRange(5:80), 2),
+            OffsetArray(IdOffsetRange(5:80, 1), 3),
             OffsetArray(IdOffsetRange(IdOffsetRange(5:80, 4), 1), 3),
             OffsetArray(IdOffsetRange(IdentityUnitRange(5:80), 1), 3),
             OffsetArray(IdentityUnitRange(IdOffsetRange(5:80, 1)), 3),
@@ -946,11 +959,12 @@ end
         end
 
         # AbstractRanges with offset axes
-        for r2 in [IdOffsetRange(5:80, 1),
+        for r2 in Any[IdOffsetRange(5:80, 1),
             IdentityUnitRange(5:80),
-            IdOffsetRange(IdOffsetRange(5:80, 2), 1), 
+            IdOffsetRange(Base.OneTo(9), 4),
+            IdOffsetRange(IdOffsetRange(5:80, 2), 1),
             IdOffsetRange(IdOffsetRange(IdOffsetRange(5:80, -1), 2), 1),
-            IdentityUnitRange(IdOffsetRange(1:10, 5)), 
+            IdentityUnitRange(IdOffsetRange(1:10, 5)),
             IdOffsetRange(IdentityUnitRange(15:20), -2),
             ZeroBasedUnitRange(5:80),
             ZeroBasedRange(5:80),
