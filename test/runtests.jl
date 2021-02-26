@@ -1297,31 +1297,36 @@ end
     @test clamp.(A, (amax+amin)/2, amax) == OffsetArray(clamp.(parent(A), (amax+amin)/2, amax), axes(A))
 
     @testset "mapreduce for OffsetRange" begin
-        for r in [5:100, IdOffsetRange(1:100, 4), OffsetArrays.IdOffsetRange(4:5), # AbstractUnitRanges
+        for r in Any[5:100, IdOffsetRange(1:100, 4), IdOffsetRange(4:5), # AbstractUnitRanges
             2:4:14, 1.5:1.0:10.5, # AbstractRanges
             ]
+
             a = OffsetVector(r, 2);
             @test mapreduce(identity, +, a) == mapreduce(identity, +, r)
             @test mapreduce(x -> x^2, (x,y) -> x, a) == mapreduce(x -> x^2, (x,y) -> x, r)
 
             b = mapreduce(identity, +, a, dims = 1)
-            @test no_offset_view(b) == mapreduce(identity, +, r, dims = 1)
+            br = mapreduce(identity, +, r, dims = 1)
+            @test no_offset_view(b) == no_offset_view(br)
             @test axes(b, 1) == first(axes(a,1)):first(axes(a,1))
 
             @test mapreduce(identity, +, a, init = 3) == mapreduce(identity, +, r, init = 3)
             if VERSION >= v"1.2"
+                @test mapreduce((x,y) -> x*y, +, a, a) == mapreduce((x,y) -> x*y, +, r, r)
                 @test mapreduce((x,y) -> x*y, +, a, a, init = 10) == mapreduce((x,y) -> x*y, +, r, r, init = 10)
             end
 
             for f in [sum, minimum, maximum]
                 @test f(a) == f(r)
-                
+
                 b = f(a, dims = 1);
-                @test no_offset_view(b) == f(r, dims = 1)
+                br = f(r, dims = 1)
+                @test no_offset_view(b) == no_offset_view(br)
                 @test axes(b, 1) == first(axes(a,1)):first(axes(a,1))
 
                 b = f(a, dims = 2);
-                @test no_offset_view(b) == f(r, dims = 2)
+                br = f(r, dims = 2)
+                @test no_offset_view(b) == no_offset_view(br)
                 @test axes(b, 1) == axes(a,1)
             end
 

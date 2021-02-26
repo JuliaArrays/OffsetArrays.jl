@@ -377,7 +377,7 @@ function Base.mapreduce(f, op, As::OffsetUnitRange...; kw...)
     mapreduce(f, op, AIds...; kw...)
 end
 
-# Optimize certain reductions that treat an OffsetVector as a list 
+# Optimize certain reductions that treat an OffsetVector as a list
 for f in [:minimum, :maximum, :extrema, :sum]
     @eval Base.$f(r::OffsetRange) = $f(parent(r))
 end
