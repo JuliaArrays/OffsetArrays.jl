@@ -880,7 +880,7 @@ end
         LinRange(1, 99, 99),
         ]
 
-        for r2 in [
+        for r2 in Any[
             IdentityUnitRange(Base.OneTo(10)),
             Base.Slice(Base.OneTo(10)),
             IdOffsetRange(Base.OneTo(10)),
@@ -1221,7 +1221,7 @@ end
     @test String(take!(io)) == "3:5 with indices 0:2"
 
     # issue #198
-    for r in [axes(OffsetVector(1:10, -5), 1), 1:1:2, 1.0:1.0:2.0, 1:-1:-5]
+    for r in Any[axes(OffsetVector(1:10, -5), 1), 1:1:2, 1.0:1.0:2.0, 1:-1:-5]
         a = OffsetVector(r, 5)
         show(io, a)
         @test String(take!(io)) == "$r with indices $(UnitRange(axes(a,1)))"
