@@ -355,7 +355,7 @@ for OR in [:IIUR, :IdOffsetRange]
     # this method is needed for ambiguity resolution
     @eval @propagate_inbounds Base.getindex(r::StepRangeLen{T,<:Base.TwicePrecision,<:Base.TwicePrecision}, s::$OR) where T =
     OffsetArray(r[no_offset_view(s)], axes(s))
-    
+
     #= Integer UnitRanges may return an appropriate AbstractUnitRange{<:Integer}, as the result may be used in indexing, and
     indexing is faster with ranges =#
     @eval @propagate_inbounds function Base.getindex(r::UnitRange{<:Integer}, s::$OR)
@@ -437,7 +437,9 @@ julia> A
 """
 no_offset_view(A::OffsetArray) = no_offset_view(parent(A))
 if isdefined(Base, :IdentityUnitRange)
-    no_offset_view(a::Base.Slice) = Base.Slice(UnitRange(a))  # valid only if Slice is distinguished from IdentityUnitRange
+    # valid only if Slice is distinguished from IdentityUnitRange
+    no_offset_view(a::Base.Slice{<:Base.OneTo}) = a
+    no_offset_view(a::Base.Slice) = Base.Slice(UnitRange(a))
     no_offset_view(S::SubArray) = view(parent(S), map(no_offset_view, parentindices(S))...)
 end
 no_offset_view(a::Array) = a

@@ -1118,6 +1118,14 @@ end
     a = OffsetArray(1:3, 0:2);
     b = @view a[0]
     @test b[] == b[1] == 1
+
+    a = reshape(1:16, 4, 4);
+    for ax1 in (:, axes(a,1), UnitRange(axes(a,1))),
+        ax2 in (:, axes(a,2), UnitRange(axes(a,2)))
+            av = @view a[ax1, ax2]
+            av_nooffset = OffsetArrays.no_offset_view(av)
+            @test axes(av_nooffset) === axes(av)
+    end
 end
 
 @testset "iteration" begin
