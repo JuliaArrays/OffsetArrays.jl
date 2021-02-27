@@ -399,13 +399,13 @@ const IIUR = IdentityUnitRange{S} where S<:AbstractUnitRange{T} where T<:Integer
 Base.step(a::OffsetRange) = step(parent(a))
 
 @propagate_inbounds function Base.getindex(a::OffsetRange, r::OffsetRange)
-    OffsetArray(a.parent[r.parent .- a.offsets[1]], axes(r))
+    _maybewrapoffset(a.parent[r.parent .- a.offsets[1]], axes(r,1))
 end
 @propagate_inbounds function Base.getindex(a::OffsetRange, r::IdOffsetRange)
-    OffsetArray(a.parent[r.parent .+ (r.offset - a.offsets[1])], axes(r))
+    _maybewrapoffset(a.parent[r.parent .+ (r.offset - a.offsets[1])], axes(r,1))
 end
 @propagate_inbounds Base.getindex(a::OffsetRange, r::AbstractRange) = _maybewrapoffset(a.parent[r .- a.offsets[1]], axes(r,1))
-@propagate_inbounds Base.getindex(a::AbstractRange, r::OffsetRange) = OffsetArray(a[parent(r)], axes(r))
+@propagate_inbounds Base.getindex(a::AbstractRange, r::OffsetRange) = _maybewrapoffset(a[parent(r)], axes(r,1))
 
 for OR in [:IIUR, :IdOffsetRange]
     for R in [:StepRange, :StepRangeLen, :LinRange, :UnitRange]

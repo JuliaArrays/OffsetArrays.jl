@@ -1031,13 +1031,13 @@ end
 @testset "Vector indexing with offset ranges" begin
     r = OffsetArray(8:10, -1:1)
     r1 = r[0:1]
-    @test r1 === 9:10
+    @test r1 == 9:10
     r1 = (8:10)[OffsetArray(1:2, -5:-4)]
-    @test axes(r1) == (IdentityUnitRange(-5:-4),)
-    @test parent(r1) === 8:9
+    @test axes(r1) == (-5:-4,)
+    @test no_offset_view(r1) == 8:9
     r1 = OffsetArray(8:10, -1:1)[OffsetArray(0:1, -5:-4)]
-    @test axes(r1) == (IdentityUnitRange(-5:-4),)
-    @test parent(r1) === 9:10
+    @test axes(r1) == (-5:-4,)
+    @test no_offset_view(r1) == 9:10
 
     a = OffsetVector(3:4, 10:11)
     ax = OffsetArrays.IdOffsetRange(5:6, 5)
