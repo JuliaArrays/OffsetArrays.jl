@@ -398,6 +398,8 @@ const IIUR = IdentityUnitRange{S} where S<:AbstractUnitRange{T} where T<:Integer
 
 Base.step(a::OffsetRange) = step(parent(a))
 
+Base.checkindex(::Type{Bool}, inds::AbstractUnitRange, or::OffsetRange) = Base.checkindex(Bool, inds, parent(or))
+
 @inline function Base.getindex(a::OffsetRange, r::OffsetRange)
     @boundscheck checkbounds(a, r)
     @inbounds pr = a.parent[r.parent .- a.offsets[1]]
