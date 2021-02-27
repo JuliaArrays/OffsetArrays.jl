@@ -404,25 +404,17 @@ end
 @propagate_inbounds function Base.getindex(a::OffsetRange, r::IdOffsetRange)
     OffsetArray(a.parent[r.parent .+ (r.offset - a.offsets[1])], axes(r))
 end
-@propagate_inbounds Base.getindex(a::OffsetRange, r::AbstractRange) = _maybewrapaxes(a.parent[r .- a.offsets[1]], axes(r,1))
+@propagate_inbounds Base.getindex(a::OffsetRange, r::AbstractRange) = _maybewrapoffset(a.parent[r .- a.offsets[1]], axes(r,1))
 @propagate_inbounds Base.getindex(a::AbstractRange, r::OffsetRange) = OffsetArray(a[parent(r)], axes(r))
 
 for OR in [:IIUR, :IdOffsetRange]
     for R in [:StepRange, :StepRangeLen, :LinRange, :UnitRange]
-        @eval @propagate_inbounds Base.getindex(r::$R, s::$OR) = _maybewrapaxes(r[UnitRange(s)], axes(s,1))
+        @eval @propagate_inbounds Base.getindex(r::$R, s::$OR) = _maybewrapoffset(r[UnitRange(s)], axes(s,1))
     end
 
     # this method is needed for ambiguity resolution
     @eval @propagate_inbounds Base.getindex(r::StepRangeLen{T,<:Base.TwicePrecision,<:Base.TwicePrecision}, s::$OR) where T =
-    _maybewrapaxes(r[UnitRange(s)], axes(s,1))
-
-    #= Integer UnitRanges may return an appropriate AbstractUnitRange{<:Integer}, as the result may be used in indexing, and
-    indexing is faster with ranges =#
-    @eval @propagate_inbounds function Base.getindex(r::UnitRange{<:Integer}, s::$OR)
-        rs = r[UnitRange(s)]
-        offset_s = first(axes(s,1)) - 1
-        _maybewrapoffset(rs, offset_s, axes(s,1))
-    end
+    _maybewrapoffset(r[UnitRange(s)], axes(s,1))
 end
 
 # mapreduce is faster with an IdOffsetRange than with an OffsetUnitRange
