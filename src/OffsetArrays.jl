@@ -392,29 +392,58 @@ Broadcast.broadcast_unalias(dest::OffsetArray, src::OffsetArray) = parent(dest) 
 
 ### Special handling for AbstractRange
 
-const OffsetRange{T} = OffsetArray{T,1,<:AbstractRange{T}}
-const OffsetUnitRange{T} = OffsetArray{T,1,<:AbstractUnitRange{T}}
+const OffsetRange{T} = OffsetVector{T,<:AbstractRange{T}}
+const OffsetUnitRange{T} = OffsetVector{T,<:AbstractUnitRange{T}}
 const IIUR = IdentityUnitRange{S} where S<:AbstractUnitRange{T} where T<:Integer
 
 Base.step(a::OffsetRange) = step(parent(a))
 
-@propagate_inbounds function Base.getindex(a::OffsetRange, r::OffsetRange)
-    _maybewrapoffset(a.parent[r.parent .- a.offsets[1]], axes(r,1))
+@inline function Base.getindex(a::OffsetRange, r::OffsetRange)
+    @boundscheck checkbounds(a, r)
+    @inbounds pr = a.parent[r.parent .- a.offsets[1]]
+    _maybewrapoffset(pr, axes(r,1))
 end
-@propagate_inbounds function Base.getindex(a::OffsetRange, r::IdOffsetRange)
-    _maybewrapoffset(a.parent[r.parent .+ (r.offset - a.offsets[1])], axes(r,1))
+@inline function Base.getindex(a::OffsetRange, r::IdOffsetRange)
+    @boundscheck checkbounds(a, r)
+    @inbounds pr = a.parent[r.parent .+ (r.offset - a.offsets[1])]
+    _maybewrapoffset(pr, axes(r,1))
 end
-@propagate_inbounds Base.getindex(a::OffsetRange, r::AbstractRange) = _maybewrapoffset(a.parent[r .- a.offsets[1]], axes(r,1))
-@propagate_inbounds Base.getindex(a::AbstractRange, r::OffsetRange) = _maybewrapoffset(a[parent(r)], axes(r,1))
+@inline function Base.getindex(a::OffsetRange, r::AbstractRange)
+    @boundscheck checkbounds(a, r)
+    @inbounds pr = a.parent[r .- a.offsets[1]]
+    _maybewrapoffset(pr, axes(r,1))
+end
+@inline function Base.getindex(a::AbstractRange, r::OffsetRange)
+    @boundscheck checkbounds(a, r)
+    @inbounds pr = a[parent(r)]
+    _maybewrapoffset(pr, axes(r,1))
+end
+
+# An OffsetUnitRange{<:Integer} has an equivalent IdOffsetRange with the same values and axes
+# We may replace the former with the latter in an indexing operation to obtain a performance boost
+function Base.to_indices(A::AbstractArray, ax::Tuple, I::Tuple{OffsetUnitRange{<:Integer}, Vararg{Any}})
+    or = first(I)
+    r = parent(or)
+    of = or.offsets[1]
+    ior = IdOffsetRange(UnitRange(r) .- of, of)
+    to_indices(A, ax, (ior, tail(I)...))
+end
 
 for OR in [:IIUR, :IdOffsetRange]
     for R in [:StepRange, :StepRangeLen, :LinRange, :UnitRange]
-        @eval @propagate_inbounds Base.getindex(r::$R, s::$OR) = _maybewrapoffset(r[UnitRange(s)], axes(s,1))
+        @eval @inline function Base.getindex(r::$R, s::$OR)
+            @boundscheck checkbounds(r, s)
+            @inbounds pr = r[UnitRange(s)]
+            _maybewrapoffset(pr, axes(s,1))
+        end
     end
 
     # this method is needed for ambiguity resolution
-    @eval @propagate_inbounds Base.getindex(r::StepRangeLen{T,<:Base.TwicePrecision,<:Base.TwicePrecision}, s::$OR) where T =
-    _maybewrapoffset(r[UnitRange(s)], axes(s,1))
+    @eval @inline function Base.getindex(r::StepRangeLen{T,<:Base.TwicePrecision,<:Base.TwicePrecision}, s::$OR) where T
+        @boundscheck checkbounds(r, s)
+        @inbounds pr = r[UnitRange(s)]
+        _maybewrapoffset(pr, axes(s,1))
+    end
 end
 
 # mapreduce is faster with an IdOffsetRange than with an OffsetUnitRange
