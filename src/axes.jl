@@ -20,7 +20,7 @@ julia> ro[-1]
 -1
 
 julia> ro[3]
-ERROR: BoundsError: attempt to access 3-element OffsetArrays.IdOffsetRange{Int64,UnitRange{Int64}} with indices -1:1 at index [3]
+ERROR: BoundsError: attempt to access 3-element OffsetArrays.$(IdOffsetRange{Int,UnitRange{Int}}) with indices -1:1 at index [3]
 ```
 
 If the range doesn't start at 1, the values may be different from the indices:
@@ -35,7 +35,7 @@ julia> ro[-1]
 9
 
 julia> ro[3]
-ERROR: BoundsError: attempt to access 3-element OffsetArrays.IdOffsetRange{Int64,UnitRange{Int64}} with indices -1:1 at index [3]
+ERROR: BoundsError: attempt to access 3-element OffsetArrays.$(IdOffsetRange{Int,UnitRange{Int}}) with indices -1:1 at index [3]
 ```
 
 # Extended help
