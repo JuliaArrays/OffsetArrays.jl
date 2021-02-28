@@ -922,6 +922,10 @@ end
 
     for r1 in Any[
         # AbstractArrays
+        ones(100),
+        ones(-1:100),
+
+        # OffsetRanges
         OffsetArray(10:1000, 0), # 1-based index
         OffsetArray(UnitRange(10.0, 1000.0), 0), # 1-based index
         OffsetArray(10:3:1000, 3), # offset index
@@ -1036,6 +1040,10 @@ end
 
     for r1 in Any[
         # AbstractArrays
+        ones(100),
+        ones(-1:100),
+
+        # OffsetRanges
         OffsetArray(10:1000, 0), # 1-based index
         OffsetArray(UnitRange(10.0, 1000.0), 0), # 1-based index
         OffsetArray(10:1000, 3), # offset index

@@ -8,8 +8,9 @@ y = OffsetArray{Float64}(undef, -dim + 1 : dim);
 x2d = Array{Float64}(undef, 2*dim, 2*dim);
 y2d = OffsetArray{Float64}(undef, -dim + 1 : dim, -dim + 1 : dim);
 
-r = OffsetVector(1:dim, 0);
 s = OffsetVector(1:dim, 0);
+sur = 1:dim;
+sior = OffsetArrays.IdOffsetRange(parent(s));
 
 fill1d(x) = for i in axes(x,1); x[i] = i; end
 fill2d(x) = for j in axes(x,2); for i in axes(x,1); x[i,j] = i + j; end; end
@@ -58,8 +59,24 @@ end
 
 # Benchmarks of vector indexing using OffsetRanges as axes
 @showbenchmark vectorlinearindexing(x, s)
-@showbenchmark vectorlinearindexing(x, parent(s))
+@showbenchmark vectorlinearindexing(x, sur)
+@showbenchmark vectorlinearindexing(y, s)
+@showbenchmark vectorlinearindexing(y, sur)
+
+@showbenchmark vectorlinearindexing(sur, s)
+@showbenchmark vectorlinearindexing(sur, sur)
+
 @showbenchmark vectorCartesianindexing(x2d, s, s)
-@showbenchmark vectorCartesianindexing(x2d, parent(s), parent(s))
-@showbenchmark nestedvectorlinearindexing(x, r, s)
-@showbenchmark nestedvectorlinearindexing(x, parent(r), parent(s))
+@showbenchmark vectorCartesianindexing(x2d, sur, sur)
+
+@showbenchmark nestedvectorlinearindexing(x, s, s)
+@showbenchmark nestedvectorlinearindexing(x, sur, sur)
+@showbenchmark nestedvectorlinearindexing(x, s, sior)
+@showbenchmark nestedvectorlinearindexing(x, sur, sior)
+@showbenchmark nestedvectorlinearindexing(x, sior, sior)
+@showbenchmark vectorlinearindexing(x, sior[sior])
+@showbenchmark nestedvectorlinearindexing(x, sur, sior)
+@showbenchmark vectorlinearindexing(x, sur[sior])
+@showbenchmark nestedvectorlinearindexing(x, sior, sur)
+@showbenchmark vectorlinearindexing(x, sior[sur])
+@showbenchmark nestedvectorlinearindexing(x, sur, sur)

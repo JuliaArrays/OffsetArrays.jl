@@ -79,6 +79,8 @@ end
 @inline _maybewrapoffset(r::AbstractVector, ::Base.OneTo) = no_offset_view(r)
 @inline function _maybewrapoffset(r::AbstractUnitRange{<:Integer}, ax)
 	of = first(ax) - 1
+	# UnitRange(a - of, b - of) is a simpler operation than UnitRange(a, b) .- of
+    # This might permit compiler optimizations
 	IdOffsetRange(UnitRange(first(r) - of, last(r) - of), of)
 end
 @inline _maybewrapoffset(r::AbstractVector, ax) = OffsetArray(r, ax)
