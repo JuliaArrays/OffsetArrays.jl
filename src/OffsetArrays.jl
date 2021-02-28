@@ -249,6 +249,11 @@ function Base.similar(A::AbstractArray, ::Type{T}, inds::Tuple{OffsetAxisKnownLe
     B = similar(A, T, map(_indexlength, inds))
     return OffsetArray(B, map(_offset, axes(B), inds))
 end
+# IdOffsetRanges retain the types of the parent axes, so we may construct an appropriate similar array using these
+function Base.similar(A::AbstractArray, ::Type{T}, inds::Tuple{IdOffsetRange,Vararg{IdOffsetRange}}) where T
+    B = similar(A, T, map(parent, inds))
+    return OffsetArray(B, map(_offset, axes(B), inds))
+end
 
 # reshape accepts a single colon
 Base.reshape(A::AbstractArray, inds::OffsetAxis...) = reshape(A, inds)
