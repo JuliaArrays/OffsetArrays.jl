@@ -976,10 +976,12 @@ end
             end
 
             # This is a strong test to ensure that the indexing operation
-            # (::AbstractUnitRange)(::AbstractUnitRange) returns an AbstractUnitRange
+            # (::AbstractUnitRange{<:Integer})[::AbstractUnitRange{<:Integer}]
+            # returns an AbstractUnitRange{<:Integer} and not an AbstractVector.
             # This is because the result may be used further in indexing, and indexing
-            # is more performant with AbstractUnitRanges than with AbstractVectors
-            # This may not hold in general for custom AbstractUnitRanges depending on how they implement getindex,
+            # is more performant with AbstractUnitRanges than with AbstractVectors.
+            # This may not hold in general for custom AbstractUnitRanges
+            # depending on how they implement getindex,
             # but should hold for the known types that are being tested here
             if r1 isa AbstractUnitRange{<:Integer} && r2 isa AbstractUnitRange{<:Integer}
                 @test r1[r2] isa AbstractUnitRange{<:Integer}
@@ -1016,11 +1018,14 @@ end
             if axes(r2, 1) isa Base.OneTo
                 @test r1[r2] isa AbstractRange
             end
+            
             # This is a strong test to ensure that the indexing operation
-            # (::AbstractUnitRange)(::AbstractUnitRange) returns an AbstractUnitRange
+            # (::AbstractUnitRange{<:Integer})[::AbstractUnitRange{<:Integer}]
+            # returns an AbstractUnitRange{<:Integer} and not an AbstractVector.
             # This is because the result may be used further in indexing, and indexing
-            # is more performant with AbstractUnitRanges than with AbstractVectors
-            # This may not hold in general for custom AbstractUnitRanges depending on how they implement getindex,
+            # is more performant with AbstractUnitRanges than with AbstractVectors.
+            # This may not hold in general for custom AbstractUnitRanges
+            # depending on how they implement getindex,
             # but should hold for the known types that are being tested here
             if r1 isa AbstractUnitRange{<:Integer} && r2 isa AbstractUnitRange{<:Integer}
                 @test r1[r2] isa AbstractUnitRange{<:Integer}
@@ -1117,10 +1122,12 @@ end
             test_indexing_axes_and_vals(r1, r2)
 
             # This is a strong test to ensure that the indexing operation
-            # (::AbstractUnitRange)(::AbstractUnitRange) returns an AbstractUnitRange
+            # (::AbstractUnitRange{<:Integer})[::AbstractUnitRange{<:Integer}]
+            # returns an AbstractUnitRange{<:Integer} and not an AbstractVector.
             # This is because the result may be used further in indexing, and indexing
-            # is more performant with AbstractUnitRanges than with AbstractVectors
-            # This may not hold in general for custom AbstractUnitRanges depending on how they implement getindex,
+            # is more performant with AbstractUnitRanges than with AbstractVectors.
+            # This may not hold in general for custom AbstractUnitRanges
+            # depending on how they implement getindex,
             # but should hold for the known types that are being tested here
             if r1 isa AbstractUnitRange{<:Integer} && r2 isa AbstractUnitRange{<:Integer}
                 @test r1[r2] isa AbstractUnitRange{<:Integer}
