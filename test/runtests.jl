@@ -1017,7 +1017,7 @@ end
 @testset "Vector indexing with offset ranges" begin
     r = OffsetArray(8:10, -1:1)
     r1 = r[0:1]
-    @test r1 == 9:10
+    @test r1 === 9:10
     r1 = (8:10)[OffsetArray(1:2, -5:-4)]
     @test axes(r1) == (-5:-4,)
     @test no_offset_view(r1) == 8:9
@@ -1104,6 +1104,11 @@ end
             ]
 
             test_indexing_axes_and_vals(r1, r2)
+
+            # This might not hold for all ranges, but holds for the known ones being tested here
+            if r1 isa AbstractUnitRange{<:Integer} && r2 isa AbstractUnitRange{<:Integer}
+                @test r1[r2] isa AbstractUnitRange{<:Integer}
+            end
         end
     end
 end
