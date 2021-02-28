@@ -3,13 +3,13 @@ using OffsetArrays
 
 const dim = 1000
 
-x = Array{Float64}(undef, 2*dim)
-y = OffsetArray{Float64}(undef, -dim + 1 : dim)
-x2d = Array{Float64}(undef, 2*dim, 2*dim)
-y2d = OffsetArray{Float64}(undef, -dim + 1 : dim, -dim + 1 : dim)
+x = Array{Float64}(undef, 2*dim);
+y = OffsetArray{Float64}(undef, -dim + 1 : dim);
+x2d = Array{Float64}(undef, 2*dim, 2*dim);
+y2d = OffsetArray{Float64}(undef, -dim + 1 : dim, -dim + 1 : dim);
 
-r = OffsetVector(1:dim, 0)
-s = OffsetVector(1:dim, 0)
+r = OffsetVector(1:dim, 0);
+s = OffsetVector(1:dim, 0);
 
 fill1d(x) = for i in axes(x,1); x[i] = i; end
 fill2d(x) = for j in axes(x,2); for i in axes(x,1); x[i,j] = i + j; end; end
@@ -23,8 +23,9 @@ unsafe_update(x) = @inbounds(for i in axes(x,1); x[i] = x[i] + i; end)
 unsafe_update2d(x) = @inbounds(for j in axes(x,2); for i in axes(x,1); x[i,j] = x[i,j] + i + j; end; end)
 unsafe_update_eachindex(x) = @inbounds(for i in eachindex(x); x[i] = x[i] + i; end)
 
-vectorindexing(a, s) = a[s]
-nestedvectorindexing(a, r, s) = a[r[s]]
+vectorlinearindexing(a, ax) = a[ax]
+vectorCartesianindexing(a, ax1, ax2) = a[ax1, ax2]
+nestedvectorlinearindexing(a, ax1, ax2) = a[ax1[ax2]]
 
 macro showbenchmark(ex)
 	print(ex, " : ")
@@ -55,5 +56,10 @@ end
 @showbenchmark unsafe_update_eachindex(x)
 @showbenchmark unsafe_update_eachindex(y)
 
-@showbenchmark vectorindexing(x, s)
-@showbenchmark nestedvectorindexing(x, r, s)
+# Benchmarks of vector indexing using OffsetRanges as axes
+@showbenchmark vectorlinearindexing(x, s)
+@showbenchmark vectorlinearindexing(x, parent(s))
+@showbenchmark vectorCartesianindexing(x2d, s, s)
+@showbenchmark vectorCartesianindexing(x2d, parent(s), parent(s))
+@showbenchmark nestedvectorlinearindexing(x, r, s)
+@showbenchmark nestedvectorlinearindexing(x, parent(r), parent(s))

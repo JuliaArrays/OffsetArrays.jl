@@ -403,27 +403,27 @@ Base.checkindex(::Type{Bool}, inds::AbstractUnitRange, or::OffsetRange) = Base.c
 @inline function Base.getindex(a::OffsetRange, r::OffsetRange)
     @boundscheck checkbounds(a, r)
     @inbounds pr = a.parent[r.parent .- a.offsets[1]]
-    _maybewrapoffset(pr, axes(r,1))
+    OffsetArray(pr, axes(r,1))
 end
 @inline function Base.getindex(a::OffsetRange, r::IdOffsetRange)
     @boundscheck checkbounds(a, r)
     @inbounds pr = a.parent[r.parent .+ (r.offset - a.offsets[1])]
-    _maybewrapoffset(pr, axes(r,1))
+    OffsetArray(pr, axes(r,1))
 end
 @inline function Base.getindex(a::OffsetRange, r::AbstractRange)
     @boundscheck checkbounds(a, r)
     @inbounds pr = a.parent[r .- a.offsets[1]]
-    _maybewrapoffset(pr, axes(r,1))
+    OffsetArray(pr, axes(r,1))
 end
 @inline function Base.getindex(a::AbstractRange, r::OffsetRange)
     @boundscheck checkbounds(a, r)
     @inbounds pr = a[parent(r)]
-    _maybewrapoffset(pr, axes(r,1))
+    OffsetArray(pr, axes(r,1))
 end
 
 # An OffsetUnitRange{<:Integer} has an equivalent IdOffsetRange with the same values and axes
 # We may replace the former with the latter in an indexing operation to obtain a performance boost
-function Base.to_indices(A::AbstractArray, ax::Tuple, I::Tuple{OffsetUnitRange{<:Integer}, Vararg{Any}})
+@inline function Base.to_indices(A::AbstractArray, ax::Tuple, I::Tuple{OffsetUnitRange{<:Integer}, Vararg{Any}})
     or = first(I)
     r = parent(or)
     of = or.offsets[1]

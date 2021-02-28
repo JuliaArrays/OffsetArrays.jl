@@ -75,10 +75,10 @@ function _checkindices(N::Integer, indices, label)
     N == length(indices) || throw_argumenterror(N, indices, label)
 end
 
-_maybewrapoffset(r::AbstractUnitRange{<:Integer}, ::Base.OneTo) = no_offset_view(r)
-_maybewrapoffset(r::AbstractVector, ::Base.OneTo) = no_offset_view(r)
-function _maybewrapoffset(r::AbstractUnitRange{<:Integer}, ax)
+@inline _maybewrapoffset(r::AbstractUnitRange{<:Integer}, ::Base.OneTo) = no_offset_view(r)
+@inline _maybewrapoffset(r::AbstractVector, ::Base.OneTo) = no_offset_view(r)
+@inline function _maybewrapoffset(r::AbstractUnitRange{<:Integer}, ax)
 	of = first(ax) - 1
-	IdOffsetRange(UnitRange(r) .- of, of)
+	IdOffsetRange(UnitRange(first(r) - of, last(r) - of), of)
 end
-_maybewrapoffset(r::AbstractVector, ax) = OffsetArray(r, ax)
+@inline _maybewrapoffset(r::AbstractVector, ax) = OffsetArray(r, ax)

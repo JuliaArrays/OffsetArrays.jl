@@ -974,18 +974,6 @@ end
             if r1 isa AbstractRange && axes(r2, 1) isa Base.OneTo
                 @test r1[r2] isa AbstractRange
             end
-
-            # This is a strong test to ensure that the indexing operation
-            # (::AbstractUnitRange{<:Integer})[::AbstractUnitRange{<:Integer}]
-            # returns an AbstractUnitRange{<:Integer} and not an AbstractVector.
-            # This is because the result may be used further in indexing, and indexing
-            # is more performant with AbstractUnitRanges than with AbstractVectors.
-            # This may not hold in general for custom AbstractUnitRanges
-            # depending on how they implement getindex,
-            # but should hold for the known types that are being tested here
-            if r1 isa AbstractUnitRange{<:Integer} && r2 isa AbstractUnitRange{<:Integer}
-                @test r1[r2] isa AbstractUnitRange{<:Integer}
-            end
         end
     end
 
@@ -1018,18 +1006,6 @@ end
             if axes(r2, 1) isa Base.OneTo
                 @test r1[r2] isa AbstractRange
             end
-            
-            # This is a strong test to ensure that the indexing operation
-            # (::AbstractUnitRange{<:Integer})[::AbstractUnitRange{<:Integer}]
-            # returns an AbstractUnitRange{<:Integer} and not an AbstractVector.
-            # This is because the result may be used further in indexing, and indexing
-            # is more performant with AbstractUnitRanges than with AbstractVectors.
-            # This may not hold in general for custom AbstractUnitRanges
-            # depending on how they implement getindex,
-            # but should hold for the known types that are being tested here
-            if r1 isa AbstractUnitRange{<:Integer} && r2 isa AbstractUnitRange{<:Integer}
-                @test r1[r2] isa AbstractUnitRange{<:Integer}
-            end
         end
     end
 end
@@ -1037,7 +1013,7 @@ end
 @testset "Vector indexing with offset ranges" begin
     r = OffsetArray(8:10, -1:1)
     r1 = r[0:1]
-    @test r1 === 9:10
+    @test r1 == 9:10
     r1 = (8:10)[OffsetArray(1:2, -5:-4)]
     @test axes(r1) == (-5:-4,)
     @test no_offset_view(r1) == 8:9
@@ -1120,18 +1096,6 @@ end
             ]
 
             test_indexing_axes_and_vals(r1, r2)
-
-            # This is a strong test to ensure that the indexing operation
-            # (::AbstractUnitRange{<:Integer})[::AbstractUnitRange{<:Integer}]
-            # returns an AbstractUnitRange{<:Integer} and not an AbstractVector.
-            # This is because the result may be used further in indexing, and indexing
-            # is more performant with AbstractUnitRanges than with AbstractVectors.
-            # This may not hold in general for custom AbstractUnitRanges
-            # depending on how they implement getindex,
-            # but should hold for the known types that are being tested here
-            if r1 isa AbstractUnitRange{<:Integer} && r2 isa AbstractUnitRange{<:Integer}
-                @test r1[r2] isa AbstractUnitRange{<:Integer}
-            end
         end
     end
 end
