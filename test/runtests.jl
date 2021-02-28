@@ -1287,6 +1287,7 @@ end
     s = @SVector[i for i in 1:10]
     so = OffsetArray(s, 4);
     @test typeof(parent(similar(so))) == typeof(similar(s))
+    @test typeof(parent(similar(so, eltype(so), axes(so)))) == typeof(similar(s))
 
     @test_throws MethodError similar(A, (:,))
     @test_throws MethodError similar(A, (: ,:))
