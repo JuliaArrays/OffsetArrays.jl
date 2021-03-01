@@ -302,8 +302,14 @@ parentindex(r::IdOffsetRange, i) = i - r.offset
     @inbounds parent(A)[J...]
 end
 
-@propagate_inbounds Base.getindex(A::OffsetArray{<:Any,N}, c::Vararg{Colon,N}) where N = 
+@propagate_inbounds Base.getindex(A::OffsetArray{<:Any,N}, c::Vararg{Colon,N}) where N =
     OffsetArray(A.parent[c...], A.offsets)
+
+# With one Colon we use linear indexing.
+# In this case we may forward the index to the parent, as the information about the axes is lost
+# The exception to this is with OffsetVectors where the axis information is preserved,
+# but that case is handled by getindex(::OffsetArray{<:Any,N}, ::Vararg{Colon,N})
+@propagate_inbounds Base.getindex(A::OffsetArray, c::Colon) = A.parent[:]
 
 @inline function Base.getindex(A::OffsetVector, i::Int)
     @boundscheck checkbounds(A, i)

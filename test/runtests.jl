@@ -833,9 +833,12 @@ end
     @test A[1, [4,3]] == S[1, [4,3]] == [4,2]
     @test A[:, :] == S[:, :] == A
 
+    # Indexing a nD OffsetArray with n colons preserves the type
     r1 = OffsetArray(IdentityUnitRange(100:1000), 3)
     @test r1[:] === r1
 
+    # In general with more colons than dimensions,
+    # the type might not be preserved but the values and the leading axes should be
     r2 = r1[:,:]
     @test axes(r2, 1) == axes(r1, 1)
     @test same_value(r1, r2)
@@ -849,6 +852,18 @@ end
     @test ao[:,:,:] === ao
     @test same_value(ao[:], ao)
     @test same_value(ao[:,:], ao)
+
+    # Indexing an nD OffsetArray with one Colon preserves only the values.
+    # This uses linear indexing
+    a = ones(2:3, 2:3)
+    b = a[:]
+    @test same_value(a, b)
+
+    vals = (1,2,3,4,5,6,7,8)
+    s = SArray{Tuple{2,2,2},Int,3,8}(vals)
+    so = OffsetArray(s, axes(s));
+    so2 = so[:]
+    @test same_value(so2, s)
 
     for r1 in Any[
         # AbstractArrays
