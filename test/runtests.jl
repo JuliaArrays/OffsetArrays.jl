@@ -1521,7 +1521,7 @@ end
     @test clamp.(A, (amax+amin)/2, amax) == OffsetArray(clamp.(parent(A), (amax+amin)/2, amax), axes(A))
 
     @testset "mapreduce for OffsetRange" begin
-        for r in Any[5:100, IdOffsetRange(1:100, 4), IdOffsetRange(4:5), # AbstractUnitRanges
+        for r in Any[5:100, UnitRange(5.0, 20.0), IdOffsetRange(1:100, 4), IdOffsetRange(4:5), # AbstractUnitRanges
             2:4:14, 1.5:1.0:10.5, # AbstractRanges
             ]
 
