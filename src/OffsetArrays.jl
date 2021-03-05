@@ -246,14 +246,17 @@ end
 Base.similar(A::OffsetArray, ::Type{T}, dims::Dims) where T =
     similar(parent(A), T, dims)
 function Base.similar(A::AbstractArray, ::Type{T}, inds::Tuple{OffsetAxisKnownLength,Vararg{OffsetAxisKnownLength}}) where T
-    B = similar(A, T, map(_indexlength, inds))
+    # strip IdOffsetRanges to extract the parent range and use it to generate the array
+    # route through _similar to avoid a stack overflow if map(_maybeparent, inds) === inds
+    B = _similar(A, T, map(_maybeparent, inds), inds)
     return OffsetArray(B, map(_offset, axes(B), inds))
 end
-# IdOffsetRanges retain the types of the parent axes, so we may construct an appropriate similar array using these
-function Base.similar(A::AbstractArray, ::Type{T}, inds::Tuple{IdOffsetRange,Vararg{IdOffsetRange}}) where T
-    B = similar(A, T, map(parent, inds))
-    return OffsetArray(B, map(_offset, axes(B), inds))
-end
+# Try to use the axes to generate the parent array type
+# This is useful if the axes have special meanings, such as with static arrays
+# This method is hit if one of the axes provided to similar(A, T, axes) is an IdOffsetRange
+_similar(A, T, ax, ::Any) = similar(A, T, ax)
+# Handle the general case by resorting to lengths along each axis
+_similar(A, T, ax::I, ::I) where {I} = similar(A, T, map(_indexlength, ax))
 
 # reshape accepts a single colon
 Base.reshape(A::AbstractArray, inds::OffsetAxis...) = reshape(A, inds)
