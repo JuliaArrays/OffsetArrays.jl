@@ -380,9 +380,6 @@ for OR in [:IIUR, :IdOffsetRange]
     end
 end
 
-# This is technically breaking, so it might be incorporated in the next major release
-# Base.getindex(a::OffsetRange, ::Colon) = OffsetArray(a.parent[:], a.offsets)
-
 # mapreduce is faster with an IdOffsetRange than with an OffsetUnitRange
 # We therefore convert OffsetUnitRanges to IdOffsetRanges with the same values and axes
 function Base.mapreduce(f, op, As::OffsetUnitRange{<:Integer}...; kw...)
