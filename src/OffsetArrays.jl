@@ -251,17 +251,23 @@ function Base.similar(A::AbstractArray, ::Type{T}, inds::Tuple{OffsetAxisKnownLe
     B = _similar(A, T, map(_maybeparent, inds), inds)
     return OffsetArray(B, map(_offset, axes(B), inds))
 end
+function Base.similar(::Type{T}, shape::Tuple{OffsetAxisKnownLength,Vararg{OffsetAxisKnownLength}}) where {T<:AbstractArray}
+    P = _similar(T, map(_maybeparent, shape), shape)
+    OffsetArray(P, map(_offset, axes(P), shape))
+end
 # Try to use the axes to generate the parent array type
 # This is useful if the axes have special meanings, such as with static arrays
 # This method is hit if at least one axis provided to similar(A, T, axes) is an IdOffsetRange
 # For example this is hit when similar(A::OffsetArray) is called,
 # which expands to similar(A, eltype(A), axes(A))
 _similar(A, T, ax, ::Any) = similar(A, T, ax)
+_similar(AT, ax, ::Any) = similar(AT, ax)
 # Handle the general case by resorting to lengths along each axis
 # This is hit if none of the axes provided to similar(A, T, axes) is an IdOffsetRange,
 # and if similar(A, T, axes::AX) is not defined for the type AX.
 # In this case the best that we can do is to create an Array of the correct size
 _similar(A, T, ax::I, ::I) where {I} = similar(A, T, map(_indexlength, ax))
+_similar(AT, ax::I, ::I) where {I} = similar(AT, map(_indexlength, ax))
 
 # reshape accepts a single colon
 Base.reshape(A::AbstractArray, inds::OffsetAxis...) = reshape(A, inds)
@@ -281,11 +287,6 @@ Base.reshape(A::OffsetArray, ::Colon) = reshape(parent(A), Colon())
 Base.reshape(A::OffsetVector, ::Colon) = A
 Base.reshape(A::OffsetArray, inds::Union{Int,Colon}...) = reshape(parent(A), inds)
 Base.reshape(A::OffsetArray, inds::Tuple{Vararg{Union{Int,Colon}}}) = reshape(parent(A), inds)
-
-function Base.similar(::Type{T}, shape::Tuple{OffsetAxisKnownLength,Vararg{OffsetAxisKnownLength}}) where {T<:AbstractArray}
-    P = T(undef, map(_indexlength, shape))
-    OffsetArray(P, map(_offset, axes(P), shape))
-end
 
 Base.fill(v, inds::NTuple{N, Union{Integer, AbstractUnitRange}}) where {N} =
     fill!(similar(Array{typeof(v)}, inds), v)

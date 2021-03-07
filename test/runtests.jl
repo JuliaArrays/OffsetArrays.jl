@@ -1312,6 +1312,17 @@ end
     @test eltype(A) === Int
     @test axes(A) == (5:6, 1:4)
 
+    # test for similar(::Type, ax)
+    indsoffset = (IdOffsetRange(SOneTo(2), 2),)
+    A = similar(Array{Int}, indsoffset)
+    @test parent(A) isa StaticArray
+    @test axes(A) == (3:4,)
+
+    s = SArray{Tuple{2,2},Int,2,4}((1,2,3,4));
+    so = OffsetArray(s, 2, 2);
+    so2 = so .+ 1;
+    @test parent(so2) isa StaticArray
+
     @test_throws MethodError similar(A, (:,))
     @test_throws MethodError similar(A, (: ,:))
     @test_throws MethodError similar(A, (: ,2))
