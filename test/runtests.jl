@@ -1317,6 +1317,9 @@ end
     A = similar(Array{Int}, indsoffset)
     @test parent(A) isa StaticArray
     @test axes(A) == (3:4,)
+    A = similar(Array{Int}, (indsoffset..., SOneTo(3)))
+    @test parent(A) isa StaticArray
+    @test axes(A) == (3:4, 1:3)
 
     s = SArray{Tuple{2,2},Int,2,4}((1,2,3,4));
     so = OffsetArray(s, 2, 2);

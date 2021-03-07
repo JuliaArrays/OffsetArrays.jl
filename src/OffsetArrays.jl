@@ -263,7 +263,7 @@ end
 _similar(A, T, ax, ::Any) = similar(A, T, ax)
 _similar(AT, ax, ::Any) = similar(AT, ax)
 # Handle the general case by resorting to lengths along each axis
-# This is hit if none of the axes provided to similar(A, T, axes) is an IdOffsetRange,
+# This is hit if none of the axes provided to similar(A, T, axes) are IdOffsetRanges,
 # and if similar(A, T, axes::AX) is not defined for the type AX.
 # In this case the best that we can do is to create an Array of the correct size
 _similar(A, T, ax::I, ::I) where {I} = similar(A, T, map(_indexlength, ax))
