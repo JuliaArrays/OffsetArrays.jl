@@ -1370,6 +1370,20 @@ end
     @test axes(B, 1) == -10:-9
     @test axes(B, 2) == axes(A0, 2)
 
+    B = reshape(A0, -10:-9, 3:3, :)
+    @test B isa OffsetArray{Int,3}
+    @test same_value(A0, B)
+    @test axes(B, 1) == -10:-9
+    @test axes(B, 2) == 3:3
+    @test axes(B, 3) == 1:2
+
+    B = reshape(A0, -10:-9, 3:4, :)
+    @test B isa OffsetArray{Int,3}
+    @test same_value(A0, B)
+    @test axes(B, 1) == -10:-9
+    @test axes(B, 2) == 3:4
+    @test axes(B, 3) == 1:1
+
     # pop the parent
     B = reshape(A, size(A))
     @test B == A0
