@@ -189,7 +189,7 @@ ERROR: BoundsError: attempt to access 4-element UnitRange{Int64} at index [5]
 [...]
 ```
 
-The `Array` conversion errors despite `zo` having 1-based indices. The function `axes(zo, 1)` hints at the underlying -- the values and the indices of the axis are different. This means that
+The `Array` conversion errors despite `zo` having 1-based indices. The function `axes(zo, 1)` hints at the underlying problem --- the values and the indices of the axis are different. We may check that the axis of `zo` is not its own axis:
 
 ```jldoctest zerobasedrange
 julia> axes(zo, 1)
