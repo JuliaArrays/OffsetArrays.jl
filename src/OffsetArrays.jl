@@ -269,6 +269,8 @@ if VERSION < v"1.6"
     end
 end
 
+Base.similar(A::OffsetArray) = OffsetArray(similar(parent(A)), A.offsets)
+Base.similar(A::OffsetArray, ::Type{T}) where T = OffsetArray(similar(parent(A), T), A.offsets)
 Base.similar(A::OffsetArray, ::Type{T}, dims::Dims) where T =
     similar(parent(A), T, dims)
 function Base.similar(A::AbstractArray, ::Type{T}, shape::Tuple{OffsetAxisKnownLength,Vararg{OffsetAxisKnownLength}}) where T
