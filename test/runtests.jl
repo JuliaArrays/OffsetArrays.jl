@@ -1363,6 +1363,13 @@ end
     @test reshape(OffsetArray(-1:0, -1:0), :) == OffsetArray(-1:0, -1:0)
     @test reshape(A, :) == reshape(A0, :)
 
+    # reshape with one Colon for AbstractArrays
+    B = reshape(A0, -10:-9, :)
+    @test B isa OffsetArray{Int,2}
+    @test parent(B) === A0
+    @test axes(B, 1) == -10:-9
+    @test axes(B, 2) == axes(A0, 2)
+
     # pop the parent
     B = reshape(A, size(A))
     @test B == A0
