@@ -8,8 +8,7 @@ _indexlength(i::Integer) = i
 _indexlength(i::Colon) = Colon()
 
 _offset(axparent::AbstractUnitRange, ax::AbstractUnitRange) = first(ax) - first(axparent)
-_offset(axparent::AbstractUnitRange, ax::Integer) = 1 - first(axparent)
-_offset(axparent::AbstractUnitRange, ::Colon) = 0
+_offset(axparent::AbstractUnitRange, ::Union{Integer, Colon}) = 1 - first(axparent)
 
 """
     OffsetArrays.AxisConversionStyle(typeof(indices))
