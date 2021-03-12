@@ -60,14 +60,18 @@ end
 # Benchmarks of vector indexing using OffsetRanges as axes
 @showbenchmark vectorlinearindexing(x, s)
 @showbenchmark vectorlinearindexing(x, sur)
+@showbenchmark vectorlinearindexing(x, sior)
 @showbenchmark vectorlinearindexing(y, s)
 @showbenchmark vectorlinearindexing(y, sur)
+@showbenchmark vectorlinearindexing(y, sior)
 
 @showbenchmark vectorlinearindexing(sur, s)
 @showbenchmark vectorlinearindexing(sur, sur)
+@showbenchmark vectorlinearindexing(sur, sior)
 
 @showbenchmark vectorCartesianindexing(x2d, s, s)
 @showbenchmark vectorCartesianindexing(x2d, sur, sur)
+@showbenchmark vectorCartesianindexing(x2d, sior, sior)
 
 @showbenchmark nestedvectorlinearindexing(x, s, s)
 @showbenchmark nestedvectorlinearindexing(x, sur, sur)

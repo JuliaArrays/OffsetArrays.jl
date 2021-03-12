@@ -924,6 +924,7 @@ end
         # AbstractArrays
         ones(100),
         ones(-1:100),
+        ones(-10:10, -10:10),
 
         # OffsetRanges
         OffsetArray(10:1000, 0), # 1-based index
@@ -940,6 +941,7 @@ end
         1:1000,
         UnitRange(1.0, 1000.0),
         1:3:1000,
+        1000:-3:1,
         1.0:3.0:1000.0,
         StepRangeLen(Float64(1), Float64(1000), 1000),
         LinRange(1, 1000, 1000),
@@ -958,6 +960,7 @@ end
         for r2 in Any[
             OffsetArray(5:80, 0),
             OffsetArray(5:2:80, 0),
+            OffsetArray(80:-2:5, 0),
             OffsetArray(IdentityUnitRange(5:80), -4),
             OffsetArray(IdOffsetRange(5:80), 0),
             ]
@@ -969,6 +972,7 @@ end
         for r2 in Any[
             5:80,
             5:2:80,
+            80:-2:5,
             IdOffsetRange(5:80),
             IdOffsetRange(ZeroBasedUnitRange(4:79), 1),
             ]
@@ -992,6 +996,7 @@ end
         1:99,
         Base.OneTo(99),
         1:1:99,
+        99:-1:1,
         1.0:1.0:99.0,
         StepRangeLen(Float64(1), Float64(99), 99),
         LinRange(1, 99, 99),
@@ -1724,8 +1729,12 @@ end
     @test clamp.(A, (amax+amin)/2, amax) == OffsetArray(clamp.(parent(A), (amax+amin)/2, amax), axes(A))
 
     @testset "mapreduce for OffsetRange" begin
-        for r in Any[5:100, UnitRange(5.0, 20.0), IdOffsetRange(1:100, 4), IdOffsetRange(4:5), # AbstractUnitRanges
-            2:4:14, 1.5:1.0:10.5, # AbstractRanges
+        for r in Any[
+            # AbstractUnitRanges
+            5:100, UnitRange(5.0, 20.0), false:true,
+            IdOffsetRange(1:100, 4), IdOffsetRange(4:5),
+            # AbstractRanges
+            2:4:14, 1.5:1.0:10.5,
             ]
 
             a = OffsetVector(r, 2);

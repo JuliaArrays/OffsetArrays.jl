@@ -400,59 +400,61 @@ Base.step(a::OffsetRange) = step(parent(a))
 
 Base.checkindex(::Type{Bool}, inds::AbstractUnitRange, or::OffsetRange) = Base.checkindex(Bool, inds, parent(or))
 
-@inline function Base.getindex(a::OffsetRange, r::OffsetRange)
-    @boundscheck checkbounds(a, r)
-    @inbounds pr = a.parent[r.parent .- a.offsets[1]]
-    _maybewrapoffset(pr, axes(r,1))
+# Certain special methods for linear indexing with integer ranges (or OffsetRanges)
+# These may bypass the default getindex(A, I...) pathway if the parent types permit this
+# For example AbstractRanges and Arrays have special linear indexing behavior defined
+
+# If both the arguments are offset, we may unwrap the indices to call (::OffsetArray)[::AbstractRange{Int}]
+@propagate_inbounds function Base.getindex(A::OffsetArray, r::OffsetRange{Int})
+    _maybewrapoffset(A[parent(r)], axes(r))
 end
-@inline function Base.getindex(a::OffsetRange, r::IdOffsetRange)
-    @boundscheck checkbounds(a, r)
-    @inbounds pr = a.parent[r.parent .+ (r.offset - a.offsets[1])]
-    _maybewrapoffset(pr, axes(r,1))
-end
-@inline function Base.getindex(a::OffsetRange, r::AbstractRange)
-    @boundscheck checkbounds(a, r)
-    @inbounds pr = a.parent[r .- a.offsets[1]]
-    _maybewrapoffset(pr, axes(r,1))
-end
-@propagate_inbounds function Base.getindex(a::AbstractRange, r::OffsetRange)
-    pr = a[parent(r)]
-    _maybewrapoffset(pr, axes(r,1))
+# If the indices are offset, we may unwrap them and pass the parent to getindex
+@propagate_inbounds function Base.getindex(A::AbstractRange, r::OffsetRange{Int})
+    _maybewrapoffset(A[parent(r)], axes(r))
 end
 
 # An OffsetUnitRange might use the rapid getindex(::Array, ::UnitRange{Int}) for contiguous indexing
-@propagate_inbounds function Base.getindex(A::Array, or::OffsetUnitRange{Int})
-    pr = A[UnitRange(parent(or))]
-    OffsetArray(pr, axes(or))
-end
-@inline function Base.getindex(A::OffsetArray{<:Any,<:Any,<:Array}, or::OffsetUnitRange{Int})
-    @boundscheck checkbounds(A, or)
-    @inbounds Ap = parent(A)[UnitRange(parent(or))]
-    OffsetArray(Ap, axes(or))
+@propagate_inbounds function Base.getindex(A::Array, r::OffsetUnitRange{Int})
+    B = A[UnitRange{Int}(parent(r))]
+    OffsetArray(B, axes(r))
 end
 
 # avoid hitting the slow method getindex(::Array, ::AbstractRange{Int})
 # instead use the faster getindex(::Array, ::UnitRange{Int})
-@propagate_inbounds function Base.getindex(A::Array, ior::IdOffsetRange{Int})
-    pr = A[UnitRange(ior)]
-    OffsetArray(pr, axes(ior))
-end
-@inline function Base.getindex(A::OffsetArray{<:Any,<:Any,<:Array}, ior::IdOffsetRange{Int})
-    @boundscheck checkbounds(A, ior)
-    @inbounds Ap = parent(A)[UnitRange(ior)]
-    OffsetArray(Ap, axes(ior))
+# this method would not be necessary after https://github.com/JuliaLang/julia/pull/39896 is merged
+# and we may limit this to older versions of Julia
+@propagate_inbounds function Base.getindex(A::Array, r::IdOffsetRange{Int})
+    B = A[UnitRange{Int}(r)]
+    OffsetArray(B, axes(r))
 end
 
-# An OffsetUnitRange{<:Integer} has an equivalent IdOffsetRange with the same values and axes
+# Linear Indexing of OffsetArrays with AbstractUnitRanges may use the faster contiguous indexing methods
+@inline function Base.getindex(A::OffsetArray, r::AbstractUnitRange{Int})
+    @boundscheck checkbounds(A, r)
+    # nD OffsetArrays do not have their linear indices shifted, so we may forward the indices provided to the parent
+    @inbounds B = parent(A)[UnitRange{Int}(r)]
+    _maybewrapoffset(B, axes(r))
+end
+@inline function Base.getindex(A::OffsetVector, r::AbstractUnitRange{Int})
+    @boundscheck checkbounds(A, r)
+    # OffsetVectors may have their linear indices shifted, so we subtract the offset from the indices provided
+    @inbounds B = parent(A)[_shiftedUnitRange(r, A.offsets[1])]
+    _maybewrapoffset(B, axes(r))
+end
+
+# This method added mainly to index an OffsetRange with another range
+@inline function Base.getindex(A::OffsetVector, r::AbstractRange{Int})
+    @boundscheck checkbounds(A, r)
+    @inbounds B = parent(A)[r .- A.offsets[1]]
+    _maybewrapoffset(B, axes(r))
+end
+
+# In general we would pass through getindex(A, I...) which calls to_indices(A, I)
+# An OffsetUnitRange{Int} has an equivalent IdOffsetRange with the same values and axes
 # We may replace the former with the latter in an indexing operation to obtain a performance boost
-@inline function Base.to_indices(A::AbstractArray, ax::Tuple, I::Tuple{OffsetUnitRange{<:Integer}, Vararg{Any}})
-    or = first(I)
-    r = parent(or)
-    of = first(axes(or,1)) - 1
-    # UnitRange(a - of, b - of) is a simpler operation than UnitRange(a, b) .- of
-    # This might permit compiler optimizations
-    ior = IdOffsetRange(UnitRange(first(r) - of, last(r) - of), of)
-    to_indices(A, ax, (ior, tail(I)...))
+@inline function Base.to_index(r::OffsetUnitRange{Int})
+    of = first(axes(r,1)) - 1
+    IdOffsetRange(_shiftedUnitRange(parent(r), of), of)
 end
 
 for OR in [:IIUR, :IdOffsetRange]
@@ -476,7 +478,7 @@ end
 # We therefore convert OffsetUnitRanges to IdOffsetRanges with the same values and axes
 function Base.mapreduce(f, op, As::OffsetUnitRange{<:Integer}...; kw...)
     ofs = map(A -> first(axes(A,1)) - 1, As)
-    AIds = map((A, of) -> IdOffsetRange(UnitRange(parent(A)) .- of, of), As, ofs)
+    AIds = map((A, of) -> IdOffsetRange(_shiftedUnitRange(parent(A), of), of), As, ofs)
     mapreduce(f, op, AIds...; kw...)
 end
 

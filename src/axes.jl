@@ -161,6 +161,8 @@ for f in [:firstindex, :lastindex, :first, :last]
     @eval @inline Base.$f(r::IdOffsetRange) = $f(r.parent) + r.offset
 end
 
+Base.AbstractUnitRange{T}(r::IdOffsetRange) where T = IdOffsetRange{T}(r)
+
 @inline function Base.iterate(r::IdOffsetRange)
     ret = iterate(r.parent)
     ret === nothing && return nothing
