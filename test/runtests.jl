@@ -60,18 +60,18 @@ for Z in [:ZeroBasedRange, :ZeroBasedUnitRange]
     for R in [:AbstractRange, :AbstractUnitRange, :StepRange]
         @eval @inline function Base.getindex(A::$Z, r::$R{<:Integer})
             @boundscheck checkbounds(A, r)
-            OffsetArrays._maybewrapoffset(A.a[r .+ 1], axes(r,1))
+            OffsetArrays._maybewrapoffset(A.a[r .+ 1], axes(r))
         end
     end
     for R in [:UnitRange, :StepRange, :StepRangeLen, :LinRange]
         @eval @inline function Base.getindex(A::$R, r::$Z)
             @boundscheck checkbounds(A, r)
-            OffsetArrays._maybewrapoffset(A[r.a], axes(r,1))
+            OffsetArrays._maybewrapoffset(A[r.a], axes(r))
         end
     end
     @eval @inline function Base.getindex(A::StepRangeLen{<:Any,<:Base.TwicePrecision,<:Base.TwicePrecision}, r::$Z)
         @boundscheck checkbounds(A, r)
-        OffsetArrays._maybewrapoffset(A[r.a], axes(r,1))
+        OffsetArrays._maybewrapoffset(A[r.a], axes(r))
     end
 end
 
@@ -163,6 +163,12 @@ end
     @test typeof(r2) == IdOffsetRange{Int32,IdOffsetRange{Int32,Base.OneTo{Int32}}}
     @test same_value(r2, 2:4)
     check_indexed_by(r2, 2:4)
+
+    # eltype coercion through the AbstractUnitRange constructor
+    ro = OffsetArrays.IdOffsetRange(Base.OneTo(3))
+    @test @inferred(AbstractUnitRange{Int}(ro)) === ro
+    rb = IdOffsetRange(Base.OneTo(big(3)))
+    @test @inferred(AbstractUnitRange{Int}(rb)) === IdOffsetRange(Base.OneTo(3))
 
     # Constructor that's round-trippable with `show`
     rrt = IdOffsetRange(values=7:9, indices=-1:1)
