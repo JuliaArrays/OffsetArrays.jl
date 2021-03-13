@@ -50,6 +50,9 @@ for Z in [:ZeroBasedRange, :ZeroBasedUnitRange]
     @eval Base.size(A::$Z) = size(A.a)
     @eval Base.axes(A::$Z) = map(x -> IdentityUnitRange(0:x-1), size(A.a))
     @eval Base.getindex(A::$Z, i::Int) = A.a[i + 1]
+    @eval Base.firstindex(A::$Z) = 0
+    @eval Base.axes(A::$Z) = map(x -> IdentityUnitRange(0:x-1), size(A.a))
+    @eval Base.getindex(A::$Z, i::Integer) = A.a[i + 1]
     @eval Base.step(A::$Z) = step(A.a)
     @eval OffsetArrays.no_offset_view(A::$Z) = A.a
     @eval function Base.show(io::IO, A::$Z)
@@ -857,20 +860,35 @@ end
     end
 end
 
-_comp(::Type{<:Integer}) = ==
-_comp(::Type{<:Real}) = ≈
+_comp(x::Integer, y::Integer) = x == y
+_comp(x::Any, y::Any) = isapprox(Real(x), Real(y), atol = 1e-14, rtol = 1e-8)
 function test_indexing_axes_and_vals(r1, r2)
     r12 = r1[r2]
-    op = _comp(eltype(r1))
     if axes(r12, 1) != axes(r2, 1)
         @show r1 r2 r12 axes(r12, 1) axes(r2, 1)
     end
     @test axes(r12, 1) == axes(r2, 1)
+
     if axes(r12, 1) == axes(r2, 1)
-        @test op(first(r12), r1[first(r2)])
-        @test op(last(r12), r1[last(r2)])
+        res1 = try
+            _comp(first(r12), r1[first(r2)])
+        catch
+            @show r1 r2
+            rethrow()
+        end
+        res2 = try
+            _comp(last(r12), r1[last(r2)])
+        catch
+            @show r1 r2
+            rethrow()
+        end
+        if !(res1 & res2)
+            @show r1 r2
+        end
+        @test res1
+        @test res2
         for i in eachindex(r2)
-            @test op(r12[i], r1[r2[i]])
+            @test _comp(r12[i], r1[r2[i]])
         end
     end
 end
@@ -926,11 +944,38 @@ end
     so2 = so[:]
     @test same_value(so2, s)
 
+    # Test r1[inds] for various combinations of types
+
+    # AbstractArrays with 1-based indices
+    indslist1 = Any[
+            OffsetArray(5:8, 0),
+            # This currently errors for IdentityUnitRange
+            # see https://github.com/JuliaLang/julia/issues/39997
+            # OffsetArray(big(5):big(80), 0),
+            OffsetArray(5:2:9, 0),
+            OffsetArray(9:-2:5, 0),
+            OffsetArray(IdentityUnitRange(5:8), -4),
+            OffsetArray(IdOffsetRange(5:8), 0),
+            ]
+
+    # AbstractRanges with 1-based indices
+    indslist2 = Any[
+            5:8,
+            # This currently errors for IdentityUnitRange
+            # see https://github.com/JuliaLang/julia/issues/39997
+            # big(5):big(80),
+            5:2:9,
+            9:-2:5,
+            IdOffsetRange(5:8),
+            IdOffsetRange(ZeroBasedUnitRange(4:7), 1),
+            ]
+
     for r1 in Any[
         # AbstractArrays
-        ones(100),
-        ones(-1:100),
-        ones(-10:10, -10:10),
+        collect(1:100),
+        reshape(collect(-1:100), -1:100),
+        collect(reshape(1:400, 20, 20)),
+        reshape(collect(1:21^2), -10:10, -10:10),
 
         # OffsetRanges
         OffsetArray(10:1000, 0), # 1-based index
@@ -963,27 +1008,16 @@ end
         ]
 
         # AbstractArrays with 1-based indices
-        for r2 in Any[
-            OffsetArray(5:80, 0),
-            OffsetArray(5:2:80, 0),
-            OffsetArray(80:-2:5, 0),
-            OffsetArray(IdentityUnitRange(5:80), -4),
-            OffsetArray(IdOffsetRange(5:80), 0),
-            ]
-
+        for r2 in indslist1
             test_indexing_axes_and_vals(r1, r2)
+            test_indexing_axes_and_vals(r1, collect(r2))
         end
 
         # AbstractRanges with 1-based indices
-        for r2 in Any[
-            5:80,
-            5:2:80,
-            80:-2:5,
-            IdOffsetRange(5:80),
-            IdOffsetRange(ZeroBasedUnitRange(4:79), 1),
-            ]
+        for r2 in indslist2
 
             test_indexing_axes_and_vals(r1, r2)
+            test_indexing_axes_and_vals(r1, collect(r2))
 
             if r1 isa AbstractRange && axes(r2, 1) isa Base.OneTo
                 @test r1[r2] isa AbstractRange
@@ -1012,12 +1046,13 @@ end
         ]
 
         for r2 in Any[
-            IdentityUnitRange(Base.OneTo(10)),
-            Base.Slice(Base.OneTo(10)),
-            IdOffsetRange(Base.OneTo(10)),
+            IdentityUnitRange(Base.OneTo(3)),
+            Base.Slice(Base.OneTo(3)),
+            IdOffsetRange(Base.OneTo(3)),
             ]
 
             test_indexing_axes_and_vals(r1, r2)
+            test_indexing_axes_and_vals(r1, collect(r2))
             if axes(r2, 1) isa Base.OneTo
                 @test r1[r2] isa AbstractRange
             end
@@ -1049,10 +1084,37 @@ end
         @test a[ax[i]] == a[ax][i]
     end
 
+    # AbstractArrays with offset axes
+    indslist1 = Any[OffsetArray(5:9, 40),
+            OffsetArray(5:2:9, 40),
+            OffsetArray(9:-2:5, 40),
+            OffsetArray(IdentityUnitRange(5:8), 2),
+            OffsetArray(IdOffsetRange(5:8, 1), 3),
+            OffsetArray(IdOffsetRange(IdOffsetRange(5:8, 4), 1), 3),
+            OffsetArray(IdOffsetRange(IdentityUnitRange(5:8), 1), 3),
+            OffsetArray(IdentityUnitRange(IdOffsetRange(5:8, 1)), 3),
+            ]
+
+    # AbstractRanges with offset axes
+    indslist2 = Any[IdOffsetRange(5:8, 1),
+            IdentityUnitRange(5:8),
+            IdOffsetRange(Base.OneTo(3), 4),
+            IdOffsetRange(IdOffsetRange(5:8, 2), 1),
+            IdOffsetRange(IdOffsetRange(IdOffsetRange(5:8, -1), 2), 1),
+            IdentityUnitRange(IdOffsetRange(1:4, 5)),
+            IdOffsetRange(IdentityUnitRange(15:20), -2),
+            ZeroBasedUnitRange(5:8),
+            ZeroBasedRange(5:8),
+            ZeroBasedRange(5:2:9),
+            ZeroBasedRange(9:-2:5),
+            ]
+
     for r1 in Any[
         # AbstractArrays
-        ones(100),
-        ones(-1:100),
+        collect(1:100),
+        reshape(collect(-1:100), -1:100),
+        collect(reshape(1:400, 20, 20)),
+        reshape(collect(1:21^2), -10:10, -10:10),
 
         # OffsetRanges
         OffsetArray(10:1000, 0), # 1-based index
@@ -1071,6 +1133,7 @@ end
         1:1000,
         UnitRange(1.0, 1000.0),
         1:2:2000,
+        2000:-1:1,
         1.0:2.0:2000.0,
         StepRangeLen(Float64(1), Float64(1000), 1000),
         LinRange(1.0, 2000.0, 2000),
@@ -1089,32 +1152,18 @@ end
         ]
 
         # AbstractArrays with offset axes
-        for r2 in Any[OffsetArray(5:80, 40),
-            OffsetArray(5:2:80, 40),
-            OffsetArray(IdentityUnitRange(5:80), 2),
-            OffsetArray(IdOffsetRange(5:80, 1), 3),
-            OffsetArray(IdOffsetRange(IdOffsetRange(5:80, 4), 1), 3),
-            OffsetArray(IdOffsetRange(IdentityUnitRange(5:80), 1), 3),
-            OffsetArray(IdentityUnitRange(IdOffsetRange(5:80, 1)), 3),
-            ]
-
+        for r2 in indslist1
             test_indexing_axes_and_vals(r1, r2)
+            r2_dense = OffsetArray(collect(r2), axes(r2))
+            test_indexing_axes_and_vals(r1, r2_dense)
         end
 
         # AbstractRanges with offset axes
-        for r2 in Any[IdOffsetRange(5:80, 1),
-            IdentityUnitRange(5:80),
-            IdOffsetRange(Base.OneTo(9), 4),
-            IdOffsetRange(IdOffsetRange(5:80, 2), 1),
-            IdOffsetRange(IdOffsetRange(IdOffsetRange(5:80, -1), 2), 1),
-            IdentityUnitRange(IdOffsetRange(1:10, 5)),
-            IdOffsetRange(IdentityUnitRange(15:20), -2),
-            ZeroBasedUnitRange(5:80),
-            ZeroBasedRange(5:80),
-            ZeroBasedRange(5:2:80),
-            ]
+        for r2 in indslist2
 
             test_indexing_axes_and_vals(r1, r2)
+            r2_dense = OffsetArray(collect(r2), axes(r2))
+            test_indexing_axes_and_vals(r1, r2_dense)
 
             # This might not hold for all ranges, but holds for the known ones being tested here
             if r1 isa AbstractUnitRange{<:Integer} && r2 isa AbstractUnitRange{<:Integer}
@@ -1735,13 +1784,18 @@ end
     @test clamp.(A, (amax+amin)/2, amax) == OffsetArray(clamp.(parent(A), (amax+amin)/2, amax), axes(A))
 
     @testset "mapreduce for OffsetRange" begin
-        for r in Any[
+        rangelist = Any[
             # AbstractUnitRanges
-            5:100, UnitRange(5.0, 20.0), false:true,
-            IdOffsetRange(1:100, 4), IdOffsetRange(4:5),
+            Int32(5):Int32(100), Int64(5):Int64(100), UnitRange(5.0, 20.0), false:true,
+            IdOffsetRange(Int32(4):Int32(5)),
+            IdOffsetRange(Int64(4):Int64(5)),
+            IdentityUnitRange(4:5),
+            IdOffsetRange(1:100, 4),
             # AbstractRanges
             2:4:14, 1.5:1.0:10.5,
             ]
+
+        for r in rangelist
 
             a = OffsetVector(r, 2);
             @test mapreduce(identity, +, a) == mapreduce(identity, +, r)
