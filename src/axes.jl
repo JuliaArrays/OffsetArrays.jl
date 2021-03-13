@@ -77,13 +77,27 @@ struct IdOffsetRange{T<:Integer,I<:AbstractUnitRange{T}} <: AbstractUnitRange{T}
     parent::I
     offset::T
 
-    IdOffsetRange{T,I}(r::I, offset::T) where {T<:Integer,I<:AbstractUnitRange{T}} = new{T,I}(r, offset)
+    function IdOffsetRange{T,I}(r::I, offset::T) where {T<:Integer,I<:AbstractUnitRange{T}}
+        if T === Bool
+            # disallow the construction of IdOffsetRange{Bool, UnitRange{Bool}}(true:true, true)
+            if offset && (first(r) || last(r))
+                throw(ArgumentError("values = $r and offset = $offset can not produce a boolean range"))
+            end
+        end
+        new{T,I}(r, offset)
+    end
 
     #= This method is necessary to avoid a StackOverflowError in IdOffsetRange{T,I}(r::IdOffsetRange, offset::Integer).
     The type signature in that method is more specific than IdOffsetRange{T,I}(r::I, offset::T),
     so it ends up calling itself if I <: IdOffsetRange.
     =#
     function IdOffsetRange{T,IdOffsetRange{T,I}}(r::IdOffsetRange{T,I}, offset::T) where {T<:Integer,I<:AbstractUnitRange{T}}
+        if T === Bool
+            # disallow the construction of IdOffsetRange{Bool, IdOffsetRange{Bool, UnitRange{Bool}}}(IdOffsetRange(true:true), true)
+            if offset && (first(r) || last(r))
+                throw(ArgumentError("values = $r and offset = $offset can not produce a boolean range"))
+            end
+        end
         new{T,IdOffsetRange{T,I}}(r, offset)
     end
 end
@@ -157,35 +171,75 @@ offset_coerce(::Type{I}, r::AbstractUnitRange) where I<:AbstractUnitRange =
 Base.reduced_index(i::IdOffsetRange) = typeof(i)(first(i):first(i))
 # Workaround for #92 on Julia < 1.4
 Base.reduced_index(i::IdentityUnitRange{<:IdOffsetRange}) = typeof(i)(first(i):first(i))
-for f in [:firstindex, :lastindex, :first, :last]
+for f in [:firstindex, :lastindex]
     @eval @inline Base.$f(r::IdOffsetRange) = $f(r.parent) + r.offset
+end
+for f in [:first, :last]
+    # coerce the type to deal with values that get promoted on addition (eg. Bool)
+    @eval @inline Base.$f(r::IdOffsetRange) = eltype(r)($f(r.parent) + r.offset)
 end
 
 @inline function Base.iterate(r::IdOffsetRange)
     ret = iterate(r.parent)
     ret === nothing && return nothing
-    return (ret[1] + r.offset, ret[2])
+    return (eltype(r)(ret[1] + r.offset), ret[2])
 end
 @inline function Base.iterate(r::IdOffsetRange, i)
     ret = iterate(r.parent, i)
     ret === nothing && return nothing
-    return (ret[1] + r.offset, ret[2])
+    return (eltype(r)(ret[1] + r.offset), ret[2])
 end
 
 @inline function Base.getindex(r::IdOffsetRange, i::Integer)
+    i isa Bool && throw(ArgumentError("invalid index: $i of type Bool"))
     @boundscheck checkbounds(r, i)
-    @inbounds r.parent[i - r.offset] + r.offset
+    @inbounds eltype(r)(r.parent[i - r.offset] + r.offset)
 end
+# Logical indexing following https://github.com/JuliaLang/julia/pull/31829
 @inline function Base.getindex(r::IdOffsetRange, s::AbstractUnitRange{<:Integer})
     @boundscheck checkbounds(r, s)
-    @inbounds pr = r.parent[_subtractoffset(s, r.offset)] .+ r.offset
-    _indexedby(pr, axes(s))
+    offset_s = first(axes(s,1)) - 1
+    if eltype(s) === Bool
+        # Use logical indexing
+        rs = if length(s) == 0 # true:false
+            UnitRange(r)
+        elseif length(s) == 1 # true:true or false:false
+            if first(s) # true:true
+                UnitRange(r)
+            else # false:false
+                UnitRange(range(first(r), length = 0))
+            end
+        else # length(s) == 2 (false:true)
+            f = first(r)
+            UnitRange(range(f + one(f), length = 1))
+        end
+        return _indexedby(rs, axes(s))
+    else
+        @inbounds pr = r.parent[s .- r.offset] .+ r.offset
+        return _indexedby(pr, axes(s))
+    end
 end
 # The following method is required to avoid falling back to getindex(::AbstractUnitRange, ::StepRange{<:Integer})
 @inline function Base.getindex(r::IdOffsetRange, s::StepRange{<:Integer})
     @boundscheck checkbounds(r, s)
-    @inbounds rs = r.parent[s .- r.offset] .+ r.offset
-    return no_offset_view(rs)
+    if eltype(s) === Bool
+        # Use logical indexing
+        rs = if length(s) == 0 # eg. true:true:false
+            range(first(r), step = step(s), length = 0)
+        elseif length(s) == 1 # eg. true:true:true or false:true:false
+            if first(s) # eg. true:true:true
+                range(first(r), step = step(s), length = 1)
+            else # eg. false:true:false
+                range(first(r), step = step(s), length = 0)
+            end
+        else # length(s) == 2 (eg. false:true:true)
+            range(first(r) + step(r), step = step(s), length = 1)
+        end
+        return no_offset_view(rs)
+    else
+        @inbounds rs = r.parent[s .- r.offset] .+ r.offset
+        return no_offset_view(rs)
+    end
 end
 
 # offset-preserve broadcasting
