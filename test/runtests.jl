@@ -1786,11 +1786,10 @@ end
     @testset "mapreduce for OffsetRange" begin
         rangelist = Any[
             # AbstractUnitRanges
-            Int32(5):Int32(100), Int64(5):Int64(100), UnitRange(5.0, 20.0), false:true,
-            IdOffsetRange(Int32(4):Int32(5)),
-            IdOffsetRange(Int64(4):Int64(5)),
+            5:100, UnitRange(5.0, 20.0), false:true,
+            IdOffsetRange(4:5),
             IdentityUnitRange(4:5),
-            IdOffsetRange(1:100, 4),
+            IdOffsetRange(1:10, 4),
             # AbstractRanges
             2:4:14, 1.5:1.0:10.5,
             ]
