@@ -137,17 +137,17 @@ const OffsetMatrix{T,AA<:AbstractMatrix{T}} = OffsetArray{T,2,AA}
 
 function overflow_check(r, offset::T) where T
     # This gives some performance boost https://github.com/JuliaLang/julia/issues/33273
-    throw_upper_overflow_error(val, r) = throw(OverflowError("offset should be <= $(typemax(T) - val) corresponding to the axis $r, received an offset $offset"))
-    throw_lower_overflow_error(val, r) = throw(OverflowError("offset should be >= $(typemin(T) - val) corresponding to the axis $r, received an offset $offset"))
+    throw_upper_overflow_error(val) = throw(OverflowError("offset should be <= $(typemax(T) - val) corresponding to the axis $r, received an offset $offset"))
+    throw_lower_overflow_error(val) = throw(OverflowError("offset should be >= $(typemin(T) - val) corresponding to the axis $r, received an offset $offset"))
 
     # With ranges in the picture, first(r) might not necessarily be < last(r)
     # we therefore use the min and max of first(r) and last(r) to check for overflow
     firstlast_min, firstlast_max = minmax(first(r), last(r))
 
     if offset > 0 && firstlast_max > typemax(T) - offset
-        throw_upper_overflow_error(firstlast_max, r)
+        throw_upper_overflow_error(firstlast_max)
     elseif offset < 0 && firstlast_min < typemin(T) - offset
-        throw_lower_overflow_error(firstlast_min, r)
+        throw_lower_overflow_error(firstlast_min)
     end
 end
 
