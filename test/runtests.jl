@@ -394,6 +394,7 @@ Base.convert(::Type{Int}, a::WeirdInteger) = a
         @test_throws OverflowError OffsetArray{Float64, 1, typeof(ao)}(ao, (-2, )) # inner Constructor
         @test_throws OverflowError OffsetArray(ao, (-2, )) # convinient constructor accumulate offsets
         @test_throws OverflowError OffsetVector(1:0, typemax(Int))
+        @test_throws OverflowError OffsetVector(OffsetVector(1:0, 0), typemax(Int))
 
         @testset "OffsetRange" begin
             local r = 1:100
