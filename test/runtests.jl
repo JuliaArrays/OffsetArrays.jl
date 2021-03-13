@@ -275,6 +275,9 @@ end
             @test first(r) === b1
             @test last(r) === b2
         end
+        @test_throws ArgumentError IdOffsetRange(true:true, true)
+        @test_throws ArgumentError IdOffsetRange{Bool,UnitRange{Bool}}(true:true, true)
+        @test_throws ArgumentError IdOffsetRange{Bool,IdOffsetRange{Bool,UnitRange{Bool}}}(IdOffsetRange(true:true), true)
     end
 
     @testset "Logical indexing" begin
@@ -314,34 +317,34 @@ end
         @testset "indexing wtih a Bool StepRange" begin
             r = IdOffsetRange(1:0)
 
-            @test r[true:true:false] == 1:0
+            @test r[true:true:false] == 1:1:0
             @test_throws BoundsError r[true:true:true]
             @test_throws BoundsError r[false:true:false]
             @test_throws BoundsError r[false:true:true]
 
             r = IdOffsetRange(1:1)
 
-            @test r[true:true:true] == 1:1
+            @test r[true:true:true] == 1:1:1
             @test r[true:true:true] == collect(r)[true:true:true]
 
-            @test r[false:true:false] == 1:0
+            @test r[false:true:false] == 1:1:0
             @test r[false:true:false] == collect(r)[false:true:false]
 
             # StepRange{Bool,Int}
             s = StepRange(true, 1, true)
-            @test r[s] == 1:1
+            @test r[s] == 1:1:1
             @test r[s] == collect(r)[s]
 
             s = StepRange(true, 2, true)
-            @test r[s] == 1:1
+            @test r[s] == 1:2:1
             @test r[s] == collect(r)[s]
 
             s = StepRange(false, 1, false)
-            @test r[s] == 1:0
+            @test r[s] == 1:1:0
             @test r[s] == collect(r)[s]
 
             s = StepRange(false, 2, false)
-            @test r[s] == 1:0
+            @test r[s] == 1:2:0
             @test r[s] == collect(r)[s]
 
             @test_throws BoundsError r[true:true:false]
@@ -349,12 +352,12 @@ end
 
             r = IdOffsetRange(1:2)
 
-            @test r[false:true:true] == 2:2
+            @test r[false:true:true] == 2:1:2
             @test r[false:true:true] == collect(r)[false:true:true]
 
             # StepRange{Bool,Int}
             s = StepRange(false, 1, true)
-            @test r[s] == 2:2
+            @test r[s] == 2:1:2
             @test r[s] == collect(r)[s]
 
             @test_throws BoundsError r[true:true:true]
