@@ -321,6 +321,14 @@ Base.convert(::Type{Int}, a::WeirdInteger) = a
             @test axes(a) === (IdOffsetRange(Base.OneTo(4), 0), )
         end
 
+        # nested OffsetVectors
+        for inds in Any[offsets, offsets_big]
+            a = OffsetVector{Float64}(undef, inds)
+            b = OffsetVector(a, inds); b2 = OffsetVector(a, inds...);
+            @test eltype(b) === eltype(b2) === Float64
+            @test axes(b, 1) === axes(b2, 1) === IdOffsetRange(Base.OneTo(4), 4)
+        end
+
         # offset indexing
         for inds in offset_axes
             # test offsets
@@ -385,6 +393,8 @@ Base.convert(::Type{Int}, a::WeirdInteger) = a
         @test_nowarn OffsetArray{Float64, 1, typeof(ao)}(ao, (-1, ))
         @test_throws OverflowError OffsetArray{Float64, 1, typeof(ao)}(ao, (-2, )) # inner Constructor
         @test_throws OverflowError OffsetArray(ao, (-2, )) # convinient constructor accumulate offsets
+        @test_throws OverflowError OffsetVector(1:0, typemax(Int))
+        @test_throws OverflowError OffsetVector(OffsetVector(1:0, 0), typemax(Int))
 
         @testset "OffsetRange" begin
             local r = 1:100
@@ -470,6 +480,15 @@ Base.convert(::Type{Int}, a::WeirdInteger) = a
             @test axes(a) === ax
         end
         @test_throws Union{ArgumentError, ErrorException} OffsetMatrix{Float64}(undef, 2, -2) # only positive numbers works
+
+        # nested OffsetMatrices
+        for inds in Any[offsets, offsets_big]
+            a = OffsetMatrix{Float64}(undef, inds)
+            b = OffsetMatrix(a, inds); b2 = OffsetMatrix(a, inds...);
+            @test eltype(b) === eltype(b2) === Float64
+            @test axes(b, 1) === axes(b2, 1) === IdOffsetRange(Base.OneTo(4), 4)
+            @test axes(b, 2) === axes(b2, 2) === IdOffsetRange(Base.OneTo(3), 3)
+        end
 
         for inds in offset_axes
             # test offsets
@@ -577,6 +596,15 @@ Base.convert(::Type{Int}, a::WeirdInteger) = a
         @test OffsetArray(a, 0:1, CartesianIndices(()), :, 2:3) == OffsetArray(a, 0:1, :, 2:3)
         @test OffsetArray(a, 0:1, :,  CartesianIndices(()), 2:3) == OffsetArray(a, 0:1, :, 2:3)
         @test OffsetArray(a, 0:1, :, 2:3, CartesianIndices(())) == OffsetArray(a, 0:1, :, 2:3)
+
+        # nested OffsetArrays
+        for offsets in [(1,1,1), big.((1,1,1))]
+            ob = OffsetArray(oa, offsets); ob2 = OffsetArray(oa, offsets...);
+            @test eltype(ob) === eltype(ob2) === Float64
+            @test axes(ob, 1) === axes(ob2, 1) === IdOffsetRange(Base.OneTo(2), 0)
+            @test axes(ob, 2) === axes(ob2, 2) === IdOffsetRange(Base.OneTo(2), 3)
+            @test axes(ob, 3) === axes(ob2, 3) === IdOffsetRange(Base.OneTo(2), 2)
+        end
 
         indices = (-1:1, -7:7, -1:2, -5:5, -1:1, -3:3, -2:2, -1:1)
         y = OffsetArray{Float64}(undef, indices...);

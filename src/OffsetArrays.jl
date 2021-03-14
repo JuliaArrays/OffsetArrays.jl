@@ -117,7 +117,7 @@ struct OffsetArray{T,N,AA<:AbstractArray{T,N}} <: AbstractArray{T,N}
     end
 end
 
-function OffsetArray{T, N, AA}(parent::AA, offsets::NTuple{N, <:Integer}) where {T, N, AA<:AbstractArray{T,N}}
+function OffsetArray{T, N, AA}(parent::AA, offsets::NTuple{N, Integer}) where {T, N, AA<:AbstractArray{T,N}}
     OffsetArray{T, N, AA}(parent, map(x -> convert(Int, x)::Int, offsets))
 end
 
@@ -135,16 +135,34 @@ Type alias and convenience constructor for two-dimensional [`OffsetArray`](@ref)
 """
 const OffsetMatrix{T,AA<:AbstractMatrix{T}} = OffsetArray{T,2,AA}
 
-function overflow_check(r, offset::T) where T
+# checks if the offset may be added to the range without overflowing
+function overflow_check(r::AbstractUnitRange{T}, offset::T) where T<:Integer
     # This gives some performance boost https://github.com/JuliaLang/julia/issues/33273
-    throw_upper_overflow_error() = throw(OverflowError("Boundary overflow detected: offset should be <= $(typemax(T) - last(r)) for offsets of type $T, received $offset"))
-    throw_lower_overflow_error() = throw(OverflowError("Boundary overflow detected: offset should be >= $(typemin(T) - first(r)) for offsets of type $T, received $offset"))
+    throw_upper_overflow_error(val) = throw(OverflowError("offset should be <= $(typemax(T) - val) corresponding to the axis $r, received an offset $offset"))
+    throw_lower_overflow_error(val) = throw(OverflowError("offset should be >= $(typemin(T) - val) corresponding to the axis $r, received an offset $offset"))
 
-    if offset > 0 && last(r) > typemax(T) - offset
+    # With ranges in the picture, first(r) might not necessarily be < last(r)
+    # we therefore use the min and max of first(r) and last(r) to check for overflow
+    firstlast_min, firstlast_max = minmax(first(r), last(r))
+
+    if offset > 0 && firstlast_max > typemax(T) - offset
+        throw_upper_overflow_error(firstlast_max)
+    elseif offset < 0 && firstlast_min < typemin(T) - offset
+        throw_lower_overflow_error(firstlast_min)
+    end
+    return nothing
+end
+# checks if the two offsets may be added together without overflowing
+function overflow_check(offset1::T, offset2::T) where {T<:Integer}
+    throw_upper_overflow_error() = throw(OverflowError("offset should be <= $(typemax(eltype(offset1)) - offset1) given a pre-existing offset of $offset1, received an offset $offset2"))
+    throw_lower_overflow_error() = throw(OverflowError("offset should be >= $(typemin(eltype(offset1)) - offset1) given a pre-existing offset of $offset1, received an offset $offset2"))
+
+    if offset1 > 0 && offset2 > typemax(T) - offset1
         throw_upper_overflow_error()
-    elseif offset < 0 && first(r) < typemin(T) - offset
+    elseif offset1 < 0 && offset2 < typemin(T) - offset1
         throw_lower_overflow_error()
     end
+    return nothing
 end
 
 # Tuples of integers are treated as offsets
@@ -170,9 +188,15 @@ end
 ## OffsetArray constructors
 for FT in (:OffsetArray, :OffsetVector, :OffsetMatrix)
     # Nested OffsetArrays may strip off the wrapper and collate the offsets
-    @eval @inline function $FT(A::OffsetArray, offsets::Tuple{Vararg{Integer}})
+    # empty tuples are handled here
+    @eval @inline function $FT(A::OffsetArray, offsets::Tuple{Vararg{Int}})
         _checkindices(A, offsets, "offsets")
+        # ensure that the offsets may be added together without an overflow
+        foreach(overflow_check, A.offsets, offsets)
         $FT(parent(A), map(+, A.offsets, offsets))
+    end
+    @eval @inline function $FT(A::OffsetArray, offsets::Tuple{Integer,Vararg{Integer}})
+        $FT(A, map(x -> convert(Int, x)::Int, offsets))
     end
 
     # In general, indices get converted to AbstractUnitRanges.
