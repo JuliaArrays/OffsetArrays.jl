@@ -135,7 +135,8 @@ Type alias and convenience constructor for two-dimensional [`OffsetArray`](@ref)
 """
 const OffsetMatrix{T,AA<:AbstractMatrix{T}} = OffsetArray{T,2,AA}
 
-function overflow_check(r, offset::T) where T
+# checks if the offset may be added to the range without overflowing
+function overflow_check(r::AbstractUnitRange{T}, offset::T) where T<:Integer
     # This gives some performance boost https://github.com/JuliaLang/julia/issues/33273
     throw_upper_overflow_error(val) = throw(OverflowError("offset should be <= $(typemax(T) - val) corresponding to the axis $r, received an offset $offset"))
     throw_lower_overflow_error(val) = throw(OverflowError("offset should be >= $(typemin(T) - val) corresponding to the axis $r, received an offset $offset"))
@@ -149,6 +150,19 @@ function overflow_check(r, offset::T) where T
     elseif offset < 0 && firstlast_min < typemin(T) - offset
         throw_lower_overflow_error(firstlast_min)
     end
+    return nothing
+end
+# checks if the two offsets may be added together without overflowing
+function overflow_check(offset1::T, offset2::T) where {T<:Integer}
+    throw_upper_overflow_error() = throw(OverflowError("offset should be <= $(typemax(eltype(offset1)) - offset1) given a pre-existing offset of $offset1, received an offset $offset2"))
+    throw_lower_overflow_error() = throw(OverflowError("offset should be >= $(typemin(eltype(offset1)) - offset1) given a pre-existing offset of $offset1, received an offset $offset2"))
+
+    if offset1 > 0 && offset2 > typemax(T) - offset1
+        throw_upper_overflow_error()
+    elseif offset1 < 0 && offset2 < typemin(T) - offset1
+        throw_lower_overflow_error()
+    end
+    return nothing
 end
 
 # Tuples of integers are treated as offsets
@@ -177,7 +191,8 @@ for FT in (:OffsetArray, :OffsetVector, :OffsetMatrix)
     # empty tuples are handled here
     @eval @inline function $FT(A::OffsetArray, offsets::Tuple{Vararg{Int}})
         _checkindices(A, offsets, "offsets")
-        foreach(overflow_check, axes(A), offsets)
+        # ensure that the offsets may be added together without an overflow
+        foreach(overflow_check, A.offsets, offsets)
         $FT(parent(A), map(+, A.offsets, offsets))
     end
     @eval @inline function $FT(A::OffsetArray, offsets::Tuple{Integer,Vararg{Integer}})
