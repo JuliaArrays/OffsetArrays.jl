@@ -118,6 +118,9 @@ function IdOffsetRange(; values::AbstractUnitRange{<:Integer}, indices::Abstract
     return IdOffsetRange(values .- offset, offset)
 end
 
+AbstractUnitRange{T}(r::IdOffsetRange{T}) where T = r
+AbstractUnitRange{T}(r::IdOffsetRange) where T = IdOffsetRange{T}(r)
+
 # TODO: uncomment these when Julia is ready
 # # Conversion preserves both the values and the indices, throwing an InexactError if this
 # # is not possible.
