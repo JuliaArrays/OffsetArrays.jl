@@ -410,6 +410,12 @@ Base.convert(::Type{Int}, a::WeirdInteger) = a
                 @test first(r) in a
                 @test !(last(r) + 1 in a)
             end
+
+            @testset "BigInt axes" begin
+                r = OffsetArray(1:big(2)^65, 4000)
+                @test eltype(r) === BigInt
+                @test axes(r, 1) == (big(1):big(2)^65) .+ 4000
+            end
         end
 
         # disallow OffsetVector(::Array{<:Any, N}, offsets) where N != 1
