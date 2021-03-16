@@ -201,19 +201,17 @@ end
     offset_s = first(axes(s,1)) - 1
     if eltype(s) === Bool
         # Use logical indexing
-        rs = if length(s) == 0 # true:false
-            UnitRange(r)
+        if length(s) == 0 # true:false
+            return range(first(r), length = 0)
         elseif length(s) == 1 # true:true or false:false
             if first(s) # true:true
-                UnitRange(r)
+                return range(first(r), length = 1)
             else # false:false
-                UnitRange(range(first(r), length = 0))
+                return range(first(r), length = 0)
             end
         else # length(s) == 2 (false:true)
-            f = first(r)
-            UnitRange(range(f + one(f), length = 1))
+            return range(last(r), length = 1)
         end
-        return _indexedby(rs, axes(s))
     else
         @inbounds pr = r.parent[s .- r.offset] .+ r.offset
         return _indexedby(pr, axes(s))
@@ -224,18 +222,17 @@ end
     @boundscheck checkbounds(r, s)
     if eltype(s) === Bool
         # Use logical indexing
-        rs = if length(s) == 0 # eg. true:true:false
-            range(first(r), step = step(s), length = 0)
+        if length(s) == 0 # eg. true:true:false
+            return range(first(r), step = oneunit(step(s)), length = 0)
         elseif length(s) == 1 # eg. true:true:true or false:true:false
             if first(s) # eg. true:true:true
-                range(first(r), step = step(s), length = 1)
+                return range(first(r), step = oneunit(step(s)), length = 1)
             else # eg. false:true:false
-                range(first(r), step = step(s), length = 0)
+                return range(first(r), step = oneunit(step(s)), length = 0)
             end
         else # length(s) == 2 (eg. false:true:true)
-            range(first(r) + step(r), step = step(s), length = 1)
+            return range(last(r), step = oneunit(step(s)), length = 1)
         end
-        return no_offset_view(rs)
     else
         @inbounds rs = r.parent[s .- r.offset] .+ r.offset
         return no_offset_view(rs)
