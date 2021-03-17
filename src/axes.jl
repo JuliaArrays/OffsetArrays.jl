@@ -201,6 +201,12 @@ end
     offset_s = first(axes(s,1)) - 1
     if eltype(s) === Bool
         # Use logical indexing
+        #= The code implemented is a comparison-free version of the following:
+
+        range(ifelse(first(s), first(r), last(r)), length=Int(last(s)))
+
+        See https://github.com/JuliaArrays/OffsetArrays.jl/pull/224#discussion_r595635143
+        =#
         range(first(r) * first(s) + last(r) * !first(s), length=Int(last(s)))
     else
         @inbounds pr = r.parent[s .- r.offset] .+ r.offset
@@ -212,6 +218,12 @@ end
     @boundscheck checkbounds(r, s)
     if eltype(s) === Bool
         # Use logical indexing
+        #= The code implemented is a comparison-free version of the following:
+
+        range(ifelse(first(s), first(r), last(r)), step = oneunit(step(s)), length=Int(last(s)))
+
+        See https://github.com/JuliaArrays/OffsetArrays.jl/pull/224#discussion_r595635143
+        =#
         range(first(r) * first(s) + last(r) * !first(s), step = oneunit(step(s)), length=Int(last(s)))
     else
         @inbounds rs = r.parent[s .- r.offset] .+ r.offset
