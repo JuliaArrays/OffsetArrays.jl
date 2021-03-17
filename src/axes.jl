@@ -201,17 +201,7 @@ end
     offset_s = first(axes(s,1)) - 1
     if eltype(s) === Bool
         # Use logical indexing
-        if length(s) == 0 # true:false
-            return range(first(r), length = 0)
-        elseif length(s) == 1 # true:true or false:false
-            if first(s) # true:true
-                return range(first(r), length = 1)
-            else # false:false
-                return range(first(r), length = 0)
-            end
-        else # length(s) == 2 (false:true)
-            return range(last(r), length = 1)
-        end
+        range(first(r) * first(s) + last(r) * !first(s), length=Int(last(s)))
     else
         @inbounds pr = r.parent[s .- r.offset] .+ r.offset
         return _indexedby(pr, axes(s))
@@ -222,17 +212,7 @@ end
     @boundscheck checkbounds(r, s)
     if eltype(s) === Bool
         # Use logical indexing
-        if length(s) == 0 # eg. true:true:false
-            return range(first(r), step = oneunit(step(s)), length = 0)
-        elseif length(s) == 1 # eg. true:true:true or false:true:false
-            if first(s) # eg. true:true:true
-                return range(first(r), step = oneunit(step(s)), length = 1)
-            else # eg. false:true:false
-                return range(first(r), step = oneunit(step(s)), length = 0)
-            end
-        else # length(s) == 2 (eg. false:true:true)
-            return range(last(r), step = oneunit(step(s)), length = 1)
-        end
+        range(first(r) * first(s) + last(r) * !first(s), step = oneunit(step(s)), length=Int(last(s)))
     else
         @inbounds rs = r.parent[s .- r.offset] .+ r.offset
         return no_offset_view(rs)
