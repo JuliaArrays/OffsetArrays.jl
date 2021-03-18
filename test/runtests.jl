@@ -47,7 +47,7 @@ for Z in [:ZeroBasedRange, :ZeroBasedUnitRange]
     @eval Base.length(A::$Z) = length(A.a)
     @eval Base.last(A::$Z) = last(A.a)
     @eval Base.size(A::$Z) = size(A.a)
-    @eval Base.axes(A::$Z) = map(x -> 0:x-1, size(A.a))
+    @eval Base.axes(A::$Z) = map(x -> IdentityUnitRange(0:x-1), size(A.a))
     @eval Base.getindex(A::$Z, i::Int) = A.a[i + 1]
     @eval Base.step(A::$Z) = step(A.a)
     @eval OffsetArrays.no_offset_view(A::$Z) = A.a
@@ -1021,6 +1021,13 @@ end
             test_indexing_axes_and_vals(r1, r2)
         end
     end
+end
+
+@testset "LinearIndexing" begin
+    r = OffsetArray(ZeroBasedRange(3:4), 1);
+    @test LinearIndices(r) == axes(r,1)
+    r = OffsetArray(ZeroBasedRange(3:4), 2);
+    @test LinearIndices(r) == axes(r,1)
 end
 
 @testset "CartesianIndexing" begin
