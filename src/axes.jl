@@ -77,15 +77,6 @@ struct IdOffsetRange{T<:Integer,I<:AbstractUnitRange{T}} <: AbstractUnitRange{T}
     parent::I
     offset::T
 
-    function _bool_check(::Type{Bool}, r, offset)
-        if offset && (first(r) || last(r))
-            # disallow the construction of IdOffsetRange{Bool, UnitRange{Bool}}(true:true, true)
-            throw(ArgumentError("values = $r and offset = $offset can not produce a boolean range"))
-        end
-        return nothing
-    end
-    _bool_check(::Type, r, offset) = nothing
-
     function IdOffsetRange{T,I}(r::I, offset::T) where {T<:Integer,I<:AbstractUnitRange{T}}
         _bool_check(T, r, offset)
         new{T,I}(r, offset)
@@ -100,6 +91,15 @@ struct IdOffsetRange{T<:Integer,I<:AbstractUnitRange{T}} <: AbstractUnitRange{T}
         new{T,IdOffsetRange{T,I}}(r, offset)
     end
 end
+
+function _bool_check(::Type{Bool}, r, offset)
+    # disallow the construction of IdOffsetRange{Bool, UnitRange{Bool}}(true:true, true)
+    if offset && (first(r) || last(r))
+        throw(ArgumentError("values = $r and offset = $offset can not produce a boolean range"))
+    end
+    return nothing
+end
+_bool_check(::Type, r, offset) = nothing
 
 # Construction/coercion from arbitrary AbstractUnitRanges
 function IdOffsetRange{T,I}(r::AbstractUnitRange, offset::Integer = 0) where {T<:Integer,I<:AbstractUnitRange{T}}
