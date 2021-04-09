@@ -121,6 +121,8 @@ end
 AbstractUnitRange{T}(r::IdOffsetRange{T}) where T<:Integer = r
 AbstractUnitRange{T}(r::IdOffsetRange) where T<:Integer = IdOffsetRange{T}(r)
 
+OrdinalRange{T,T}(r::IdOffsetRange) where {T<:Integer} = AbstractUnitRange{T}(r)
+
 # TODO: uncomment these when Julia is ready
 # # Conversion preserves both the values and the indices, throwing an InexactError if this
 # # is not possible.
