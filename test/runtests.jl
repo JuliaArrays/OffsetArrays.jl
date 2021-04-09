@@ -252,6 +252,8 @@ end
         r2 = IdOffsetRange(big(1):big(2))
         @test AbstractUnitRange{Int}(r2) === r
         @test AbstractUnitRange{BigInt}(r2) === r2
+
+        @test OrdinalRange{Int,Int}(r2) === r
     end
 end
 
