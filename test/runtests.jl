@@ -253,7 +253,10 @@ end
         @test AbstractUnitRange{Int}(r2) === r
         @test AbstractUnitRange{BigInt}(r2) === r2
 
-        @test OrdinalRange{Int,Int}(r2) === r
+        if v"1.5" < VERSION
+            @test OrdinalRange{Int,Int}(r2) === r
+            @test OrdinalRange{BigInt,BigInt}(r2) === r2
+        end
     end
 end
 
@@ -405,6 +408,7 @@ Base.convert(::Type{Int}, a::WeirdInteger) = a
         @test_throws OverflowError OffsetArray(ao, (-2, )) # convinient constructor accumulate offsets
         @test_throws OverflowError OffsetVector(1:0, typemax(Int))
         @test_throws OverflowError OffsetVector(OffsetVector(1:0, 0), typemax(Int))
+        @test_throws OverflowError OffsetArray(zeros(Int, typemax(Int):typemax(Int)), 2)
 
         @testset "OffsetRange" begin
             for r in Any[1:100, big(1):big(2)]
