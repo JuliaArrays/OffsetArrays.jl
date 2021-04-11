@@ -320,11 +320,22 @@ Base.falses(inds::NTuple{N, Union{Integer, AbstractUnitRange}}) where {N} =
 # and one obtains the result below.
 parentindex(r::IdOffsetRange, i) = i - r.offset
 
-@inline function Base.getindex(A::OffsetArray{T,N}, I::Vararg{Int,N}) where {T,N}
+@propagate_inbounds Base.getindex(A::OffsetArray{<:Any,0})  = A.parent[]
+
+@inline function Base.getindex(A::OffsetArray{<:Any,N}, I::Vararg{Int,N}) where N
     @boundscheck checkbounds(A, I...)
     J = map(parentindex, axes(A), I)
     @inbounds parent(A)[J...]
 end
+
+@propagate_inbounds Base.getindex(A::OffsetArray{<:Any,N}, c::Vararg{Colon,N}) where N =
+    OffsetArray(A.parent[c...], A.offsets)
+
+# With one Colon we use linear indexing.
+# In this case we may forward the index to the parent, as the information about the axes is lost
+# The exception to this is with OffsetVectors where the axis information is preserved,
+# but that case is handled by getindex(::OffsetArray{<:Any,N}, ::Vararg{Colon,N})
+@propagate_inbounds Base.getindex(A::OffsetArray, c::Colon) = A.parent[:]
 
 @inline function Base.getindex(A::OffsetVector, i::Int)
     @boundscheck checkbounds(A, i)
@@ -350,6 +361,7 @@ end
 end
 
 Base.in(x, A::OffsetArray) = in(x, parent(A))
+Base.copy(A::OffsetArray) = OffsetArray(copy(A.parent), A.offsets)
 
 Base.strides(A::OffsetArray) = strides(parent(A))
 Base.elsize(::Type{OffsetArray{T,N,A}}) where {T,N,A} = Base.elsize(A)
@@ -393,9 +405,6 @@ for OR in [:IIUR, :IdOffsetRange]
         IdOffsetRange(UnitRange(rs .- offset_s), offset_s)
     end
 end
-
-# This is technically breaking, so it might be incorporated in the next major release
-# Base.getindex(a::OffsetRange, ::Colon) = OffsetArray(a.parent[:], a.offsets)
 
 # mapreduce is faster with an IdOffsetRange than with an OffsetUnitRange
 # We therefore convert OffsetUnitRanges to IdOffsetRanges with the same values and axes
