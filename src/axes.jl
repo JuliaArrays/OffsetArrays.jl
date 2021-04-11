@@ -106,6 +106,7 @@ function IdOffsetRange{T,I}(r::IdOffsetRange, offset::Integer = 0) where {T<:Int
     rc, offset_rc = offset_coerce(I, r.parent)
     return IdOffsetRange{T,I}(rc, convert(T, r.offset + offset + offset_rc)::T)
 end
+IdOffsetRange{T}(r::IdOffsetRange{T}) where {T<:Integer} = r
 function IdOffsetRange{T}(r::IdOffsetRange, offset::Integer = 0) where T<:Integer
     return IdOffsetRange{T}(r.parent, r.offset + offset)
 end
@@ -116,6 +117,15 @@ function IdOffsetRange(; values::AbstractUnitRange{<:Integer}, indices::Abstract
     length(values) == length(indices) || throw(ArgumentError("values and indices must have the same length"))
     offset = first(indices) - 1
     return IdOffsetRange(values .- offset, offset)
+end
+
+# Conversions to an AbstractUnitRange{Int} (and to an OrdinalRange{Int,Int} on Julia v"1.6") are necessary
+# to evaluate CartesianIndices for BigInt ranges, as their axes are also BigInt ranges
+AbstractUnitRange{T}(r::IdOffsetRange) where {T<:Integer} = IdOffsetRange{T}(r)
+
+# A version upper bound on this may be set after https://github.com/JuliaLang/julia/pull/40038 is merged
+if v"1.6" <= VERSION
+    OrdinalRange{T,T}(r::IdOffsetRange) where {T<:Integer} = IdOffsetRange{T}(r)
 end
 
 # TODO: uncomment these when Julia is ready
