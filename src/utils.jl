@@ -10,6 +10,31 @@ _indexlength(i::Colon) = Colon()
 _offset(axparent::AbstractUnitRange, ax::AbstractUnitRange) = first(ax) - first(axparent)
 _offset(axparent::AbstractUnitRange, ax::Integer) = 1 - first(axparent)
 
+_offset_reshape_uncolon(::AbstractArray, I::Tuple{OffsetAxisKnownLength,Vararg{OffsetAxisKnownLength}}) = I
+function _offset_reshape_uncolon(A::AbstractArray, I::Tuple{OffsetAxis,Vararg{OffsetAxis}})
+    @noinline throw1(I) = throw(DimensionMismatch(string("new dimensions $(I) ",
+        "may have at most one omitted dimension specified by `Colon()`")))
+    @noinline throw2(A, I) = throw(DimensionMismatch(string("array size $(length(A)) ",
+        "must be divisible by the product of the new dimensions $I")))
+
+    pre = Base._before_colon(I...)
+    post = Base._after_colon(I...)
+    Base._any_colon(post...) && throw1(dims)
+    nprev = isempty(pre) ? 1 : mapreduce(_length, *, pre)
+    npost = isempty(post) ? 1 : mapreduce(_length, *, post)
+    sz, remainder = divrem(length(A), nprev * npost)
+    remainder == 0 || throw2(A, dims)
+
+    n = length(pre)
+    r = Base.OneTo(Int(sz))
+    # preserve the offset information
+    Δ = n < ndims(A) ? _offset(axes(A, n+1), r) : 0
+    (pre..., IdOffsetRange(r, -Δ), post...)
+end
+
+@inline _length(r::AbstractUnitRange) = length(r)
+@inline _length(n::Int) = n
+
 """
     OffsetArrays.AxisConversionStyle(typeof(indices))
 
@@ -59,6 +84,7 @@ AxisConversionStyle(::Type) = SingleRange()
 AxisConversionStyle(::Type{<:CartesianIndices}) = TupleOfRanges()
 
 _convertTupleAbstractUnitRange(x) = _convertTupleAbstractUnitRange(AxisConversionStyle(typeof(x)), x)
+_convertTupleAbstractUnitRange(::SingleRange, x::Int) = (Base.OneTo(x), )
 _convertTupleAbstractUnitRange(::SingleRange, x) = (convert(AbstractUnitRange{Int}, x),)
 _convertTupleAbstractUnitRange(::TupleOfRanges, x) = convert(Tuple{Vararg{AbstractUnitRange{Int}}}, x)
 

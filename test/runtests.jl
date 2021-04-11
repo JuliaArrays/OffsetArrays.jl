@@ -1478,6 +1478,124 @@ end
     Arsc = reshape(A, :, 1)
     Arsc[1,1] = 5
     @test first(A) == 5
+
+    # reshape with one Colon for AbstractArrays
+    # If possible, offset is preserved for OffsetArrays
+    # we test the following cases:
+    #   - (RangeOrInt, :)
+    #   - (RangeOrInt, :, RangeOrInt)
+    #   - (: RangeOrInt)
+    @testset "Colon" begin
+        A0 = [1 2 3; 4 5 6]
+        A = OffsetArray(A0, -1, -1)
+
+        # (Range, :)
+        B = reshape(A0, -10:-9, :)
+        @test B isa OffsetArray{Int,2}
+        @test parent(B) === A0
+        @test axes(B) == (-10:-9, 1:3)
+        B = reshape(A, -10:-9, :)
+        @test B isa OffsetArray{Int,2}
+        @test parent(B) === A0
+        @test axes(B) == (-10:-9, 0:2)
+
+        # (Range, Int, :)
+        B = reshape(A0, -10:-9, 1, :)
+        @test B isa OffsetArray{Int,3}
+        @test same_value(B, A0)
+        @test axes(B) == (-10:-9, 1:1, 1:3)
+        # The position of `:` exceeds `ndims(A)` thus the offset is assumed to be 0 there
+        B = reshape(A, -10:-9, 1, :)
+        @test B isa OffsetArray{Int,3}
+        @test same_value(B, A0)
+        @test axes(B) == (-10:-9, 1:1, 1:3)
+
+        # (Range, Range, :)
+        B = reshape(A0, -10:-9, 3, :)
+        @test B isa OffsetArray{Int,3}
+        @test same_value(B, A0)
+        @test axes(B) == (-10:-9, 1:3, 1:1)
+        # The position of `:` exceeds `ndims(A)` thus the offset is assumed to be 0 there
+        B = reshape(A, -10:-9, -1:1, :)
+        @test B isa OffsetArray{Int,3}
+        @test same_value(B, A0)
+        @test axes(B) == (-10:-9, -1:1, 1:1)
+
+        # (:, Int) uses Base implementaion
+        # skip it
+
+        # (:, Range)
+        B = reshape(A0, :, -10:-8)
+        @test B isa OffsetArray{Int,2}
+        @test parent(B) === A0
+        @test axes(B) == (1:2, -10:-8)
+        B = reshape(A, :, -10:-8)
+        @test B isa OffsetArray{Int,2}
+        @test parent(B) === A0
+        @test axes(B) == (0:1, -10:-8)
+
+        # (Range, :, Int)
+        B = reshape(A0, -10:-9, :, 1)
+        @test B isa OffsetArray{Int,3}
+        @test same_value(A0, B)
+        @test axes(B) == (-10:-9, 1:3, 1:1)
+        B = reshape(A0, -10:-9, :, 3)
+        @test B isa OffsetArray{Int,3}
+        @test same_value(A0, B)
+        @test axes(B) == (-10:-9, 1:1, 1:3)
+
+        B = reshape(A, -10:-9, :, 1)
+        @test B isa OffsetArray{Int,3}
+        @test same_value(A, B)
+        @test axes(B) == (-10:-9, 0:2, 1:1)
+        B = reshape(A, -10:-9, :, 3)
+        @test B isa OffsetArray{Int,3}
+        @test same_value(A, B)
+        @test axes(B) == (-10:-9, 0:0, 1:3)
+
+        # (Range, :, Range)
+        B = reshape(A0, -10:-9, :, -10:-10)
+        @test B isa OffsetArray{Int,3}
+        @test same_value(A0, B)
+        @test axes(B) == (-10:-9, 1:3, -10:-10)
+        B = reshape(A0, -10:-9, :, -10:-8)
+        @test B isa OffsetArray{Int,3}
+        @test same_value(A0, B)
+        @test axes(B) == (-10:-9, 1:1, -10:-8)
+
+        B = reshape(A, -10:-9, :, -10:-10)
+        @test B isa OffsetArray{Int,3}
+        @test same_value(A, B)
+        @test axes(B) == (-10:-9, 0:2, -10:-10)
+        B = reshape(A, -10:-9, :, -10:-8)
+        @test B isa OffsetArray{Int,3}
+        @test same_value(A, B)
+        @test axes(B) == (-10:-9, 0:0, -10:-8)
+
+        # (Int, :, Range)
+        B = reshape(A0, 1, :, -10:-9)
+        @test B isa OffsetArray{Int,3}
+        @test same_value(A0, B)
+        @test axes(B) == (1:1, 1:3, -10:-9)
+        B = reshape(A0,  3, :, -10:-9)
+        @test B isa OffsetArray{Int,3}
+        @test same_value(A0, B)
+        @test axes(B) == (1:3, 1:1, -10:-9)
+
+        B = reshape(A, 1, :, -10:-9)
+        @test B isa OffsetArray{Int,3}
+        @test same_value(A, B)
+        @test axes(B) == (1:1, 0:2, -10:-9)
+        B = reshape(A,  3, :, -10:-9)
+        @test B isa OffsetArray{Int,3}
+        @test same_value(A, B)
+        @test axes(B) == (1:3, 0:0, -10:-9)
+
+        @test_throws DimensionMismatch reshape(A0, 1:2, :, :)
+        @test_throws DimensionMismatch reshape(A0, 1:2, 2, :)
+        @test_throws DimensionMismatch reshape(A, 1:2, :, :)
+        @test_throws DimensionMismatch reshape(A, 1:2, 2, :)
+    end
 end
 
 @testset "Indexing with OffsetArray axes" begin
