@@ -1397,6 +1397,48 @@ end
     @test isa(B, OffsetArray{Int, 2})
     @test axes(B) == (0:0, 1:3)
 
+    s = @SVector[i for i in 1:10]
+    so = OffsetArray(s, 4);
+    @test typeof(parent(similar(so))) == typeof(similar(s))
+    @test typeof(parent(similar(so, eltype(so), axes(so)))) == typeof(similar(s))
+
+    s = SArray{Tuple{2,2,2},Int,3,8}((1,2,3,4,5,6,7,8))
+    so = OffsetArray(s, 0, 0, 0)
+    A = similar(so)
+    @test A isa OffsetArray
+    @test parent(A) isa StaticArray
+    for ax in Any[(axes(s,1), axes(so)[2:3]...), (axes(so,1), axes(s)[2:3]...)]
+        A = similar(so, Int, ax)
+        @test A isa OffsetArray
+        @test parent(A) isa StaticArray
+        @test axes(A) == ax
+    end
+
+    # check with an unseen axis type
+    A = similar(ones(1), Int, ZeroBasedUnitRange(3:4), 4:5)
+    @test eltype(A) === Int
+    @test axes(A) == (3:4, 4:5)
+    A = similar(ones(1), Int, IdOffsetRange(ZeroBasedUnitRange(3:4), 2), 4:5)
+    @test eltype(A) === Int
+    @test axes(A) == (5:6, 4:5)
+    A = similar(ones(1), Int, IdOffsetRange(ZeroBasedUnitRange(3:4), 2), 4)
+    @test eltype(A) === Int
+    @test axes(A) == (5:6, 1:4)
+
+    # test for similar(::Type, ax)
+    indsoffset = (IdOffsetRange(SOneTo(2), 2),)
+    A = similar(Array{Int}, indsoffset)
+    @test parent(A) isa StaticArray
+    @test axes(A) == (3:4,)
+    A = similar(Array{Int}, (indsoffset..., SOneTo(3)))
+    @test parent(A) isa StaticArray
+    @test axes(A) == (3:4, 1:3)
+
+    s = SArray{Tuple{2,2},Int,2,4}((1,2,3,4));
+    so = OffsetArray(s, 2, 2);
+    so2 = so .+ 1;
+    @test parent(so2) isa StaticArray
+
     @test_throws MethodError similar(A, (:,))
     @test_throws MethodError similar(A, (: ,:))
     @test_throws MethodError similar(A, (: ,2))

@@ -7,6 +7,9 @@ _indexlength(r::AbstractRange) = length(r)
 _indexlength(i::Integer) = i
 _indexlength(i::Colon) = Colon()
 
+_strip_IdOffsetRange(r::IdOffsetRange) = parent(r)
+_strip_IdOffsetRange(r) = r
+
 _offset(axparent::AbstractUnitRange, ax::AbstractUnitRange) = first(ax) - first(axparent)
 _offset(axparent::AbstractUnitRange, ax::Integer) = 1 - first(axparent)
 
