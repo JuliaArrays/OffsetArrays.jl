@@ -23,14 +23,15 @@ julia> OffsetArray(a, OffsetArrays.Origin(0)) # short notation for `Origin(0, 0)
  3  4
 ```
 """
-struct Origin{T<:Union{Tuple, Int}}
+struct Origin{T<:Union{Tuple{Vararg{Int}}, Int}}
     index::T
 end
-Origin(I::NTuple{N, Int}) where N = Origin{typeof(I)}(I)
-Origin(I::CartesianIndex) = Origin(I.I)
-Origin(I1::Int, In::Int...) = Origin((I1, In...))
+Origin(I::Tuple{Vararg{Int}}) = Origin{typeof(I)}(I)
+Origin(I::Tuple{Vararg{Integer}}) = Origin(map(Int, I))
+Origin(I::CartesianIndex) = Origin(Tuple(I))
+Origin(I::Integer...) = Origin(I)
 # Origin(0) != Origin((0, )) but they work the same with broadcasting
-Origin(n::Int) = Origin{Int}(n)
+Origin(n::Integer) = Origin{Int}(Int(n))
 
 (o::Origin)(A::AbstractArray) = o.index .- first.(axes(A))
 
