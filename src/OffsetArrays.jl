@@ -248,16 +248,16 @@ Base.similar(A::OffsetArray, ::Type{T}, dims::Dims) where T =
 function Base.similar(A::AbstractArray, ::Type{T}, shape::Tuple{OffsetAxisKnownLength,Vararg{OffsetAxisKnownLength}}) where T
     # strip IdOffsetRanges to extract the parent range and use it to generate the array
     new_shape = map(_strip_IdOffsetRange, shape)
-    # route through _similar_axesorlength to avoid a stack overflow if map(_strip_IdOffsetRange, shape) === shape
+    # route through _similar_axes_or_length to avoid a stack overflow if map(_strip_IdOffsetRange, shape) === shape
     # This tries to use new_shape directly in similar if similar(A, T, ::typeof(new_shape)) is defined
     # If this fails, it calls similar(A, T, map(_indexlength, new_shape)) to use the size along each axis
     # to generate the new array
-    P = _similar_axesorlength(A, T, new_shape, shape)
+    P = _similar_axes_or_length(A, T, new_shape, shape)
     return OffsetArray(P, map(_offset, axes(P), shape))
 end
 function Base.similar(::Type{T}, shape::Tuple{OffsetAxisKnownLength,Vararg{OffsetAxisKnownLength}}) where {T<:AbstractArray}
     new_shape = map(_strip_IdOffsetRange, shape)
-    P = _similar_axesorlength(T, new_shape, shape)
+    P = _similar_axes_or_length(T, new_shape, shape)
     OffsetArray(P, map(_offset, axes(P), shape))
 end
 # Try to use the axes to generate the parent array type
@@ -265,14 +265,14 @@ end
 # This method is hit if at least one axis provided to similar(A, T, axes) is an IdOffsetRange
 # For example this is hit when similar(A::OffsetArray) is called,
 # which expands to similar(A, eltype(A), axes(A))
-_similar_axesorlength(A, T, ax, ::Any) = similar(A, T, ax)
-_similar_axesorlength(AT, ax, ::Any) = similar(AT, ax)
+_similar_axes_or_length(A, T, ax, ::Any) = similar(A, T, ax)
+_similar_axes_or_length(AT, ax, ::Any) = similar(AT, ax)
 # Handle the general case by resorting to lengths along each axis
 # This is hit if none of the axes provided to similar(A, T, axes) are IdOffsetRanges,
 # and if similar(A, T, axes::AX) is not defined for the type AX.
 # In this case the best that we can do is to create a mutable array of the correct size
-_similar_axesorlength(A, T, ax::I, ::I) where {I} = similar(A, T, map(_indexlength, ax))
-_similar_axesorlength(AT, ax::I, ::I) where {I} = similar(AT, map(_indexlength, ax))
+_similar_axes_or_length(A, T, ax::I, ::I) where {I} = similar(A, T, map(_indexlength, ax))
+_similar_axes_or_length(AT, ax::I, ::I) where {I} = similar(AT, map(_indexlength, ax))
 
 # reshape accepts a single colon
 Base.reshape(A::AbstractArray, inds::OffsetAxis...) = reshape(A, inds)
