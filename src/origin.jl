@@ -27,11 +27,11 @@ struct Origin{T<:Union{Tuple{Vararg{Int}}, Int}}
     index::T
 end
 Origin(I::Tuple{Vararg{Int}}) = Origin{typeof(I)}(I)
-Origin(I::Tuple{Vararg{Integer}}) = Origin(map(Int, I))
+Origin(I::Tuple{Vararg{Number}}) = Origin(map(Int, I))
 Origin(I::CartesianIndex) = Origin(Tuple(I))
-Origin(I::Integer...) = Origin(I)
+Origin(I::Number...) = Origin(I)
 # Origin(0) != Origin((0, )) but they work the same with broadcasting
-Origin(n::Integer) = Origin{Int}(Int(n))
+Origin(n::Number) = Origin{Int}(Int(n))
 
 (o::Origin)(A::AbstractArray) = o.index .- first.(axes(A))
 

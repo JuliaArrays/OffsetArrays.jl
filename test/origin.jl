@@ -6,8 +6,9 @@ using OffsetArrays: Origin
     @test Origin(CartesianIndex(1, 2)) === Origin((1, 2)) === Origin(1, 2)
 
     @test Origin(Int32.((1,2))) == Origin(Int64.((1,2)))
-    @test Origin(Int32.((1,2))...) == Origin(Int64.((1,2))...)
-    @test Origin(Int32(1)) == Origin(Int64(1))
+    @test Origin(Int32.((1,2))...) == Origin(Int64.((1,2))...) == Origin((1.0, 2.0))
+    @test Origin(Int32(1)) == Origin(Int64(1)) == Origin(1.0)
+    @test_throws Exception Origin(1.5)
 
     # 0d
     A = OffsetArray(zeros())
