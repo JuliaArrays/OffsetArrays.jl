@@ -5,6 +5,16 @@ using OffsetArrays: Origin
     @test Origin(0) != Origin((0, ))
     @test Origin(CartesianIndex(1, 2)) === Origin((1, 2)) === Origin(1, 2)
 
+    @test Origin(Int32.((1,2))) == Origin(Int64.((1,2)))
+    @test Origin(Int32.((1,2))...) == Origin(Int64.((1,2))...) == Origin((1.0, 2.0))
+    @test Origin(Int32(1)) == Origin(Int64(1)) == Origin(1.0)
+    @test_throws Exception Origin(1.5)
+
+    # 0d
+    A = OffsetArray(zeros())
+    B = OffsetArray(zeros(), Origin())
+    @test axes(A) == axes(B)
+
     # 1d
     v = [1, 2]
     @test get_origin(OffsetArray(v, Origin(2))) == (2, )
@@ -27,7 +37,7 @@ using OffsetArrays: Origin
     oa = OffsetArray(a, -3, -3, -3)
     @test get_origin(OffsetArray(oa, Origin(0))) == (0, 0, 0)
     @test get_origin(OffsetArray(oa, Origin(1, 2, 3))) == (1, 2, 3)
-    
+
     # Scalar broadcasting
     let
         a = [ [1,2,3], [4,5,6] ]
