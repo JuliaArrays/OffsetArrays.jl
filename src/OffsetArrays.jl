@@ -223,6 +223,11 @@ for FT in (:OffsetArray, :OffsetVector, :OffsetMatrix)
     @eval @inline $FT(A::AbstractArray, origin::Origin) = $FT(A, origin(A))
 end
 
+# conversion-related methods
+OffsetArray{T,N,A}(M::AbstractArray) where {T,N,A<:AbstractArray{T,N}} = OffsetArray{T,N,A}(A(M), ntuple(zero, Val(N)))
+OffsetArray{T,N,A}(M::OffsetArray{<:Any,N}) where {T,N,A<:AbstractArray{T,N}} = OffsetArray{T,N,A}(A(parent(M)), M.offsets)
+Base.convert(::Type{T}, M::AbstractArray) where {T<:OffsetArray} = M isa T ? M : T(M)
+
 # array initialization
 @inline function OffsetArray{T,N}(init::ArrayInitializer, inds::Tuple{Vararg{OffsetAxisKnownLength}}) where {T,N}
     _checkindices(N, inds, "indices")

@@ -2104,4 +2104,33 @@ end
     end
 end
 
+# issue 171
+struct Foo2
+    o::OffsetArray{Float64,1,Array{Float64,1}}
+end
+
+@testset "convert" begin
+    d = Diagonal([1,1,1])
+    M = convert(Matrix{Float64}, d)
+    od = OffsetArray(d, 1, 1)
+    oM = convert(OffsetMatrix{Float64, Matrix{Float64}}, od)
+    @test eltype(oM) == Float64
+    @test typeof(parent(oM)) == Matrix{Float64}
+    @test oM == od
+    oM2 = convert(OffsetMatrix{Float64, Matrix{Float64}}, d)
+    @test eltype(oM2) == Float64
+    @test typeof(parent(oM2)) == Matrix{Float64}
+    @test oM2 == d
+
+    # issue 171
+    O = zeros(Int, 0:2)
+    F = Foo2(O)
+    @test F.o == O
+
+    a = [MMatrix{2,2}(1:4) for i = 1:2]
+    oa = [OffsetArray(ai, 0, 0) for ai in a]
+    b = ones(2,2)
+    @test b * a == b * oa
+end
+
 include("origin.jl")
