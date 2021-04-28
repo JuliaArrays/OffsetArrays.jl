@@ -2131,6 +2131,12 @@ end
     oa = [OffsetArray(ai, 0, 0) for ai in a]
     b = ones(2,2)
     @test b * a == b * oa
+
+    a = ones(2:3)
+    b = convert(OffsetArray, a)
+    @test a === b
+    b = convert(OffsetVector, a)
+    @test a === b
 end
 
 include("origin.jl")
