@@ -2132,6 +2132,52 @@ end
     b = ones(2,2)
     @test b * a == b * oa
 
+    for a = [1:4, ones(1:5)]
+        @test convert(OffsetArray, a) isa OffsetArray
+        @test convert(OffsetArray, a) == a
+        @test convert(OffsetArray{eltype(a)}, a) isa OffsetArray{eltype(a)}
+        @test convert(OffsetArray{eltype(a)}, a) == a
+        @test convert(OffsetArray{Float32}, a) isa OffsetArray{Float32}
+        @test convert(OffsetArray{Float32}, a) == a
+        @test convert(OffsetArray{eltype(a),1}, a) isa OffsetArray{eltype(a),1}
+        @test convert(OffsetArray{eltype(a),1}, a) == a
+        @test convert(OffsetArray{Float32,1}, a) isa OffsetArray{Float32,1}
+        @test convert(OffsetArray{Float32,1}, a) == a
+        @test convert(OffsetVector, a) isa OffsetVector
+        @test convert(OffsetVector, a) == a
+        @test convert(OffsetVector{Float32}, a) isa OffsetVector{Float32}
+        @test convert(OffsetVector{Float32}, a) == a
+
+        for T in [OffsetArray{Float32}, OffsetArray{Float32, 1}, OffsetArray{Float32, 1, Vector{Float32}},
+            OffsetVector{Float32}, OffsetVector{Float32, Vector{Float32}}]
+            b = T(a, 0)
+            @test b isa T
+            @test b == a
+            b = T(a)
+            @test b isa T
+            @test b == a
+        end
+        a2 = reshape(a, :, 1)
+        for T in [OffsetArray{Float32}, OffsetArray{Float32, 2}, OffsetArray{Float32, 2, Matrix{Float32}},
+            OffsetMatrix{Float32}, OffsetMatrix{Float32, Matrix{Float32}}]
+            b = T(a2, 0, 0)
+            @test b isa T
+            @test b == a2
+            b = T(a2)
+            @test b isa T
+            @test b == a2
+        end
+        a2 = reshape(a, :, 1, 1)
+        for T in [OffsetArray{Float32}, OffsetArray{Float32, 3}, OffsetArray{Float32, 3, Array{Float32,3}}]
+            b = T(a2, 0, 0, 0)
+            @test b isa T
+            @test b == a2
+            b = T(a2)
+            @test b isa T
+            @test b == a2
+        end
+    end
+
     a = ones(2:3)
     b = convert(OffsetArray, a)
     @test a === b

@@ -95,3 +95,6 @@ if VERSION <= v"1.7.0-DEV.1039"
 else
     _contiguousindexingtype(r::AbstractUnitRange{<:Integer}) = r
 end
+
+_of_eltype(::Type{T}, M::AbstractArray{T}) where {T} = M
+_of_eltype(T, M::AbstractArray) = map(T, M)

@@ -185,6 +185,9 @@ for (FT, ND) in ((:OffsetVector, :1), (:OffsetMatrix, :2))
     @eval @inline function $FT(A::AbstractArray, offsets::Tuple{Vararg{Integer}})
         throw(ArgumentError($FTstr*" requires a "*string($ND)*"D array"))
     end
+    @eval @inline $FT{T}(A::AbstractArray{<:Any,$ND}) where {T} = $FT{T}(_of_eltype(T, A), ntuple(zero, Val($ND)))
+    @eval @inline $FT{T}(A::AbstractArray{<:Any,$ND}, inds::Vararg) where {T} = $FT{T}(A, inds)
+    @eval @inline $FT{T}(A::AbstractArray{<:Any,$ND}, inds::NTuple{$ND,Any}) where {T} = $FT(_of_eltype(T, A), inds)
 end
 
 ## OffsetArray constructors
@@ -219,13 +222,25 @@ for FT in (:OffsetArray, :OffsetVector, :OffsetMatrix)
     end
 
     @eval @inline $FT(A::AbstractArray, inds::Vararg) = $FT(A, inds)
+    @eval @inline $FT(A::AbstractArray) = $FT(A, ntuple(zero, Val(ndims(A))))
 
     @eval @inline $FT(A::AbstractArray, origin::Origin) = $FT(A, origin(A))
 end
 
 # conversion-related methods
+OffsetArray{T}(M::AbstractArray, I::Vararg) where {T} = OffsetArray{T}(M, I)
+OffsetArray{T}(M::AbstractArray{<:Any,N}, I::NTuple{N,Any}) where {T,N} = OffsetArray(_of_eltype(T, M), I)
+OffsetArray{T}(M::AbstractArray) where {T} = OffsetArray(_of_eltype(T, M))
+
+OffsetArray{T,N}(M::AbstractArray, I::Vararg) where {T,N} = OffsetArray{T,N}(M, I)
+OffsetArray{T,N}(M::AbstractArray{<:Any,N}, I::NTuple{N,Any}) where {T,N} = OffsetArray(_of_eltype(T, M), I)
+OffsetArray{T,N}(M::AbstractArray{<:Any,N}) where {T,N} = OffsetArray(_of_eltype(T, M))
+
+OffsetArray{T,N,A}(M::AbstractArray, I::Vararg) where {T,N,A<:AbstractArray{T,N}} = OffsetArray{T,N,A}(M, I)
+OffsetArray{T,N,A}(M::AbstractArray{<:Any,N}, I::NTuple{N,Any}) where {T,N,A<:AbstractArray{T,N}} = OffsetArray(A(M), I)
 OffsetArray{T,N,A}(M::AbstractArray) where {T,N,A<:AbstractArray{T,N}} = OffsetArray{T,N,A}(A(M), ntuple(zero, Val(N)))
 OffsetArray{T,N,A}(M::OffsetArray{<:Any,N}) where {T,N,A<:AbstractArray{T,N}} = OffsetArray{T,N,A}(A(parent(M)), M.offsets)
+
 Base.convert(::Type{T}, M::AbstractArray) where {T<:OffsetArray} = M isa T ? M : T(M)
 
 # array initialization
