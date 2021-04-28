@@ -237,9 +237,9 @@ OffsetArray{T,N}(M::AbstractArray{<:Any,N}, I::NTuple{N,Any}) where {T,N} = Offs
 OffsetArray{T,N}(M::AbstractArray{<:Any,N}) where {T,N} = OffsetArray(_of_eltype(T, M))
 
 OffsetArray{T,N,A}(M::AbstractArray, I::Vararg) where {T,N,A<:AbstractArray{T,N}} = OffsetArray{T,N,A}(M, I)
-OffsetArray{T,N,A}(M::AbstractArray{<:Any,N}, I::NTuple{N,Any}) where {T,N,A<:AbstractArray{T,N}} = OffsetArray(A(M), I)
-OffsetArray{T,N,A}(M::AbstractArray) where {T,N,A<:AbstractArray{T,N}} = OffsetArray{T,N,A}(A(M), ntuple(zero, Val(N)))
-OffsetArray{T,N,A}(M::OffsetArray{<:Any,N}) where {T,N,A<:AbstractArray{T,N}} = OffsetArray{T,N,A}(A(parent(M)), M.offsets)
+OffsetArray{T,N,A}(M::AbstractArray{<:Any,N}, I::NTuple{N,Any}) where {T,N,A<:AbstractArray{T,N}} = OffsetArray(convert(A, M)::A, I)
+OffsetArray{T,N,A}(M::AbstractArray) where {T,N,A<:AbstractArray{T,N}} = OffsetArray{T,N,A}(convert(A, M)::A, ntuple(zero, Val(N)))
+OffsetArray{T,N,A}(M::OffsetArray{<:Any,N}) where {T,N,A<:AbstractArray{T,N}} = OffsetArray{T,N,A}(convert(A, parent(M))::A, M.offsets)
 
 Base.convert(::Type{T}, M::AbstractArray) where {T<:OffsetArray} = M isa T ? M : T(M)
 
