@@ -436,14 +436,14 @@ end
 @inline function Base.getindex(A::OffsetVector, r::AbstractUnitRange{Int})
     @boundscheck checkbounds(A, r)
     # OffsetVectors may have their linear indices shifted, so we subtract the offset from the indices provided
-    @inbounds B = parent(A)[_shiftedUnitRange(r, A.offsets[1])]
+    @inbounds B = parent(A)[_subtractoffset(r, A.offsets[1])]
     _maybewrapoffset(B, axes(r))
 end
 
 # This method added mainly to index an OffsetRange with another range
 @inline function Base.getindex(A::OffsetVector, r::AbstractRange{Int})
     @boundscheck checkbounds(A, r)
-    @inbounds B = parent(A)[r .- A.offsets[1]]
+    @inbounds B = parent(A)[_subtractoffset(r, A.offsets[1])]
     _maybewrapoffset(B, axes(r))
 end
 
@@ -453,7 +453,7 @@ end
 # We may replace the former with the latter in an indexing operation to obtain a performance boost
 @inline function Base.to_index(r::OffsetUnitRange{<:Union{Int,BigInt}})
     of = first(axes(r,1)) - 1
-    IdOffsetRange(_shiftedUnitRange(parent(r), of), of)
+    IdOffsetRange(_subtractoffset(parent(r), of), of)
 end
 
 for OR in [:IIUR, :IdOffsetRange]
@@ -477,7 +477,7 @@ end
 # We therefore convert OffsetUnitRanges to IdOffsetRanges with the same values and axes
 function Base.mapreduce(f, op, As::OffsetUnitRange{<:Integer}...; kw...)
     ofs = map(A -> first(axes(A,1)) - 1, As)
-    AIds = map((A, of) -> IdOffsetRange(_shiftedUnitRange(parent(A), of), of), As, ofs)
+    AIds = map((A, of) -> IdOffsetRange(_subtractoffset(parent(A), of), of), As, ofs)
     mapreduce(f, op, AIds...; kw...)
 end
 

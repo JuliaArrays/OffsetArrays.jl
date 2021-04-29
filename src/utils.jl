@@ -80,11 +80,15 @@ end
 @inline _maybewrapoffset(r::AbstractVector, ::Base.OneTo) = no_offset_view(r)
 @inline function _maybewrapoffset(r::AbstractUnitRange{<:Integer}, ax::AbstractUnitRange)
 	of = first(ax) - 1
-	IdOffsetRange(_shiftedUnitRange(r, of), of)
+	IdOffsetRange(_subtractoffset(r, of), of)
 end
 @inline _maybewrapoffset(r::AbstractVector, ax::AbstractUnitRange) = OffsetArray(r, ax)
 
-_shiftedUnitRange(r::AbstractUnitRange, of) = UnitRange(first(r) - of, last(r) - of)
+# These functions are equivalent to the broadcasted operation r .- of
+# However these ensure that the result is an AbstractRange even if a specific
+# broadcasting behavior is not defined for a custom type
+_subtractoffset(r::AbstractUnitRange, of) = UnitRange(first(r) - of, last(r) - of)
+_subtractoffset(r::AbstractRange, of) = range(first(r) - of, last(r) - of, step = step(r))
 
 if VERSION <= v"1.7.0-DEV.1039"
     _contiguousindexingtype(r::AbstractUnitRange{<:Integer}) = UnitRange{Int}(r)
