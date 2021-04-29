@@ -88,7 +88,7 @@ end
 # However these ensure that the result is an AbstractRange even if a specific
 # broadcasting behavior is not defined for a custom type
 _subtractoffset(r::AbstractUnitRange, of) = UnitRange(first(r) - of, last(r) - of)
-_subtractoffset(r::AbstractRange, of) = range(first(r) - of, last(r) - of, step = step(r))
+_subtractoffset(r::AbstractRange, of) = range(first(r) - of, stop = last(r) - of, step = step(r))
 
 if VERSION <= v"1.7.0-DEV.1039"
     _contiguousindexingtype(r::AbstractUnitRange{<:Integer}) = UnitRange{Int}(r)
