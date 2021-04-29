@@ -78,6 +78,11 @@ for Z in [:ZeroBasedRange, :ZeroBasedUnitRange]
     end
 end
 
+Base.@propagate_inbounds function Base.getindex(A::Array, r::ZeroBasedUnitRange)
+    B = A[parent(r)]
+    OffsetArrays._maybewrapoffset(B, axes(r))
+end
+
 function same_value(r1, r2)
     length(r1) == length(r2) || return false
     for (v1, v2) in zip(r1, r2)

@@ -85,3 +85,9 @@ end
 @inline _maybewrapoffset(r::AbstractVector, ax::AbstractUnitRange) = OffsetArray(r, ax)
 
 _shiftedUnitRange(r::AbstractUnitRange, of) = UnitRange(first(r) - of, last(r) - of)
+
+if VERSION <= v"1.7.0-DEV.1039"
+    _contiguousindexingtype(r::AbstractUnitRange{<:Integer}) = UnitRange{Int}(r)
+else
+    _contiguousindexingtype(r::AbstractUnitRange{<:Integer}) = r
+end
