@@ -20,7 +20,7 @@ julia> ro[-1]
 -1
 
 julia> ro[3]
-ERROR: BoundsError: attempt to access 3-element UnitRange{$Int} at index [5]
+ERROR: BoundsError: attempt to access 3-element OffsetArrays.$(IdOffsetRange{Int,UnitRange{Int}}) with indices -1:1 at index [3]
 ```
 
 If the range doesn't start at 1, the values may be different from the indices:
@@ -35,7 +35,7 @@ julia> ro[-1]
 9
 
 julia> ro[3]
-ERROR: BoundsError: attempt to access 3-element UnitRange{$Int} at index [5]
+ERROR: BoundsError: attempt to access 3-element OffsetArrays.$(IdOffsetRange{Int,UnitRange{Int}}) with indices -1:1 at index [3]
 ```
 
 # Extended help
@@ -121,11 +121,11 @@ end
 
 # Conversions to an AbstractUnitRange{Int} (and to an OrdinalRange{Int,Int} on Julia v"1.6") are necessary
 # to evaluate CartesianIndices for BigInt ranges, as their axes are also BigInt ranges
-AbstractUnitRange{T}(r::IdOffsetRange) where {T<:Integer} = IdOffsetRange{T}(r)
+Base.AbstractUnitRange{T}(r::IdOffsetRange) where {T<:Integer} = IdOffsetRange{T}(r)
 
 # A version upper bound on this may be set after https://github.com/JuliaLang/julia/pull/40038 is merged
 if v"1.6" <= VERSION
-    OrdinalRange{T,T}(r::IdOffsetRange) where {T<:Integer} = IdOffsetRange{T}(r)
+    Base.OrdinalRange{T,T}(r::IdOffsetRange) where {T<:Integer} = IdOffsetRange{T}(r)
 end
 
 # TODO: uncomment these when Julia is ready
@@ -172,15 +172,19 @@ end
     return (ret[1] + r.offset, ret[2])
 end
 
-@propagate_inbounds Base.getindex(r::IdOffsetRange, i::Integer) = r.parent[i - r.offset] + r.offset
-@propagate_inbounds function Base.getindex(r::IdOffsetRange, s::AbstractUnitRange{<:Integer})
-    offset_s = first(axes(s,1)) - 1
-    pr = r.parent[s .- r.offset] .+ (r.offset - offset_s)
-    _maybewrapoffset(pr, offset_s, axes(s,1))
+@inline function Base.getindex(r::IdOffsetRange, i::Integer)
+    @boundscheck checkbounds(r, i)
+    @inbounds r.parent[i - r.offset] + r.offset
+end
+@inline function Base.getindex(r::IdOffsetRange, s::AbstractUnitRange{<:Integer})
+    @boundscheck checkbounds(r, s)
+    @inbounds pr = r.parent[_subtractoffset(s, r.offset)] .+ r.offset
+    _maybewrapoffset(pr, axes(s,1))
 end
 # The following method is required to avoid falling back to getindex(::AbstractUnitRange, ::StepRange{<:Integer})
-@propagate_inbounds function Base.getindex(r::IdOffsetRange, s::StepRange{<:Integer})
-    rs = r.parent[s .- r.offset] .+ r.offset
+@inline function Base.getindex(r::IdOffsetRange, s::StepRange{<:Integer})
+    @boundscheck checkbounds(r, s)
+    @inbounds rs = r.parent[s .- r.offset] .+ r.offset
     return no_offset_view(rs)
 end
 

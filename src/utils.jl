@@ -16,17 +16,17 @@ _offset(axparent::AbstractUnitRange, ::Union{Integer, Colon}) = 1 - first(axpare
 """
     OffsetArrays.AxisConversionStyle(typeof(indices))
 
-`AxisConversionStyle` declares if `indices` should be converted to a single `AbstractUnitRange{Int}` 
-or to a `Tuple{Vararg{AbstractUnitRange{Int}}}` while flattening custom types into indices. 
-This method is called after `to_indices(A::Array, axes(A), indices)` to provide 
+`AxisConversionStyle` declares if `indices` should be converted to a single `AbstractUnitRange{Int}`
+or to a `Tuple{Vararg{AbstractUnitRange{Int}}}` while flattening custom types into indices.
+This method is called after `to_indices(A::Array, axes(A), indices)` to provide
 further information in case `to_indices` does not return a `Tuple` of `AbstractUnitRange{Int}`.
 
-Custom index types should extend `AxisConversionStyle` and return either `OffsetArray.SingleRange()`, 
-which is the default, or `OffsetArray.TupleOfRanges()`. In the former case, the type `T` should 
-define `Base.convert(::Type{AbstractUnitRange{Int}}, ::T)`, whereas in the latter it should define 
-`Base.convert(::Type{Tuple{Vararg{AbstractUnitRange{Int}}}}, ::T)`. 
+Custom index types should extend `AxisConversionStyle` and return either `OffsetArray.SingleRange()`,
+which is the default, or `OffsetArray.TupleOfRanges()`. In the former case, the type `T` should
+define `Base.convert(::Type{AbstractUnitRange{Int}}, ::T)`, whereas in the latter it should define
+`Base.convert(::Type{Tuple{Vararg{AbstractUnitRange{Int}}}}, ::T)`.
 
-An example of the latter is `CartesianIndices`, which is converted to a `Tuple` of 
+An example of the latter is `CartesianIndices`, which is converted to a `Tuple` of
 `AbstractUnitRange{Int}` while flattening the indices.
 
 # Example
@@ -75,10 +75,23 @@ function _checkindices(N::Integer, indices, label)
     N == length(indices) || throw_argumenterror(N, indices, label)
 end
 
-_maybewrapaxes(A::AbstractVector, ::Base.OneTo) = no_offset_view(A)
-_maybewrapaxes(A::AbstractVector, ax) = OffsetArray(A, ax)
+@inline _maybewrapoffset(r::AbstractVector, ax::Tuple{Any}) = _maybewrapoffset(r, ax[1])
+@inline _maybewrapoffset(r::AbstractUnitRange{<:Integer}, ::Base.OneTo) = no_offset_view(r)
+@inline _maybewrapoffset(r::AbstractVector, ::Base.OneTo) = no_offset_view(r)
+@inline function _maybewrapoffset(r::AbstractUnitRange{<:Integer}, ax::AbstractUnitRange)
+	of = first(ax) - 1
+	IdOffsetRange(_subtractoffset(r, of), of)
+end
+@inline _maybewrapoffset(r::AbstractVector, ax::AbstractUnitRange) = OffsetArray(r, ax)
 
-_maybewrapoffset(r::AbstractUnitRange, of, ::Base.OneTo) = no_offset_view(r)
-_maybewrapoffset(r::AbstractVector, of, ::Base.OneTo) = no_offset_view(r)
-_maybewrapoffset(r::AbstractUnitRange, of, ::Any) = IdOffsetRange(UnitRange(r), of)
-_maybewrapoffset(r::AbstractVector, of, axs) = OffsetArray(r .+ of, axs)
+# These functions are equivalent to the broadcasted operation r .- of
+# However these ensure that the result is an AbstractRange even if a specific
+# broadcasting behavior is not defined for a custom type
+_subtractoffset(r::AbstractUnitRange, of) = UnitRange(first(r) - of, last(r) - of)
+_subtractoffset(r::AbstractRange, of) = range(first(r) - of, stop = last(r) - of, step = step(r))
+
+if VERSION <= v"1.7.0-DEV.1039"
+    _contiguousindexingtype(r::AbstractUnitRange{<:Integer}) = UnitRange{Int}(r)
+else
+    _contiguousindexingtype(r::AbstractUnitRange{<:Integer}) = r
+end
