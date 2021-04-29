@@ -121,11 +121,11 @@ end
 
 # Conversions to an AbstractUnitRange{Int} (and to an OrdinalRange{Int,Int} on Julia v"1.6") are necessary
 # to evaluate CartesianIndices for BigInt ranges, as their axes are also BigInt ranges
-AbstractUnitRange{T}(r::IdOffsetRange) where {T<:Integer} = IdOffsetRange{T}(r)
+Base.AbstractUnitRange{T}(r::IdOffsetRange) where {T<:Integer} = IdOffsetRange{T}(r)
 
 # A version upper bound on this may be set after https://github.com/JuliaLang/julia/pull/40038 is merged
 if v"1.6" <= VERSION
-    OrdinalRange{T,T}(r::IdOffsetRange) where {T<:Integer} = IdOffsetRange{T}(r)
+    Base.OrdinalRange{T,T}(r::IdOffsetRange) where {T<:Integer} = IdOffsetRange{T}(r)
 end
 
 # TODO: uncomment these when Julia is ready
@@ -160,8 +160,6 @@ Base.reduced_index(i::IdentityUnitRange{<:IdOffsetRange}) = typeof(i)(first(i):f
 for f in [:firstindex, :lastindex, :first, :last]
     @eval @inline Base.$f(r::IdOffsetRange) = $f(r.parent) + r.offset
 end
-
-Base.AbstractUnitRange{T}(r::IdOffsetRange) where T = IdOffsetRange{T}(r)
 
 @inline function Base.iterate(r::IdOffsetRange)
     ret = iterate(r.parent)
