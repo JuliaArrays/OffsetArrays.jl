@@ -115,10 +115,15 @@ struct OffsetArray{T,N,AA<:AbstractArray{T,N}} <: AbstractArray{T,N}
         map(overflow_check, axes(parent), offsets)
         new{T, N, AA}(parent, offsets)
     end
+    function OffsetArray{T, N, AA}(parent::AA, offsets::NTuple{N, Int}) where {T, N, AA<:OffsetArray{T,N}}
+        # allocation of `map` on tuple is optimized away
+        map(overflow_check, axes(parent), offsets)
+        new{T, N, AA}(parent, offsets)
+    end
 end
 
 function OffsetArray{T, N, AA}(parent::AA, offsets::NTuple{N, Integer}) where {T, N, AA<:AbstractArray{T,N}}
-    OffsetArray{T, N, AA}(parent, map(x -> convert(Int, x)::Int, offsets))
+    OffsetArray{T, N, AA}(parent, map(Int, offsets)::NTuple{N,Int})
 end
 
 """
@@ -187,7 +192,7 @@ for (FT, ND) in ((:OffsetVector, :1), (:OffsetMatrix, :2))
     end
     @eval @inline $FT{T}(A::AbstractArray{<:Any,$ND}) where {T} = $FT{T}(_of_eltype(T, A), ntuple(zero, Val($ND)))
     @eval @inline $FT{T}(A::AbstractArray{<:Any,$ND}, inds::Vararg) where {T} = $FT{T}(A, inds)
-    @eval @inline $FT{T}(A::AbstractArray{<:Any,$ND}, inds::NTuple{$ND,Any}) where {T} = $FT(_of_eltype(T, A), inds)
+    @eval @inline $FT{T}(A::AbstractArray{<:Any,$ND}, inds::Tuple) where {T} = $FT(_of_eltype(T, A), inds)
 end
 
 ## OffsetArray constructors
@@ -228,18 +233,21 @@ for FT in (:OffsetArray, :OffsetVector, :OffsetMatrix)
 end
 
 # conversion-related methods
-OffsetArray{T}(M::AbstractArray, I::Vararg) where {T} = OffsetArray{T}(M, I)
-OffsetArray{T}(M::AbstractArray{<:Any,N}, I::NTuple{N,Any}) where {T,N} = OffsetArray(_of_eltype(T, M), I)
 OffsetArray{T}(M::AbstractArray) where {T} = OffsetArray(_of_eltype(T, M))
+OffsetArray{T}(M::AbstractArray, I::Vararg) where {T} = OffsetArray{T}(M, I)
+OffsetArray{T}(M::AbstractArray, I::Tuple) where {T} = OffsetArray(_of_eltype(T, M), I)
 
-OffsetArray{T,N}(M::AbstractArray, I::Vararg) where {T,N} = OffsetArray{T,N}(M, I)
-OffsetArray{T,N}(M::AbstractArray{<:Any,N}, I::NTuple{N,Any}) where {T,N} = OffsetArray(_of_eltype(T, M), I)
 OffsetArray{T,N}(M::AbstractArray{<:Any,N}) where {T,N} = OffsetArray(_of_eltype(T, M))
+OffsetArray{T,N}(M::AbstractArray{<:Any,N}, I::Vararg) where {T,N} = OffsetArray{T,N}(M, I)
+OffsetArray{T,N}(M::AbstractArray{<:Any,N}, I::Tuple) where {T,N} = OffsetArray(_of_eltype(T, M), I)
 
-OffsetArray{T,N,A}(M::AbstractArray, I::Vararg) where {T,N,A<:AbstractArray{T,N}} = OffsetArray{T,N,A}(M, I)
-OffsetArray{T,N,A}(M::AbstractArray{<:Any,N}, I::NTuple{N,Any}) where {T,N,A<:AbstractArray{T,N}} = OffsetArray(convert(A, M)::A, I)
-OffsetArray{T,N,A}(M::AbstractArray) where {T,N,A<:AbstractArray{T,N}} = OffsetArray{T,N,A}(convert(A, M)::A, ntuple(zero, Val(N)))
-OffsetArray{T,N,A}(M::OffsetArray{<:Any,N}) where {T,N,A<:AbstractArray{T,N}} = OffsetArray{T,N,A}(convert(A, parent(M))::A, M.offsets)
+OffsetArray{T,N,A}(M::AbstractArray{<:Any,N}, I::Vararg) where {T,N,A<:AbstractArray{T,N}} = OffsetArray{T,N,A}(M, I)
+OffsetArray{T,N,A}(M::AbstractArray{<:Any,N}, I::Tuple) where {T,N,A<:AbstractArray{T,N}} = OffsetArray(convert(A, M)::A, I)
+OffsetArray{T,N,A}(M::AbstractArray{<:Any,N}) where {T,N,A<:AbstractArray{T,N}} = OffsetArray{T,N,A}(convert(A, M)::A, ntuple(zero, Val(N)))
+
+# Operations on OffsetArrays may pass the conversion to the parent
+OffsetArray{T,N,A}(M::OffsetArray{<:Any,N}) where {T,N,A<:AbstractArray{T,N}} = OffsetArray{T,N,A}(M, ntuple(zero, Val(N)))
+OffsetArray{T,N,A}(M::OffsetArray{<:Any,N}, I::NTuple{N,Int}) where {T,N,A<:AbstractArray{T,N}} = OffsetArray(OffsetArray(convert(A, parent(M))::A, M.offsets), I)
 
 Base.convert(::Type{T}, M::AbstractArray) where {T<:OffsetArray} = M isa T ? M : T(M)
 

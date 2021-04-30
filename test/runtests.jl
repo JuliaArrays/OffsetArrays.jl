@@ -280,7 +280,7 @@ struct WeirdInteger{T} <: Integer
     x :: T
 end
 # assume that it doesn't behave as expected
-Base.convert(::Type{Int}, a::WeirdInteger) = a
+Base.Int(a::WeirdInteger) = a
 
 @testset "Constructors" begin
     @testset "Single-entry arrays in dims 0:5" begin
@@ -2163,6 +2163,8 @@ end
             b = T(a2, 0, 0)
             @test b isa T
             @test b == a2
+            b = T(a2, 1, 1)
+            @test axes(b) == map((x,y) -> x .+ y, axes(a2), (1,1))
             b = T(a2)
             @test b isa T
             @test b == a2
@@ -2172,6 +2174,8 @@ end
             b = T(a2, 0, 0, 0)
             @test b isa T
             @test b == a2
+            b = T(a2, 1, 1, 1)
+            @test axes(b) == map((x,y) -> x .+ y, axes(a2), (1,1,1))
             b = T(a2)
             @test b isa T
             @test b == a2
@@ -2183,6 +2187,16 @@ end
     @test a === b
     b = convert(OffsetVector, a)
     @test a === b
+
+    # test that non-Int offsets work correctly if the parent is an OffsetArray
+    b1 = OffsetArray{Float64, 1, typeof(a)}(a, (-1,))
+    b2 = OffsetArray{Float64, 1, typeof(a)}(a, (-big(1),))
+    @test b1 == b2
+
+    # changing the number of dimensions is not permitted
+    A = rand(2,2)
+    @test_throws MethodError convert(OffsetArray{Float64, 3}, A)
+    @test_throws MethodError convert(OffsetArray{Float64, 3, Array{Float64,3}}, A)
 end
 
 include("origin.jl")
