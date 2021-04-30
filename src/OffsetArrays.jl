@@ -449,9 +449,11 @@ end
 
 # avoid hitting the slow method getindex(::Array, ::AbstractRange{Int})
 # instead use the faster getindex(::Array, ::UnitRange{Int})
-@propagate_inbounds function Base.getindex(A::Array, r::Union{IdOffsetRange, IIUR})
-    B = A[_contiguousindexingtype(r)]
-    _maybewrapoffset(B, axes(r))
+if VERSION <= v"1.7.0-DEV.1039"
+    @propagate_inbounds function Base.getindex(A::Array, r::Union{IdOffsetRange, IIUR})
+        B = A[UnitRange(r)]
+        _maybewrapoffset(B, axes(r))
+    end
 end
 
 # Linear Indexing of OffsetArrays with AbstractUnitRanges may use the faster contiguous indexing methods
