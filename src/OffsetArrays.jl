@@ -451,7 +451,7 @@ end
 # instead use the faster getindex(::Array, ::UnitRange{Int})
 if VERSION <= v"1.7.0-DEV.1039"
     @propagate_inbounds function Base.getindex(A::Array, r::Union{IdOffsetRange, IIUR})
-        B = A[UnitRange(r)]
+        B = A[_contiguousindexingtype(r)]
         _maybewrapoffset(B, axes(r))
     end
 end
