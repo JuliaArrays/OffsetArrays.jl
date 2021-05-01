@@ -221,9 +221,7 @@ for FT in (:OffsetArray, :OffsetVector, :OffsetMatrix)
 end
 
 # conversion-related methods
-@inline OffsetArray{T}(M::AbstractArray) where {T} = OffsetArray(_of_eltype(T, M))
-@inline OffsetArray{T}(M::AbstractArray, I::Vararg) where {T} = OffsetArray{T}(M, I)
-@inline OffsetArray{T}(M::AbstractArray, I::Tuple) where {T} = OffsetArray(_of_eltype(T, M), I)
+@inline OffsetArray{T}(M::AbstractArray, I...) where {T} = OffsetArray{T,ndims(M)}(M, I...)
 
 @inline OffsetArray{T,N}(M::AbstractArray{<:Any,N}) where {T,N} = OffsetArray(_of_eltype(T, M))
 @inline OffsetArray{T,N}(M::AbstractArray{<:Any,N}, I::Vararg) where {T,N} = OffsetArray{T,N}(M, I)
