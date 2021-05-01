@@ -2236,6 +2236,16 @@ end
         @test c == a
     end
 
+    # test using custom indices
+    a = ones(2,2)
+    for T in [OffsetMatrix{Float64}, OffsetMatrix{Float64, Matrix{Float64}},
+        OffsetMatrix{Int, Matrix{Int}}]
+
+        b = T(a, ZeroBasedIndexing())
+        @test b isa T
+        @test axes(b) == (0:1, 0:1)
+    end
+
     # changing the number of dimensions is not permitted
     A = rand(2,2)
     @test_throws MethodError convert(OffsetArray{Float64, 3}, A)
