@@ -2238,7 +2238,7 @@ end
 
     # test using custom indices
     a = ones(2,2)
-    for T in [OffsetMatrix{Float64}, OffsetMatrix{Float64, Matrix{Float64}},
+    for T in [OffsetMatrix{Int}, OffsetMatrix{Float64}, OffsetMatrix{Float64, Matrix{Float64}},
         OffsetMatrix{Int, Matrix{Int}}]
 
         b = T(a, ZeroBasedIndexing())
