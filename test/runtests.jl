@@ -2193,6 +2193,15 @@ end
     b2 = OffsetArray{Float64, 1, typeof(a)}(a, (-big(1),))
     @test b1 == b2
 
+    # test for custom offset arrays
+    a = ZeroBasedRange(1:3)
+    b = OffsetVector{Float64, UnitRange{Float64}}(a)
+    @test b isa OffsetVector{Float64, UnitRange{Float64}}
+    @test b == a
+    b = OffsetVector{Int, Vector{Int}}(a)
+    @test b isa OffsetVector{Int, Vector{Int}}
+    @test b == a
+
     # changing the number of dimensions is not permitted
     A = rand(2,2)
     @test_throws MethodError convert(OffsetArray{Float64, 3}, A)

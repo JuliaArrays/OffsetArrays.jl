@@ -242,12 +242,17 @@ OffsetArray{T,N}(M::AbstractArray{<:Any,N}, I::Vararg) where {T,N} = OffsetArray
 OffsetArray{T,N}(M::AbstractArray{<:Any,N}, I::Tuple) where {T,N} = OffsetArray(_of_eltype(T, M), I)
 
 OffsetArray{T,N,A}(M::AbstractArray{<:Any,N}, I::Vararg) where {T,N,A<:AbstractArray{T,N}} = OffsetArray{T,N,A}(M, I)
-OffsetArray{T,N,A}(M::AbstractArray{<:Any,N}, I::Tuple) where {T,N,A<:AbstractArray{T,N}} = OffsetArray(convert(A, M)::A, I)
-OffsetArray{T,N,A}(M::AbstractArray{<:Any,N}) where {T,N,A<:AbstractArray{T,N}} = OffsetArray{T,N,A}(convert(A, M)::A, ntuple(zero, Val(N)))
-
-# Operations on OffsetArrays may pass the conversion to the parent
-OffsetArray{T,N,A}(M::OffsetArray{<:Any,N}) where {T,N,A<:AbstractArray{T,N}} = OffsetArray{T,N,A}(M, ntuple(zero, Val(N)))
-OffsetArray{T,N,A}(M::OffsetArray{<:Any,N}, I::NTuple{N,Int}) where {T,N,A<:AbstractArray{T,N}} = OffsetArray(OffsetArray(convert(A, parent(M))::A, M.offsets), I)
+function OffsetArray{T,N,A}(M::AbstractArray{<:Any,N}, I::Tuple) where {T,N,A<:AbstractArray{T,N}}
+    Mv = no_offset_view(M)
+    MvA = convert(A, Mv)::A
+    # Route this through the outer constructor to check for overflow
+    OffsetArray(OffsetArray(MvA, _offsets(M)), I)
+end
+function OffsetArray{T,N,A}(M::AbstractArray{<:Any,N}) where {T,N,A<:AbstractArray{T,N}}
+    Mv = no_offset_view(M)
+    MvA = convert(A, Mv)::A
+    OffsetArray{T,N,A}(MvA, _offsets(M))
+end
 
 Base.convert(::Type{T}, M::AbstractArray) where {T<:OffsetArray} = M isa T ? M : T(M)
 

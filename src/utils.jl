@@ -13,6 +13,8 @@ _strip_IdOffsetRange(r) = r
 _offset(axparent::AbstractUnitRange, ax::AbstractUnitRange) = first(ax) - first(axparent)
 _offset(axparent::AbstractUnitRange, ::Union{Integer, Colon}) = 1 - first(axparent)
 
+_offsets(A::AbstractArray) = map(ax -> first(ax) - 1, axes(A))
+
 """
     OffsetArrays.AxisConversionStyle(typeof(indices))
 
