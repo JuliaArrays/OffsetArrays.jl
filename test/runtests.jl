@@ -1750,6 +1750,14 @@ end
     @test dest[1,7] == 2
     @test dest[1,8] == 4
     @test dest[1,9] == -2
+
+    @testset "eltype conversion" begin
+        a = OffsetArray(1:2, 1)
+        b = map(BigInt, a)
+        @test eltype(b) == BigInt
+        @test b == a
+        @test b isa OffsetArrays.OffsetRange
+    end
 end
 
 @testset "reductions" begin

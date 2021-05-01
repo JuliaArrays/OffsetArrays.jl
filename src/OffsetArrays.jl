@@ -512,6 +512,10 @@ for OR in [:IIUR, :IdOffsetRange]
     end
 end
 
+# eltype conversion
+# This may use specialized map methods for the parent
+Base.map(::Type{T}, O::OffsetArray) where {T} = OffsetArray(map(T, parent(O)), O.offsets)
+
 # mapreduce is faster with an IdOffsetRange than with an OffsetUnitRange
 # We therefore convert OffsetUnitRanges to IdOffsetRanges with the same values and axes
 function Base.mapreduce(f, op, As::OffsetUnitRange{<:Integer}...; kw...)
