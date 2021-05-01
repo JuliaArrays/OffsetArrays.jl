@@ -115,15 +115,6 @@ struct OffsetArray{T,N,AA<:AbstractArray{T,N}} <: AbstractArray{T,N}
         map(overflow_check, axes(parent), offsets)
         new{T, N, AA}(parent, offsets)
     end
-    function OffsetArray{T, N, AA}(parent::AA, offsets::NTuple{N, Int}) where {T, N, AA<:OffsetArray{T,N}}
-        # allocation of `map` on tuple is optimized away
-        map(overflow_check, axes(parent), offsets)
-        new{T, N, AA}(parent, offsets)
-    end
-end
-
-function OffsetArray{T, N, AA}(parent::AA, offsets::NTuple{N, Integer}) where {T, N, AA<:AbstractArray{T,N}}
-    OffsetArray{T, N, AA}(parent, map(Int, offsets)::NTuple{N,Int})
 end
 
 """
@@ -190,9 +181,6 @@ for (FT, ND) in ((:OffsetVector, :1), (:OffsetMatrix, :2))
     @eval @inline function $FT(A::AbstractArray, offsets::Tuple{Vararg{Integer}})
         throw(ArgumentError($FTstr*" requires a "*string($ND)*"D array"))
     end
-    @eval @inline $FT{T}(A::AbstractArray{<:Any,$ND}) where {T} = $FT{T}(_of_eltype(T, A), ntuple(zero, Val($ND)))
-    @eval @inline $FT{T}(A::AbstractArray{<:Any,$ND}, inds::Vararg) where {T} = $FT{T}(A, inds)
-    @eval @inline $FT{T}(A::AbstractArray{<:Any,$ND}, inds::Tuple) where {T} = $FT(_of_eltype(T, A), inds)
 end
 
 ## OffsetArray constructors
@@ -202,11 +190,11 @@ for FT in (:OffsetArray, :OffsetVector, :OffsetMatrix)
     @eval @inline function $FT(A::OffsetArray, offsets::Tuple{Vararg{Int}})
         _checkindices(A, offsets, "offsets")
         # ensure that the offsets may be added together without an overflow
-        foreach(overflow_check, A.offsets, offsets)
+        map(overflow_check, A.offsets, offsets)
         $FT(parent(A), map(+, A.offsets, offsets))
     end
     @eval @inline function $FT(A::OffsetArray, offsets::Tuple{Integer,Vararg{Integer}})
-        $FT(A, map(x -> convert(Int, x)::Int, offsets))
+        $FT(A, map(Int, offsets))
     end
 
     # In general, indices get converted to AbstractUnitRanges.
@@ -233,26 +221,43 @@ for FT in (:OffsetArray, :OffsetVector, :OffsetMatrix)
 end
 
 # conversion-related methods
-OffsetArray{T}(M::AbstractArray) where {T} = OffsetArray(_of_eltype(T, M))
-OffsetArray{T}(M::AbstractArray, I::Vararg) where {T} = OffsetArray{T}(M, I)
-OffsetArray{T}(M::AbstractArray, I::Tuple) where {T} = OffsetArray(_of_eltype(T, M), I)
+@inline OffsetArray{T}(M::AbstractArray) where {T} = OffsetArray(_of_eltype(T, M))
+@inline OffsetArray{T}(M::AbstractArray, I::Vararg) where {T} = OffsetArray{T}(M, I)
+@inline OffsetArray{T}(M::AbstractArray, I::Tuple) where {T} = OffsetArray(_of_eltype(T, M), I)
 
-OffsetArray{T,N}(M::AbstractArray{<:Any,N}) where {T,N} = OffsetArray(_of_eltype(T, M))
-OffsetArray{T,N}(M::AbstractArray{<:Any,N}, I::Vararg) where {T,N} = OffsetArray{T,N}(M, I)
-OffsetArray{T,N}(M::AbstractArray{<:Any,N}, I::Tuple) where {T,N} = OffsetArray(_of_eltype(T, M), I)
+@inline OffsetArray{T,N}(M::AbstractArray{<:Any,N}) where {T,N} = OffsetArray(_of_eltype(T, M))
+@inline OffsetArray{T,N}(M::AbstractArray{<:Any,N}, I::Vararg) where {T,N} = OffsetArray{T,N}(M, I)
+@inline OffsetArray{T,N}(M::AbstractArray{<:Any,N}, I::Tuple) where {T,N} = OffsetArray(_of_eltype(T, M), I)
 
-OffsetArray{T,N,A}(M::AbstractArray{<:Any,N}, I::Vararg) where {T,N,A<:AbstractArray{T,N}} = OffsetArray{T,N,A}(M, I)
-function OffsetArray{T,N,A}(M::AbstractArray{<:Any,N}, I::Tuple) where {T,N,A<:AbstractArray{T,N}}
+@inline OffsetArray{T,N,A}(M::AbstractArray{<:Any,N}, I::Vararg) where {T,N,A<:AbstractArray{T,N}} = OffsetArray{T,N,A}(M, I)
+@inline function OffsetArray{T,N,A}(M::AbstractArray{<:Any,N}, I::NTuple{N,Int}) where {T,N,A<:AbstractArray{T,N}}
+    map(overflow_check, axes(M), I)
     Mv = no_offset_view(M)
     MvA = convert(A, Mv)::A
-    # Route this through the outer constructor to check for overflow
-    OffsetArray(OffsetArray(MvA, _offsets(M)), I)
+    Iof = map(+, _offsets(M), I)
+    OffsetArray{T,N,A}(MvA, Iof)
 end
-function OffsetArray{T,N,A}(M::AbstractArray{<:Any,N}) where {T,N,A<:AbstractArray{T,N}}
+@inline function OffsetArray{T, N, AA}(parent::AbstractArray{<:Any,N}, offsets::NTuple{N, Integer}) where {T, N, AA<:AbstractArray{T,N}}
+    OffsetArray{T, N, AA}(parent, map(Int, offsets)::NTuple{N,Int})
+end
+@inline function OffsetArray{T,N,A}(M::AbstractArray{<:Any,N}, I::Tuple{AbstractUnitRange,Vararg{AbstractUnitRange}}) where {T,N,A<:AbstractArray{T,N}}
+    _checkindices(M, I, "indices")
+    # Performance gain by wrapping the error in a function: see https://github.com/JuliaLang/julia/issues/37558
+    throw_dimerr(lA, lI) = throw(DimensionMismatch("supplied axes do not agree with the size of the array (got size $lA for the array and $lI for the indices"))
+    lM = size(M)
+    lI = map(length, I)
+    lM == lI || throw_dimerr(lM, lI)
+    OffsetArray{T,N,A}(M, map(_offset, axes(M), I))
+end
+@inline function OffsetArray{T,N,A}(M::AbstractArray{<:Any,N}, I::Tuple) where {T,N,A<:AbstractArray{T,N}}
+    OffsetArray{T,N,A}(M, _toAbstractUnitRanges(to_indices(M, axes(M), I)))
+end
+@inline function OffsetArray{T,N,A}(M::AbstractArray{<:Any,N}) where {T,N,A<:AbstractArray{T,N}}
     Mv = no_offset_view(M)
     MvA = convert(A, Mv)::A
     OffsetArray{T,N,A}(MvA, _offsets(M))
 end
+@inline OffsetArray{T,N,A}(M::A) where {T,N,A<:AbstractArray{T,N}} = OffsetArray{T,N,A}(M, ntuple(zero, Val(N)))
 
 Base.convert(::Type{T}, M::AbstractArray) where {T<:OffsetArray} = M isa T ? M : T(M)
 

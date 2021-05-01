@@ -2133,52 +2133,63 @@ end
     @test b * a == b * oa
 
     for a = [1:4, ones(1:5)]
-        @test convert(OffsetArray, a) isa OffsetArray
-        @test convert(OffsetArray, a) == a
-        @test convert(OffsetArray{eltype(a)}, a) isa OffsetArray{eltype(a)}
-        @test convert(OffsetArray{eltype(a)}, a) == a
-        @test convert(OffsetArray{Float32}, a) isa OffsetArray{Float32}
-        @test convert(OffsetArray{Float32}, a) == a
-        @test convert(OffsetArray{eltype(a),1}, a) isa OffsetArray{eltype(a),1}
-        @test convert(OffsetArray{eltype(a),1}, a) == a
-        @test convert(OffsetArray{Float32,1}, a) isa OffsetArray{Float32,1}
-        @test convert(OffsetArray{Float32,1}, a) == a
-        @test convert(OffsetVector, a) isa OffsetVector
-        @test convert(OffsetVector, a) == a
-        @test convert(OffsetVector{Float32}, a) isa OffsetVector{Float32}
-        @test convert(OffsetVector{Float32}, a) == a
+        for T in [OffsetArray, OffsetVector,
+            OffsetArray{eltype(a)}, OffsetArray{Float32},
+            OffsetVector{eltype(a)}, OffsetVector{Float32},
+            OffsetVector{Float32, Vector{Float32}},
+            OffsetVector{Float32, OffsetVector{Float32, Vector{Float32}}},
+            OffsetVector{eltype(a), typeof(a)},
+            ]
 
-        for T in [OffsetArray{Float32}, OffsetArray{Float32, 1}, OffsetArray{Float32, 1, Vector{Float32}},
-            OffsetVector{Float32}, OffsetVector{Float32, Vector{Float32}}]
-            b = T(a, 0)
-            @test b isa T
-            @test b == a
+            @test convert(T, a) isa T
+            @test convert(T, a) == a
+
             b = T(a)
             @test b isa T
             @test b == a
+
+            b = T(a, 0)
+            @test b isa T
+            @test b == a
+
+            b = T(a, axes(a))
+            @test b isa T
+            @test b == a
         end
+
         a2 = reshape(a, :, 1)
-        for T in [OffsetArray{Float32}, OffsetArray{Float32, 2}, OffsetArray{Float32, 2, Matrix{Float32}},
-            OffsetMatrix{Float32}, OffsetMatrix{Float32, Matrix{Float32}}]
+        for T in [OffsetArray{Float32}, OffsetMatrix{Float32}, OffsetArray{Float32, 2, Matrix{Float32}}]
             b = T(a2, 0, 0)
             @test b isa T
             @test b == a2
+
+            b = T(a2, axes(a2))
+            @test b isa T
+            @test b == a2
+
             b = T(a2, 1, 1)
             @test axes(b) == map((x,y) -> x .+ y, axes(a2), (1,1))
+
             b = T(a2)
             @test b isa T
             @test b == a2
         end
-        a2 = reshape(a, :, 1, 1)
+        a3 = reshape(a, :, 1, 1)
         for T in [OffsetArray{Float32}, OffsetArray{Float32, 3}, OffsetArray{Float32, 3, Array{Float32,3}}]
-            b = T(a2, 0, 0, 0)
+            b = T(a3, 0, 0, 0)
             @test b isa T
-            @test b == a2
-            b = T(a2, 1, 1, 1)
-            @test axes(b) == map((x,y) -> x .+ y, axes(a2), (1,1,1))
-            b = T(a2)
+            @test b == a3
+
+            b = T(a3, axes(a3))
             @test b isa T
-            @test b == a2
+            @test b == a3
+
+            b = T(a3, 1, 1, 1)
+            @test axes(b) == map((x,y) -> x .+ y, axes(a3), (1,1,1))
+
+            b = T(a3)
+            @test b isa T
+            @test b == a3
         end
     end
 
@@ -2188,19 +2199,42 @@ end
     b = convert(OffsetVector, a)
     @test a === b
 
-    # test that non-Int offsets work correctly if the parent is an OffsetArray
+    # test that non-Int offsets work correctly
+    a = 1:4
+    b1 = OffsetVector{Float64,Vector{Float64}}(a, 2)
+    b2 = OffsetVector{Float64,Vector{Float64}}(a, big(2))
+    @test b1 == b2
+
+    a = ones(2:3)
     b1 = OffsetArray{Float64, 1, typeof(a)}(a, (-1,))
     b2 = OffsetArray{Float64, 1, typeof(a)}(a, (-big(1),))
     @test b1 == b2
 
     # test for custom offset arrays
     a = ZeroBasedRange(1:3)
-    b = OffsetVector{Float64, UnitRange{Float64}}(a)
-    @test b isa OffsetVector{Float64, UnitRange{Float64}}
-    @test b == a
-    b = OffsetVector{Int, Vector{Int}}(a)
-    @test b isa OffsetVector{Int, Vector{Int}}
-    @test b == a
+    for T in [OffsetVector{Float64, UnitRange{Float64}}, OffsetVector{Int, Vector{Int}},
+        OffsetVector{Float64,OffsetVector{Float64,UnitRange{Float64}}},
+        OffsetArray{Int,1,OffsetArray{Int,1,UnitRange{Int}}},
+        ]
+
+        b = T(a)
+        @test b isa T
+        @test b == a
+
+        b = T(a, 2:4)
+        @test b isa T
+        @test axes(b, 1) == 2:4
+        @test OffsetArrays.no_offset_view(b) == OffsetArrays.no_offset_view(a)
+
+        b = T(a, 1)
+        @test b isa T
+        @test axes(b, 1) == 1:3
+        @test OffsetArrays.no_offset_view(b) == OffsetArrays.no_offset_view(a)
+
+        c = convert(T, a)
+        @test c isa T
+        @test c == a
+    end
 
     # changing the number of dimensions is not permitted
     A = rand(2,2)
