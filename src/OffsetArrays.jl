@@ -223,9 +223,10 @@ end
 # conversion-related methods
 @inline OffsetArray{T}(M::AbstractArray, I...) where {T} = OffsetArray{T,ndims(M)}(M, I...)
 
-@inline OffsetArray{T,N}(M::AbstractArray{<:Any,N}) where {T,N} = OffsetArray(_of_eltype(T, M))
-@inline OffsetArray{T,N}(M::AbstractArray{<:Any,N}, I::Vararg) where {T,N} = OffsetArray{T,N}(M, I)
-@inline OffsetArray{T,N}(M::AbstractArray{<:Any,N}, I::Tuple) where {T,N} = OffsetArray(_of_eltype(T, M), I)
+@inline function OffsetArray{T,N}(M::AbstractArray{<:Any,N}, I...) where {T,N}
+    M2 = _of_eltype(T, M)
+    OffsetArray{T,N,typeof(M2)}(M2, I...)
+end
 
 @inline OffsetArray{T,N,A}(M::AbstractArray{<:Any,N}, I::Vararg) where {T,N,A<:AbstractArray{T,N}} = OffsetArray{T,N,A}(M, I)
 @inline function OffsetArray{T,N,A}(M::AbstractArray{<:Any,N}, I::NTuple{N,Int}) where {T,N,A<:AbstractArray{T,N}}
