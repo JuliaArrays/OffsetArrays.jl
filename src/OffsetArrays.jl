@@ -306,6 +306,14 @@ if VERSION < v"1.6"
     end
 end
 
+# Utils to translate a function to the parent while preserving offsets
+unwrap(x) = x, identity
+unwrap(x::OffsetArray) = parent(x), data -> OffsetArray(data, x.offsets)
+function parent_call(f, x)
+    parent, wrap_offset = unwrap(x)
+    wrap_offset(f(parent))
+end
+
 Base.similar(A::OffsetArray, ::Type{T}, dims::Dims) where T =
     similar(parent(A), T, dims)
 function Base.similar(A::AbstractArray, ::Type{T}, shape::Tuple{OffsetAxisKnownLength,Vararg{OffsetAxisKnownLength}}) where T
@@ -385,7 +393,7 @@ parentindex(r::IdOffsetRange, i) = i - r.offset
 end
 
 @propagate_inbounds Base.getindex(A::OffsetArray{<:Any,N}, c::Vararg{Colon,N}) where N =
-    OffsetArray(A.parent[c...], A.offsets)
+    parent_call(x -> getindex(x, c...), A)
 
 # With one Colon we use linear indexing.
 # In this case we may forward the index to the parent, as the information about the axes is lost
@@ -417,7 +425,7 @@ end
 end
 
 Base.in(x, A::OffsetArray) = in(x, parent(A))
-Base.copy(A::OffsetArray) = OffsetArray(copy(A.parent), A.offsets)
+Base.copy(A::OffsetArray) = parent_call(copy, A)
 
 Base.strides(A::OffsetArray) = strides(parent(A))
 Base.elsize(::Type{OffsetArray{T,N,A}}) where {T,N,A} = Base.elsize(A)
@@ -514,7 +522,7 @@ end
 
 # eltype conversion
 # This may use specialized map methods for the parent
-Base.map(::Type{T}, O::OffsetArray) where {T} = OffsetArray(map(T, parent(O)), O.offsets)
+Base.map(::Type{T}, O::OffsetArray) where {T} = parent_call(x -> map(T, x), O)
 
 # mapreduce is faster with an IdOffsetRange than with an OffsetUnitRange
 # We therefore convert OffsetUnitRanges to IdOffsetRanges with the same values and axes
@@ -696,7 +704,7 @@ end
 # Adapt allows for automatic conversion of CPU OffsetArrays to GPU OffsetArrays
 ##
 import Adapt
-Adapt.adapt_structure(to, x::OffsetArray) = OffsetArray(Adapt.adapt(to, parent(x)), x.offsets)
+Adapt.adapt_structure(to, O::OffsetArray) = parent_call(x -> Adapt.adapt(to, x), O)
 
 if Base.VERSION >= v"1.4.2"
     include("precompile.jl")
