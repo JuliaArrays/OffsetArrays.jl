@@ -13,6 +13,8 @@ _strip_IdOffsetRange(r) = r
 _offset(axparent::AbstractUnitRange, ax::AbstractUnitRange) = first(ax) - first(axparent)
 _offset(axparent::AbstractUnitRange, ::Union{Integer, Colon}) = 1 - first(axparent)
 
+_offsets(A::AbstractArray) = map(ax -> first(ax) - 1, axes(A))
+
 """
     OffsetArrays.AxisConversionStyle(typeof(indices))
 
@@ -95,3 +97,6 @@ if VERSION <= v"1.7.0-DEV.1039"
 else
     _contiguousindexingtype(r::AbstractUnitRange{<:Integer}) = r
 end
+
+_of_eltype(::Type{T}, M::AbstractArray{T}) where {T} = M
+_of_eltype(T, M::AbstractArray) = map(T, M)

@@ -117,10 +117,6 @@ struct OffsetArray{T,N,AA<:AbstractArray{T,N}} <: AbstractArray{T,N}
     end
 end
 
-function OffsetArray{T, N, AA}(parent::AA, offsets::NTuple{N, Integer}) where {T, N, AA<:AbstractArray{T,N}}
-    OffsetArray{T, N, AA}(parent, map(x -> convert(Int, x)::Int, offsets))
-end
-
 """
     OffsetVector(v, index)
 
@@ -194,11 +190,11 @@ for FT in (:OffsetArray, :OffsetVector, :OffsetMatrix)
     @eval @inline function $FT(A::OffsetArray, offsets::Tuple{Vararg{Int}})
         _checkindices(A, offsets, "offsets")
         # ensure that the offsets may be added together without an overflow
-        foreach(overflow_check, A.offsets, offsets)
+        map(overflow_check, A.offsets, offsets)
         $FT(parent(A), map(+, A.offsets, offsets))
     end
     @eval @inline function $FT(A::OffsetArray, offsets::Tuple{Integer,Vararg{Integer}})
-        $FT(A, map(x -> convert(Int, x)::Int, offsets))
+        $FT(A, map(Int, offsets))
     end
 
     # In general, indices get converted to AbstractUnitRanges.
@@ -219,9 +215,50 @@ for FT in (:OffsetArray, :OffsetVector, :OffsetMatrix)
     end
 
     @eval @inline $FT(A::AbstractArray, inds::Vararg) = $FT(A, inds)
+    @eval @inline $FT(A::AbstractArray) = $FT(A, ntuple(zero, Val(ndims(A))))
 
     @eval @inline $FT(A::AbstractArray, origin::Origin) = $FT(A, origin(A))
 end
+
+# conversion-related methods
+@inline OffsetArray{T}(M::AbstractArray, I...) where {T} = OffsetArray{T,ndims(M)}(M, I...)
+
+@inline function OffsetArray{T,N}(M::AbstractArray{<:Any,N}, I...) where {T,N}
+    M2 = _of_eltype(T, M)
+    OffsetArray{T,N,typeof(M2)}(M2, I...)
+end
+
+@inline OffsetArray{T,N,A}(M::AbstractArray{<:Any,N}, I::Vararg) where {T,N,A<:AbstractArray{T,N}} = OffsetArray{T,N,A}(M, I)
+@inline function OffsetArray{T,N,A}(M::AbstractArray{<:Any,N}, I::NTuple{N,Int}) where {T,N,A<:AbstractArray{T,N}}
+    map(overflow_check, axes(M), I)
+    Mv = no_offset_view(M)
+    MvA = convert(A, Mv)::A
+    Iof = map(+, _offsets(M), I)
+    OffsetArray{T,N,A}(MvA, Iof)
+end
+@inline function OffsetArray{T, N, AA}(parent::AbstractArray{<:Any,N}, offsets::NTuple{N, Integer}) where {T, N, AA<:AbstractArray{T,N}}
+    OffsetArray{T, N, AA}(parent, map(Int, offsets)::NTuple{N,Int})
+end
+@inline function OffsetArray{T,N,A}(M::AbstractArray{<:Any,N}, I::Tuple{AbstractUnitRange,Vararg{AbstractUnitRange}}) where {T,N,A<:AbstractArray{T,N}}
+    _checkindices(M, I, "indices")
+    # Performance gain by wrapping the error in a function: see https://github.com/JuliaLang/julia/issues/37558
+    throw_dimerr(lA, lI) = throw(DimensionMismatch("supplied axes do not agree with the size of the array (got size $lA for the array and $lI for the indices"))
+    lM = size(M)
+    lI = map(length, I)
+    lM == lI || throw_dimerr(lM, lI)
+    OffsetArray{T,N,A}(M, map(_offset, axes(M), I))
+end
+@inline function OffsetArray{T,N,A}(M::AbstractArray{<:Any,N}, I::Tuple) where {T,N,A<:AbstractArray{T,N}}
+    OffsetArray{T,N,A}(M, _toAbstractUnitRanges(to_indices(M, axes(M), I)))
+end
+@inline function OffsetArray{T,N,A}(M::AbstractArray{<:Any,N}) where {T,N,A<:AbstractArray{T,N}}
+    Mv = no_offset_view(M)
+    MvA = convert(A, Mv)::A
+    OffsetArray{T,N,A}(MvA, _offsets(M))
+end
+@inline OffsetArray{T,N,A}(M::A) where {T,N,A<:AbstractArray{T,N}} = OffsetArray{T,N,A}(M, ntuple(zero, Val(N)))
+
+Base.convert(::Type{T}, M::AbstractArray) where {T<:OffsetArray} = M isa T ? M : T(M)
 
 # array initialization
 @inline function OffsetArray{T,N}(init::ArrayInitializer, inds::Tuple{Vararg{OffsetAxisKnownLength}}) where {T,N}
@@ -421,9 +458,11 @@ end
 
 # avoid hitting the slow method getindex(::Array, ::AbstractRange{Int})
 # instead use the faster getindex(::Array, ::UnitRange{Int})
-@propagate_inbounds function Base.getindex(A::Array, r::Union{IdOffsetRange, IIUR})
-    B = A[_contiguousindexingtype(r)]
-    _maybewrapoffset(B, axes(r))
+if VERSION <= v"1.7.0-DEV.1039"
+    @propagate_inbounds function Base.getindex(A::Array, r::Union{IdOffsetRange, IIUR})
+        B = A[_contiguousindexingtype(r)]
+        _maybewrapoffset(B, axes(r))
+    end
 end
 
 # Linear Indexing of OffsetArrays with AbstractUnitRanges may use the faster contiguous indexing methods

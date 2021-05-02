@@ -280,7 +280,7 @@ struct WeirdInteger{T} <: Integer
     x :: T
 end
 # assume that it doesn't behave as expected
-Base.convert(::Type{Int}, a::WeirdInteger) = a
+Base.Int(a::WeirdInteger) = a
 
 @testset "Constructors" begin
     @testset "Single-entry arrays in dims 0:5" begin
@@ -2102,6 +2102,154 @@ end
         @test pointer(a', 5) === pointer(parent(a), 5)
         @test pointer(A', 15) === pointer(parent(A)', 15)
     end
+end
+
+# issue 171
+struct Foo2
+    o::OffsetArray{Float64,1,Array{Float64,1}}
+end
+
+@testset "convert" begin
+    d = Diagonal([1,1,1])
+    M = convert(Matrix{Float64}, d)
+    od = OffsetArray(d, 1, 1)
+    oM = convert(OffsetMatrix{Float64, Matrix{Float64}}, od)
+    @test eltype(oM) == Float64
+    @test typeof(parent(oM)) == Matrix{Float64}
+    @test oM == od
+    oM2 = convert(OffsetMatrix{Float64, Matrix{Float64}}, d)
+    @test eltype(oM2) == Float64
+    @test typeof(parent(oM2)) == Matrix{Float64}
+    @test oM2 == d
+
+    # issue 171
+    O = zeros(Int, 0:2)
+    F = Foo2(O)
+    @test F.o == O
+
+    a = [MMatrix{2,2}(1:4) for i = 1:2]
+    oa = [OffsetArray(ai, 0, 0) for ai in a]
+    b = ones(2,2)
+    @test b * a == b * oa
+
+    for a = [1:4, ones(1:5)]
+        for T in [OffsetArray, OffsetVector,
+            OffsetArray{eltype(a)}, OffsetArray{Float32},
+            OffsetVector{eltype(a)}, OffsetVector{Float32},
+            OffsetVector{Float32, Vector{Float32}},
+            OffsetVector{Float32, OffsetVector{Float32, Vector{Float32}}},
+            OffsetVector{eltype(a), typeof(a)},
+            ]
+
+            @test convert(T, a) isa T
+            @test convert(T, a) == a
+
+            b = T(a)
+            @test b isa T
+            @test b == a
+
+            b = T(a, 0)
+            @test b isa T
+            @test b == a
+
+            b = T(a, axes(a))
+            @test b isa T
+            @test b == a
+        end
+
+        a2 = reshape(a, :, 1)
+        for T in [OffsetArray{Float32}, OffsetMatrix{Float32}, OffsetArray{Float32, 2, Matrix{Float32}}]
+            b = T(a2, 0, 0)
+            @test b isa T
+            @test b == a2
+
+            b = T(a2, axes(a2))
+            @test b isa T
+            @test b == a2
+
+            b = T(a2, 1, 1)
+            @test axes(b) == map((x,y) -> x .+ y, axes(a2), (1,1))
+
+            b = T(a2)
+            @test b isa T
+            @test b == a2
+        end
+        a3 = reshape(a, :, 1, 1)
+        for T in [OffsetArray{Float32}, OffsetArray{Float32, 3}, OffsetArray{Float32, 3, Array{Float32,3}}]
+            b = T(a3, 0, 0, 0)
+            @test b isa T
+            @test b == a3
+
+            b = T(a3, axes(a3))
+            @test b isa T
+            @test b == a3
+
+            b = T(a3, 1, 1, 1)
+            @test axes(b) == map((x,y) -> x .+ y, axes(a3), (1,1,1))
+
+            b = T(a3)
+            @test b isa T
+            @test b == a3
+        end
+    end
+
+    a = ones(2:3)
+    b = convert(OffsetArray, a)
+    @test a === b
+    b = convert(OffsetVector, a)
+    @test a === b
+
+    # test that non-Int offsets work correctly
+    a = 1:4
+    b1 = OffsetVector{Float64,Vector{Float64}}(a, 2)
+    b2 = OffsetVector{Float64,Vector{Float64}}(a, big(2))
+    @test b1 == b2
+
+    a = ones(2:3)
+    b1 = OffsetArray{Float64, 1, typeof(a)}(a, (-1,))
+    b2 = OffsetArray{Float64, 1, typeof(a)}(a, (-big(1),))
+    @test b1 == b2
+
+    # test for custom offset arrays
+    a = ZeroBasedRange(1:3)
+    for T in [OffsetVector{Float64, UnitRange{Float64}}, OffsetVector{Int, Vector{Int}},
+        OffsetVector{Float64,OffsetVector{Float64,UnitRange{Float64}}},
+        OffsetArray{Int,1,OffsetArray{Int,1,UnitRange{Int}}},
+        ]
+
+        b = T(a)
+        @test b isa T
+        @test b == a
+
+        b = T(a, 2:4)
+        @test b isa T
+        @test axes(b, 1) == 2:4
+        @test OffsetArrays.no_offset_view(b) == OffsetArrays.no_offset_view(a)
+
+        b = T(a, 1)
+        @test b isa T
+        @test axes(b, 1) == 1:3
+        @test OffsetArrays.no_offset_view(b) == OffsetArrays.no_offset_view(a)
+
+        c = convert(T, a)
+        @test c isa T
+        @test c == a
+    end
+
+    # test using custom indices
+    a = ones(2,2)
+    for T in [OffsetMatrix{Int}, OffsetMatrix{Float64}, OffsetMatrix{Float64, Matrix{Float64}},
+        OffsetMatrix{Int, Matrix{Int}}]
+
+        b = T(a, ZeroBasedIndexing())
+        @test b isa T
+        @test axes(b) == (0:1, 0:1)
+    end
+
+    # changing the number of dimensions is not permitted
+    A = rand(2,2)
+    @test_throws MethodError convert(OffsetArray{Float64, 3}, A)
+    @test_throws MethodError convert(OffsetArray{Float64, 3, Array{Float64,3}}, A)
 end
 
 include("origin.jl")
