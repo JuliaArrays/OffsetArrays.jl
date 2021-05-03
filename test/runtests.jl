@@ -78,11 +78,6 @@ for Z in [:ZeroBasedRange, :ZeroBasedUnitRange]
     end
 end
 
-Base.@propagate_inbounds function Base.getindex(A::Array, r::ZeroBasedUnitRange)
-    B = A[parent(r)]
-    OffsetArrays._maybewrapoffset(B, axes(r))
-end
-
 function same_value(r1, r2)
     length(r1) == length(r2) || return false
     for (v1, v2) in zip(r1, r2)
@@ -780,6 +775,13 @@ end
     B = BidirectionalVector([1, 2, 3], -2)
     A = OffsetArray(B, -1:1)
     @test axes(A) == (IdentityUnitRange(-1:1),)
+end
+
+@testset "unwrap" begin
+    for A in [ones(2, 2), ones(2:3, 2:3), ZeroBasedRange(1:4)]
+        p, f = OffsetArrays.unwrap(A)
+        @test f(map(y -> y^2, p)) == A.^2
+    end
 end
 
 @testset "Traits" begin
@@ -1750,6 +1752,14 @@ end
     @test dest[1,7] == 2
     @test dest[1,8] == 4
     @test dest[1,9] == -2
+
+    @testset "eltype conversion" begin
+        a = OffsetArray(1:2, 1)
+        b = map(BigInt, a)
+        @test eltype(b) == BigInt
+        @test b == a
+        @test b isa OffsetArrays.OffsetRange
+    end
 end
 
 @testset "reductions" begin
