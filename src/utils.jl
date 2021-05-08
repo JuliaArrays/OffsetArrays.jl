@@ -79,11 +79,13 @@ end
 
 @inline _maybewrapoffset(r::AbstractVector, ax::Tuple{Any}) = _maybewrapoffset(r, ax[1])
 @inline _maybewrapoffset(r::AbstractUnitRange{<:Integer}, ::Base.OneTo) = no_offset_view(r)
+@inline _maybewrapoffset(r::AbstractUnitRange{Bool}, ::Base.OneTo) = no_offset_view(r)
 @inline _maybewrapoffset(r::AbstractVector, ::Base.OneTo) = no_offset_view(r)
 @inline function _maybewrapoffset(r::AbstractUnitRange{<:Integer}, ax::AbstractUnitRange)
-	of = first(ax) - 1
+	of = convert(eltype(r), first(ax) - 1)
 	IdOffsetRange(_subtractoffset(r, of), of)
 end
+@inline _maybewrapoffset(r::AbstractUnitRange{Bool}, ax::AbstractUnitRange) = OffsetArray(r, ax)
 @inline _maybewrapoffset(r::AbstractVector, ax::AbstractUnitRange) = OffsetArray(r, ax)
 
 # These functions are equivalent to the broadcasted operation r .- of

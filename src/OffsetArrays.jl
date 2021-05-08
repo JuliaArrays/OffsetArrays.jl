@@ -523,14 +523,7 @@ end
 # eltype conversion
 # This may use specialized map methods for the parent
 Base.map(::Type{T}, O::OffsetArray) where {T} = parent_call(x -> map(T, x), O)
-function Base.map(::Type{T}, r::Union{IIUR, IdOffsetRange}) where {T<:Integer}
-    s = map(T, UnitRange(r))
-    ax = axes(r, 1)
-    of = T(first(ax) - 1)
-    IdOffsetRange{T}(s .- of, of)
-end
-Base.map(::Type{Bool}, r::Union{IIUR, IdOffsetRange}) = OffsetArray(map(Bool, UnitRange(r)), axes(r))
-Base.map(::Type{T}, r::Union{IIUR, IdOffsetRange}) where {T<:Real} = OffsetArray(map(T, UnitRange(r)), axes(r))
+Base.map(::Type{T}, r::Union{IIUR, IdOffsetRange}) where {T<:Real} = _maybewrapoffset(map(T, UnitRange(r)), axes(r))
 
 # mapreduce is faster with an IdOffsetRange than with an OffsetUnitRange
 # We therefore convert OffsetUnitRanges to IdOffsetRanges with the same values and axes
