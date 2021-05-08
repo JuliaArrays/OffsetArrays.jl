@@ -63,18 +63,18 @@ for Z in [:ZeroBasedRange, :ZeroBasedUnitRange]
     for R in [:AbstractRange, :AbstractUnitRange, :StepRange]
         @eval @inline function Base.getindex(A::$Z, r::$R{<:Integer})
             @boundscheck checkbounds(A, r)
-            OffsetArrays._maybewrapoffset(A.a[r .+ 1], axes(r))
+            OffsetArrays._indexedby(A.a[r .+ 1], axes(r))
         end
     end
     for R in [:UnitRange, :StepRange, :StepRangeLen, :LinRange]
         @eval @inline function Base.getindex(A::$R, r::$Z)
             @boundscheck checkbounds(A, r)
-            OffsetArrays._maybewrapoffset(A[r.a], axes(r))
+            OffsetArrays._indexedby(A[r.a], axes(r))
         end
     end
     @eval @inline function Base.getindex(A::StepRangeLen{<:Any,<:Base.TwicePrecision,<:Base.TwicePrecision}, r::$Z)
         @boundscheck checkbounds(A, r)
-        OffsetArrays._maybewrapoffset(A[r.a], axes(r))
+        OffsetArrays._indexedby(A[r.a], axes(r))
     end
 end
 

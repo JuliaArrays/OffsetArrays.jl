@@ -179,7 +179,7 @@ end
 @inline function Base.getindex(r::IdOffsetRange, s::AbstractUnitRange{<:Integer})
     @boundscheck checkbounds(r, s)
     @inbounds pr = r.parent[_subtractoffset(s, r.offset)] .+ r.offset
-    _maybewrapoffset(pr, axes(s,1))
+    _indexedby(pr, axes(s))
 end
 # The following method is required to avoid falling back to getindex(::AbstractUnitRange, ::StepRange{<:Integer})
 @inline function Base.getindex(r::IdOffsetRange, s::StepRange{<:Integer})
