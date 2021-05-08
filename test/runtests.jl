@@ -1772,7 +1772,7 @@ end
         end
 
         @testset "Bool" begin
-            for ri in Any[0:0, 0:1, 1:0, 1:1]
+            for ri in Any[0:0, 0:1, 1:0, 1:1, Base.OneTo(0), Base.OneTo(1)]
                 for r = Any[IdentityUnitRange(ri), IdOffsetRange(ri), IdOffsetRange(ri .- 1, 1)]
                     r2 = map(Bool, r)
                     @test eltype(r2) == Bool
