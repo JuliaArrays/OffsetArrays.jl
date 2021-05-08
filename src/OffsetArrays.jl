@@ -523,7 +523,9 @@ end
 # eltype conversion
 # This may use specialized map methods for the parent
 Base.map(::Type{T}, O::OffsetArray) where {T} = parent_call(x -> map(T, x), O)
-Base.map(::Type{T}, r::Union{IIUR, IdOffsetRange}) where {T<:Real} = _indexedby(map(T, UnitRange(r)), axes(r))
+Base.map(::Type{T}, r::IdOffsetRange) where {T<:Real} = _indexedby(map(T, UnitRange(r)), axes(r))
+# This is type-piracy, but there is no way to convert an IdentityUnitRange to a non-Int type in Base
+Base.map(::Type{T}, r::IdentityUnitRange) where {T<:Real} = _indexedby(map(T, UnitRange(r)), axes(r))
 
 # mapreduce is faster with an IdOffsetRange than with an OffsetUnitRange
 # We therefore convert OffsetUnitRanges to IdOffsetRanges with the same values and axes
