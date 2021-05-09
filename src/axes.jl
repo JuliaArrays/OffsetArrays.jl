@@ -203,11 +203,10 @@ The code implemented is a branch-free version of the following:
 
 See https://github.com/JuliaArrays/OffsetArrays.jl/pull/224#discussion_r595635143
 
-Logical indexing does not preserve axes in general, except if all elements are true
+Logical indexing does not preserve indices, unlike other forms of vector indexing
 =#
 @inline function _getindex(r, s::AbstractUnitRange{Bool})
-    rs = range(first(r) * first(s) + last(r) * !first(s), length=Int(last(s)))
-    _indexedby(rs, axes(s))
+    range(first(r) * first(s) + last(r) * !first(s), length=Int(last(s)))
 end
 @inline function _getindex(r, s::StepRange{Bool})
     range(first(r) * first(s) + last(r) * !first(s), step = oneunit(step(s)), length=Int(last(s)))

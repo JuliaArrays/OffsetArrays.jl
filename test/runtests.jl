@@ -299,7 +299,6 @@ end
 
             @test r[true:true] == 1:1
             @test r[true:true] == collect(r)[true:true]
-            @test axes(r[true:true], 1) == 1:1
 
             @test r[false:false] == 1:0
             @test r[false:false] == collect(r)[false:false]
@@ -336,7 +335,6 @@ end
             r = IdOffsetRange(10:10, 1)
             r2 = IdOffsetRange(false:false, 1) # effectively true:true with indices 2:2
             testlogicalindexing(r, r2)
-            @test axes(r[r2]) == axes(r2)
 
             r = IdOffsetRange(10:11)
             r2 = IdOffsetRange(false:true)
