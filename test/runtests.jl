@@ -268,6 +268,130 @@ end
             @test OrdinalRange{BigInt,BigInt}(r2) === r2
         end
     end
+
+    @testset "Bool IdOffsetRange (issue #223)" begin
+        for b1 in [false, true], b2 in [false, true]
+            r = IdOffsetRange(b1:b2)
+            @test first(r) === b1
+            @test last(r) === b2
+        end
+        @test_throws ArgumentError IdOffsetRange(true:true, true)
+        @test_throws ArgumentError IdOffsetRange{Bool,UnitRange{Bool}}(true:true, true)
+        @test_throws ArgumentError IdOffsetRange{Bool,IdOffsetRange{Bool,UnitRange{Bool}}}(IdOffsetRange(true:true), true)
+    end
+
+    @testset "Logical indexing" begin
+        @testset "indexing with a single bool" begin
+            r = IdOffsetRange(1:2)
+            @test_throws ArgumentError r[true]
+            @test_throws ArgumentError r[false]
+        end
+        @testset "indexing wtih a Bool UnitRange" begin
+            r = IdOffsetRange(1:0)
+
+            @test r[true:false] == 1:0
+            @test r[true:false] == collect(r)[true:false]
+            @test_throws BoundsError r[true:true]
+            @test_throws BoundsError r[false:false]
+            @test_throws BoundsError r[false:true]
+
+            r = IdOffsetRange(1:1)
+
+            @test r[true:true] == 1:1
+            @test r[true:true] == collect(r)[true:true]
+
+            @test r[false:false] == 1:0
+            @test r[false:false] == collect(r)[false:false]
+
+            @test_throws BoundsError r[true:false]
+            @test_throws BoundsError r[false:true]
+
+            r = IdOffsetRange(1:2)
+
+            @test r[false:true] == 2:2
+            @test r[false:true] == collect(r)[false:true]
+
+            @test_throws BoundsError r[true:true]
+            @test_throws BoundsError r[true:false]
+            @test_throws BoundsError r[false:false]
+        end
+        @testset "indexing with a Bool IdOffsetRange" begin
+            # bounds-checking requires the axes of the indices to match that of the array
+            function testlogicalindexing(r, r2)
+                r3 = r[r2];
+                @test no_offset_view(r3) == collect(r)[collect(r2)]
+            end
+
+            r = IdOffsetRange(10:9)
+            r2 = IdOffsetRange(true:false)
+            testlogicalindexing(r, r2)
+
+            r = IdOffsetRange(10:10)
+            r2 = IdOffsetRange(false:false)
+            testlogicalindexing(r, r2)
+            r2 = IdOffsetRange(true:true)
+            testlogicalindexing(r, r2)
+
+            r = IdOffsetRange(10:10, 1)
+            r2 = IdOffsetRange(false:false, 1) # effectively true:true with indices 2:2
+            testlogicalindexing(r, r2)
+
+            r = IdOffsetRange(10:11)
+            r2 = IdOffsetRange(false:true)
+            testlogicalindexing(r, r2)
+        end
+        @testset "indexing wtih a Bool StepRange" begin
+            r = IdOffsetRange(1:0)
+
+            @test r[true:true:false] == 1:1:0
+            @test_throws BoundsError r[true:true:true]
+            @test_throws BoundsError r[false:true:false]
+            @test_throws BoundsError r[false:true:true]
+
+            r = IdOffsetRange(1:1)
+
+            @test r[true:true:true] == 1:1:1
+            @test r[true:true:true] == collect(r)[true:true:true]
+            @test axes(r[true:true:true], 1) == 1:1
+
+            @test r[false:true:false] == 1:1:0
+            @test r[false:true:false] == collect(r)[false:true:false]
+
+            # StepRange{Bool,Int}
+            s = StepRange(true, 1, true)
+            @test r[s] == 1:1:1
+            @test r[s] == collect(r)[s]
+
+            s = StepRange(true, 2, true)
+            @test r[s] == 1:1:1
+            @test r[s] == collect(r)[s]
+
+            s = StepRange(false, 1, false)
+            @test r[s] == 1:1:0
+            @test r[s] == collect(r)[s]
+
+            s = StepRange(false, 2, false)
+            @test r[s] == 1:1:0
+            @test r[s] == collect(r)[s]
+
+            @test_throws BoundsError r[true:true:false]
+            @test_throws BoundsError r[false:true:true]
+
+            r = IdOffsetRange(1:2)
+
+            @test r[false:true:true] == 2:1:2
+            @test r[false:true:true] == collect(r)[false:true:true]
+
+            # StepRange{Bool,Int}
+            s = StepRange(false, 1, true)
+            @test r[s] == 2:1:2
+            @test r[s] == collect(r)[s]
+
+            @test_throws BoundsError r[true:true:true]
+            @test_throws BoundsError r[true:true:false]
+            @test_throws BoundsError r[false:true:false]
+        end
+    end
 end
 
 # used in testing the constructor

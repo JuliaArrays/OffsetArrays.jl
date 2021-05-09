@@ -77,16 +77,29 @@ struct IdOffsetRange{T<:Integer,I<:AbstractUnitRange{T}} <: AbstractUnitRange{T}
     parent::I
     offset::T
 
-    IdOffsetRange{T,I}(r::I, offset::T) where {T<:Integer,I<:AbstractUnitRange{T}} = new{T,I}(r, offset)
+    function IdOffsetRange{T,I}(r::I, offset::T) where {T<:Integer,I<:AbstractUnitRange{T}}
+        _bool_check(T, r, offset)
+        new{T,I}(r, offset)
+    end
 
     #= This method is necessary to avoid a StackOverflowError in IdOffsetRange{T,I}(r::IdOffsetRange, offset::Integer).
     The type signature in that method is more specific than IdOffsetRange{T,I}(r::I, offset::T),
     so it ends up calling itself if I <: IdOffsetRange.
     =#
     function IdOffsetRange{T,IdOffsetRange{T,I}}(r::IdOffsetRange{T,I}, offset::T) where {T<:Integer,I<:AbstractUnitRange{T}}
+        _bool_check(T, r, offset)
         new{T,IdOffsetRange{T,I}}(r, offset)
     end
 end
+
+function _bool_check(::Type{Bool}, r, offset)
+    # disallow the construction of IdOffsetRange{Bool, UnitRange{Bool}}(true:true, true)
+    if offset && (first(r) || last(r))
+        throw(ArgumentError("values = $r and offset = $offset can not produce a boolean range"))
+    end
+    return nothing
+end
+_bool_check(::Type, r, offset) = nothing
 
 # Construction/coercion from arbitrary AbstractUnitRanges
 function IdOffsetRange{T,I}(r::AbstractUnitRange, offset::Integer = 0) where {T<:Integer,I<:AbstractUnitRange{T}}
@@ -157,35 +170,61 @@ offset_coerce(::Type{I}, r::AbstractUnitRange) where I<:AbstractUnitRange =
 Base.reduced_index(i::IdOffsetRange) = typeof(i)(first(i):first(i))
 # Workaround for #92 on Julia < 1.4
 Base.reduced_index(i::IdentityUnitRange{<:IdOffsetRange}) = typeof(i)(first(i):first(i))
-for f in [:firstindex, :lastindex, :first, :last]
+for f in [:firstindex, :lastindex]
     @eval @inline Base.$f(r::IdOffsetRange) = $f(r.parent) + r.offset
+end
+for f in [:first, :last]
+    # coerce the type to deal with values that get promoted on addition (eg. Bool)
+    @eval @inline Base.$f(r::IdOffsetRange) = eltype(r)($f(r.parent) + r.offset)
 end
 
 @inline function Base.iterate(r::IdOffsetRange)
     ret = iterate(r.parent)
     ret === nothing && return nothing
-    return (ret[1] + r.offset, ret[2])
+    return (eltype(r)(ret[1] + r.offset), ret[2])
 end
 @inline function Base.iterate(r::IdOffsetRange, i)
     ret = iterate(r.parent, i)
     ret === nothing && return nothing
-    return (ret[1] + r.offset, ret[2])
+    return (eltype(r)(ret[1] + r.offset), ret[2])
 end
 
 @inline function Base.getindex(r::IdOffsetRange, i::Integer)
+    i isa Bool && throw(ArgumentError("invalid index: $i of type Bool"))
     @boundscheck checkbounds(r, i)
-    @inbounds r.parent[i - r.offset] + r.offset
+    @inbounds eltype(r)(r.parent[i - r.offset] + r.offset)
 end
-@inline function Base.getindex(r::IdOffsetRange, s::AbstractUnitRange{<:Integer})
-    @boundscheck checkbounds(r, s)
-    @inbounds pr = r.parent[_subtractoffset(s, r.offset)] .+ r.offset
-    _indexedby(pr, axes(s))
+
+# Logical indexing following https://github.com/JuliaLang/julia/pull/31829
+#= Helper function to perform logical indxeing for boolean ranges
+The code implemented is a branch-free version of the following:
+
+    range(first(s) ? first(r) : last(r), length=Int(last(s)))
+
+See https://github.com/JuliaArrays/OffsetArrays.jl/pull/224#discussion_r595635143
+
+Logical indexing does not preserve indices, unlike other forms of vector indexing
+=#
+@inline function _getindex(r, s::AbstractUnitRange{Bool})
+    range(first(r) * first(s) + last(r) * !first(s), length=Int(last(s)))
 end
-# The following method is required to avoid falling back to getindex(::AbstractUnitRange, ::StepRange{<:Integer})
-@inline function Base.getindex(r::IdOffsetRange, s::StepRange{<:Integer})
-    @boundscheck checkbounds(r, s)
-    @inbounds rs = r.parent[s .- r.offset] .+ r.offset
-    return no_offset_view(rs)
+@inline function _getindex(r, s::StepRange{Bool})
+    range(first(r) * first(s) + last(r) * !first(s), step = oneunit(step(s)), length=Int(last(s)))
+end
+@inline function _getindex(r, s::AbstractUnitRange)
+    @inbounds rs = r.parent[_subtractoffset(s, r.offset)] .+ r.offset
+    _indexedby(rs, axes(s))
+end
+@inline function _getindex(r, s::StepRange)
+    rs = @inbounds r.parent[s .- r.offset] .+ r.offset
+    _indexedby(rs, axes(s))
+end
+
+for T in [:AbstractUnitRange, :StepRange]
+    @eval @inline function Base.getindex(r::IdOffsetRange, s::$T{<:Integer})
+        @boundscheck checkbounds(r, s)
+        return _getindex(r, s)
+    end
 end
 
 # offset-preserve broadcasting
