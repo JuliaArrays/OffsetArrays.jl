@@ -77,14 +77,16 @@ function _checkindices(N::Integer, indices, label)
     N == length(indices) || throw_argumenterror(N, indices, label)
 end
 
-@inline _maybewrapoffset(r::AbstractVector, ax::Tuple{Any}) = _maybewrapoffset(r, ax[1])
-@inline _maybewrapoffset(r::AbstractUnitRange{<:Integer}, ::Base.OneTo) = no_offset_view(r)
-@inline _maybewrapoffset(r::AbstractVector, ::Base.OneTo) = no_offset_view(r)
-@inline function _maybewrapoffset(r::AbstractUnitRange{<:Integer}, ax::AbstractUnitRange)
-	of = first(ax) - 1
+@inline _indexedby(r::AbstractVector, ax::Tuple{Any}) = _indexedby(r, ax[1])
+@inline _indexedby(r::AbstractUnitRange{<:Integer}, ::Base.OneTo) = no_offset_view(r)
+@inline _indexedby(r::AbstractUnitRange{Bool}, ::Base.OneTo) = no_offset_view(r)
+@inline _indexedby(r::AbstractVector, ::Base.OneTo) = no_offset_view(r)
+@inline function _indexedby(r::AbstractUnitRange{<:Integer}, ax::AbstractUnitRange)
+	of = convert(eltype(r), first(ax) - 1)
 	IdOffsetRange(_subtractoffset(r, of), of)
 end
-@inline _maybewrapoffset(r::AbstractVector, ax::AbstractUnitRange) = OffsetArray(r, ax)
+@inline _indexedby(r::AbstractUnitRange{Bool}, ax::AbstractUnitRange) = OffsetArray(r, ax)
+@inline _indexedby(r::AbstractVector, ax::AbstractUnitRange) = OffsetArray(r, ax)
 
 # These functions are equivalent to the broadcasted operation r .- of
 # However these ensure that the result is an AbstractRange even if a specific

@@ -63,18 +63,18 @@ for Z in [:ZeroBasedRange, :ZeroBasedUnitRange]
     for R in [:AbstractRange, :AbstractUnitRange, :StepRange]
         @eval @inline function Base.getindex(A::$Z, r::$R{<:Integer})
             @boundscheck checkbounds(A, r)
-            OffsetArrays._maybewrapoffset(A.a[r .+ 1], axes(r))
+            OffsetArrays._indexedby(A.a[r .+ 1], axes(r))
         end
     end
     for R in [:UnitRange, :StepRange, :StepRangeLen, :LinRange]
         @eval @inline function Base.getindex(A::$R, r::$Z)
             @boundscheck checkbounds(A, r)
-            OffsetArrays._maybewrapoffset(A[r.a], axes(r))
+            OffsetArrays._indexedby(A[r.a], axes(r))
         end
     end
     @eval @inline function Base.getindex(A::StepRangeLen{<:Any,<:Base.TwicePrecision,<:Base.TwicePrecision}, r::$Z)
         @boundscheck checkbounds(A, r)
-        OffsetArrays._maybewrapoffset(A[r.a], axes(r))
+        OffsetArrays._indexedby(A[r.a], axes(r))
     end
 end
 
@@ -1759,6 +1759,28 @@ end
         @test eltype(b) == BigInt
         @test b == a
         @test b isa OffsetArrays.OffsetRange
+
+        for ri in Any[2:3, Base.OneTo(2)]
+            for r in [IdentityUnitRange(ri), IdOffsetRange(ri), IdOffsetRange(ri, 1)]
+                for T in [Int8, Int16, Int32, Int64, Int128, BigInt, Float32, Float64, BigFloat]
+                    r2 = map(T, r)
+                    @test eltype(r2) == T
+                    @test axes(r2) == axes(r)
+                    @test all(((x,y),) -> isequal(x,y), zip(r, r2))
+                end
+            end
+        end
+
+        @testset "Bool" begin
+            for ri in Any[0:0, 0:1, 1:0, 1:1, Base.OneTo(0), Base.OneTo(1)]
+                for r = Any[IdentityUnitRange(ri), IdOffsetRange(ri), IdOffsetRange(ri .- 1, 1)]
+                    r2 = map(Bool, r)
+                    @test eltype(r2) == Bool
+                    @test axes(r2) == axes(r)
+                    @test all(((x,y),) -> isequal(x,y), zip(r, r2))
+                end
+            end
+        end
     end
 end
 
