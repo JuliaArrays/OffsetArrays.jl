@@ -290,6 +290,7 @@ end
             r = IdOffsetRange(1:0)
 
             @test r[true:false] == 1:0
+            @test r[true:false] == collect(r)[true:false]
             @test_throws BoundsError r[true:true]
             @test_throws BoundsError r[false:false]
             @test_throws BoundsError r[false:true]
@@ -298,6 +299,7 @@ end
 
             @test r[true:true] == 1:1
             @test r[true:true] == collect(r)[true:true]
+            @test axes(r[true:true], 1) == 1:1
 
             @test r[false:false] == 1:0
             @test r[false:false] == collect(r)[false:false]
@@ -314,6 +316,32 @@ end
             @test_throws BoundsError r[true:false]
             @test_throws BoundsError r[false:false]
         end
+        @testset "indexing with a Bool IdOffsetRange" begin
+            # bounds-checking requires the axes of the indices to match that of the array
+            function testlogicalindexing(r, r2)
+                r3 = r[r2];
+                @test no_offset_view(r3) == collect(r)[collect(r2)]
+            end
+
+            r = IdOffsetRange(10:9)
+            r2 = IdOffsetRange(true:false)
+            testlogicalindexing(r, r2)
+
+            r = IdOffsetRange(10:10)
+            r2 = IdOffsetRange(false:false)
+            testlogicalindexing(r, r2)
+            r2 = IdOffsetRange(true:true)
+            testlogicalindexing(r, r2)
+
+            r = IdOffsetRange(10:10, 1)
+            r2 = IdOffsetRange(false:false, 1) # effectively true:true with indices 2:2
+            testlogicalindexing(r, r2)
+            @test axes(r[r2]) == axes(r2)
+
+            r = IdOffsetRange(10:11)
+            r2 = IdOffsetRange(false:true)
+            testlogicalindexing(r, r2)
+        end
         @testset "indexing wtih a Bool StepRange" begin
             r = IdOffsetRange(1:0)
 
@@ -326,6 +354,7 @@ end
 
             @test r[true:true:true] == 1:1:1
             @test r[true:true:true] == collect(r)[true:true:true]
+            @test axes(r[true:true:true], 1) == 1:1
 
             @test r[false:true:false] == 1:1:0
             @test r[false:true:false] == collect(r)[false:true:false]

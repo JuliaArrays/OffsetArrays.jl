@@ -202,38 +202,29 @@ The code implemented is a branch-free version of the following:
     range(first(s) ? first(r) : last(r), length=Int(last(s)))
 
 See https://github.com/JuliaArrays/OffsetArrays.jl/pull/224#discussion_r595635143
+
+Logical indexing does not preserve axes in general, except if all elements are true
 =#
 @inline function _getindex(r, s::AbstractUnitRange{Bool})
-    range(first(r) * first(s) + last(r) * !first(s), length=Int(last(s)))
+    rs = range(first(r) * first(s) + last(r) * !first(s), length=Int(last(s)))
+    _indexedby(rs, axes(s))
 end
 @inline function _getindex(r, s::StepRange{Bool})
     range(first(r) * first(s) + last(r) * !first(s), step = oneunit(step(s)), length=Int(last(s)))
 end
 @inline function _getindex(r, s::AbstractUnitRange)
-    offset_s = first(axes(s,1)) - 1
-    if eltype(s) === Bool
-        # Use logical indexing
-        #= The code implemented is a comparison-free version of the following:
-
-        range(ifelse(first(s), first(r), last(r)), length=Int(last(s)))
-
-        See https://github.com/JuliaArrays/OffsetArrays.jl/pull/224#discussion_r595635143
-        =#
-        range(first(r) * first(s) + last(r) * !first(s), length=Int(last(s)))
-    else
-        @inbounds pr = r.parent[s .- r.offset] .+ r.offset
-        return _indexedby(pr, axes(s))
-    end
+    @inbounds rs = r.parent[_subtractoffset(s, r.offset)] .+ r.offset
+    _indexedby(rs, axes(s))
 end
 @inline function _getindex(r, s::StepRange)
-    @inbounds rs = r.parent[s .- r.offset] .+ r.offset
-    no_offset_view(rs)
+    rs = @inbounds r.parent[s .- r.offset] .+ r.offset
+    _indexedby(rs, axes(s))
 end
 
 for T in [:AbstractUnitRange, :StepRange]
     @eval @inline function Base.getindex(r::IdOffsetRange, s::$T{<:Integer})
         @boundscheck checkbounds(r, s)
-        _getindex(r, s)
+        return _getindex(r, s)
     end
 end
 
