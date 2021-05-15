@@ -188,6 +188,15 @@ end
     ret === nothing && return nothing
     return (eltype(r)(ret[1] + r.offset), ret[2])
 end
+@inline function Base.iterate(itr::Iterators.PartitionIterator{<:IdOffsetRange})
+    ax = eachindex(itr.c)
+    iterate(itr, (first(ax), last(ax)))
+end
+@inline function Base.iterate(itr::Iterators.PartitionIterator{<:IdOffsetRange}, (s, e))
+    s > e && return nothing
+    r = min(s + itr.n - 1, e)
+    return @inbounds itr.c[s:r], (r + 1, e)
+end
 
 @inline function Base.getindex(r::IdOffsetRange, i::Integer)
     i isa Bool && throw(ArgumentError("invalid index: $i of type Bool"))
