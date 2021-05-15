@@ -195,7 +195,7 @@ end
 @inline function Base.iterate(itr::Iterators.PartitionIterator{<:IdOffsetRange}, (s, e))
     s > e && return nothing
     r = min(s + itr.n - 1, e)
-    return @inbounds itr.c[s:r], (r + 1, e)
+    return @inbounds view(itr.c,s:r), (r + 1, e) # use view here, to keep consistancy
 end
 
 @inline function Base.getindex(r::IdOffsetRange, i::Integer)
