@@ -14,6 +14,7 @@ _offset(axparent::AbstractUnitRange, ax::AbstractUnitRange) = first(ax) - first(
 _offset(axparent::AbstractUnitRange, ::Union{Integer, Colon}) = 1 - first(axparent)
 
 _offsets(A::AbstractArray) = map(ax -> first(ax) - 1, axes(A))
+_offsets(A::AbstractArray, B::AbstractArray) = map(_offset, axes(B), axes(A))
 
 """
     OffsetArrays.AxisConversionStyle(typeof(indices))

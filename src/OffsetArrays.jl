@@ -19,6 +19,11 @@ const OffsetAxisKnownLength = Union{Integer, AbstractUnitRange}
 const OffsetAxis = Union{OffsetAxisKnownLength, Colon}
 const ArrayInitializer = Union{UndefInitializer, Missing, Nothing}
 
+struct SkipOverflowCheck{N,T<:NTuple{N,Integer}}
+    offsets :: T
+end
+Base.map(f, S::SkipOverflowCheck) = SkipOverflowCheck(map(f, S.offsets))
+
 ## OffsetArray
 """
     OffsetArray(A, indices...)
@@ -110,10 +115,13 @@ julia> OffsetArray(a, OffsetArrays.Origin(0)) # set the origin to zero along eac
 struct OffsetArray{T,N,AA<:AbstractArray{T,N}} <: AbstractArray{T,N}
     parent::AA
     offsets::NTuple{N,Int}
-    function OffsetArray{T, N, AA}(parent::AA, offsets::NTuple{N, Int}) where {T, N, AA<:AbstractArray{T,N}}
+    @inline function OffsetArray{T, N, AA}(parent::AA, offsets::NTuple{N, Int}) where {T, N, AA<:AbstractArray{T,N}}
         # allocation of `map` on tuple is optimized away
         map(overflow_check, axes(parent), offsets)
         new{T, N, AA}(parent, offsets)
+    end
+    @inline function OffsetArray{T, N, AA}(parent::AA, S::SkipOverflowCheck{N, NTuple{N,Int}}) where {T, N, AA<:AbstractArray{T,N}}
+        new{T, N, AA}(parent, S.offsets)
     end
 end
 
@@ -132,33 +140,20 @@ Type alias and convenience constructor for two-dimensional [`OffsetArray`](@ref)
 const OffsetMatrix{T,AA<:AbstractMatrix{T}} = OffsetArray{T,2,AA}
 
 # checks if the offset may be added to the range without overflowing
-function overflow_check(r::AbstractUnitRange{T}, offset::Integer) where {T<:Integer}
-    Base.hastypemax(T) || return nothing
+function overflow_check(r::AbstractUnitRange, offset::Integer)
+    Base.hastypemax(eltype(r)) || return nothing
     # This gives some performance boost https://github.com/JuliaLang/julia/issues/33273
-    throw_upper_overflow_error(val) = throw(OverflowError("offset should be <= $(typemax(T) - val) corresponding to the axis $r, received an offset $offset"))
-    throw_lower_overflow_error(val) = throw(OverflowError("offset should be >= $(typemin(T) - val) corresponding to the axis $r, received an offset $offset"))
+    throw_upper_overflow_error(val) = throw(OverflowError("offset should be <= $(typemax(Int) - val) corresponding to the axis $r, received an offset $offset"))
+    throw_lower_overflow_error(val) = throw(OverflowError("offset should be >= $(typemin(Int) - val) corresponding to the axis $r, received an offset $offset"))
 
     # With ranges in the picture, first(r) might not necessarily be < last(r)
     # we therefore use the min and max of first(r) and last(r) to check for overflow
     firstlast_min, firstlast_max = minmax(first(r), last(r))
 
-    if offset > 0 && firstlast_max > typemax(T) - offset
+    if offset > 0 && firstlast_max > typemax(Int) - offset
         throw_upper_overflow_error(firstlast_max)
-    elseif offset < 0 && firstlast_min < typemin(T) - offset
+    elseif offset < 0 && firstlast_min < typemin(Int) - offset
         throw_lower_overflow_error(firstlast_min)
-    end
-    return nothing
-end
-# checks if the two offsets may be added together without overflowing
-function overflow_check(offset_preexisting::Integer, offset_new::T) where {T<:Integer}
-    Base.hastypemax(T) || return nothing
-    throw_upper_overflow_error() = throw(OverflowError("offset should be <= $(typemax(eltype(offset_preexisting)) - offset_preexisting) given a pre-existing offset of $offset_preexisting, received an offset $offset_new"))
-    throw_lower_overflow_error() = throw(OverflowError("offset should be >= $(typemin(eltype(offset_preexisting)) - offset_preexisting) given a pre-existing offset of $offset_preexisting, received an offset $offset_new"))
-
-    if offset_preexisting > 0 && offset_new > typemax(T) - offset_preexisting
-        throw_upper_overflow_error()
-    elseif offset_preexisting < 0 && offset_new < typemin(T) - offset_preexisting
-        throw_lower_overflow_error()
     end
     return nothing
 end
@@ -169,6 +164,9 @@ end
     _checkindices(A, offsets, "offsets")
     OffsetArray{eltype(A), ndims(A), typeof(A)}(A, offsets)
 end
+@inline function OffsetArray(A::AbstractArray{<:Any,N}, offsets::SkipOverflowCheck{N}) where {N}
+    OffsetArray{eltype(A), N, typeof(A)}(A, map(Int, offsets)::SkipOverflowCheck{N,NTuple{N,Int}})
+end
 
 # These methods are necessary to disallow incompatible dimensions for
 # the OffsetVector and the OffsetMatrix constructors
@@ -176,6 +174,9 @@ for (FT, ND) in ((:OffsetVector, :1), (:OffsetMatrix, :2))
     @eval @inline function $FT(A::AbstractArray{<:Any,$ND}, offsets::Tuple{Vararg{Integer}})
         _checkindices(A, offsets, "offsets")
         OffsetArray{eltype(A), $ND, typeof(A)}(A, offsets)
+    end
+    @eval @inline function $FT(A::AbstractArray{<:Any,$ND}, offsets::SkipOverflowCheck{$ND})
+        OffsetArray{eltype(A), $ND, typeof(A)}(A, map(Int, offsets)::SkipOverflowCheck{$ND,NTuple{$ND,Int}})
     end
     FTstr = string(FT)
     @eval @inline function $FT(A::AbstractArray, offsets::Tuple{Vararg{Integer}})
@@ -190,8 +191,9 @@ for FT in (:OffsetArray, :OffsetVector, :OffsetMatrix)
     @eval @inline function $FT(A::OffsetArray, offsets::Tuple{Vararg{Int}})
         _checkindices(A, offsets, "offsets")
         # ensure that the offsets may be added together without an overflow
-        map(overflow_check, A.offsets, offsets)
-        $FT(parent(A), map(+, A.offsets, offsets))
+        map(overflow_check, axes(A), offsets)
+        I = map(+, _offsets(A, parent(A)), offsets)
+        $FT(parent(A), SkipOverflowCheck(I))
     end
     @eval @inline function $FT(A::OffsetArray, offsets::Tuple{Integer,Vararg{Integer}})
         $FT(A, map(Int, offsets))
@@ -225,8 +227,10 @@ end
 
 @inline function OffsetArray{T,N}(M::AbstractArray{<:Any,N}, I...) where {T,N}
     M2 = _of_eltype(T, M)
-    OffsetArray{T,N,typeof(M2)}(M2, I...)
+    OffsetArray{T,N}(M2, I...)
 end
+@inline OffsetArray{T,N}(M::OffsetArray{T,N}, I...) where {T,N} = OffsetArray(M, I...)
+@inline OffsetArray{T,N}(M::AbstractArray{T,N}, I...) where {T,N} = OffsetArray{T,N,typeof(M)}(M, I...)
 
 @inline OffsetArray{T,N,A}(M::AbstractArray{<:Any,N}, I::Vararg) where {T,N,A<:AbstractArray{T,N}} = OffsetArray{T,N,A}(M, I)
 @inline function OffsetArray{T,N,A}(M::AbstractArray{<:Any,N}, I::NTuple{N,Int}) where {T,N,A<:AbstractArray{T,N}}
@@ -234,7 +238,7 @@ end
     Mv = no_offset_view(M)
     MvA = convert(A, Mv)::A
     Iof = map(+, _offsets(M), I)
-    OffsetArray{T,N,A}(MvA, Iof)
+    OffsetArray{T,N,A}(MvA, map(Int, SkipOverflowCheck(Iof))::SkipOverflowCheck{N,NTuple{N,Int}})
 end
 @inline function OffsetArray{T, N, AA}(parent::AbstractArray{<:Any,N}, offsets::NTuple{N, Integer}) where {T, N, AA<:AbstractArray{T,N}}
     OffsetArray{T, N, AA}(parent, map(Int, offsets)::NTuple{N,Int})

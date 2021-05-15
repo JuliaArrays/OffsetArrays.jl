@@ -537,12 +537,18 @@ Base.Int(a::WeirdInteger) = a
         @test axes(OffsetVector(v, typemax(Int)-length(v))) == (IdOffsetRange(axes(v)[1], typemax(Int)-length(v)), )
         @test_throws OverflowError OffsetVector(v, typemax(Int)-length(v)+1)
         ao = OffsetArray(v, typemin(Int))
-        @test_nowarn OffsetArray{Float64, 1, typeof(ao)}(ao, (-1, ))
+        ao2 = OffsetArray{Float64, 1, typeof(ao)}(ao, (-1, ))
+        @test axes(ao2, 1) == typemin(Int) .+ (0:length(v)-1)
+        ao2 = OffsetArray(ao, (-1,))
+        @test axes(ao2, 1) == typemin(Int) .+ (0:length(v)-1)
         @test_throws OverflowError OffsetArray{Float64, 1, typeof(ao)}(ao, (-2, )) # inner Constructor
         @test_throws OverflowError OffsetArray(ao, (-2, )) # convinient constructor accumulate offsets
         @test_throws OverflowError OffsetVector(1:0, typemax(Int))
         @test_throws OverflowError OffsetVector(OffsetVector(1:0, 0), typemax(Int))
         @test_throws OverflowError OffsetArray(zeros(Int, typemax(Int):typemax(Int)), 2)
+
+        b = OffsetArray(OffsetArray(big(1):2, 1), typemax(Int)-1)
+        @test axes(b, 1) == big(typemax(Int)) .+ (1:2)
 
         @testset "OffsetRange" begin
             for r in Any[1:100, big(1):big(2)]
