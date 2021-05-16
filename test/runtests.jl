@@ -1888,10 +1888,10 @@ end
         b = map(BigInt, a)
         @test eltype(b) == BigInt
         @test b == a
-        @test b isa OffsetArrays.OffsetRange
+        @test parent(b) isa AbstractRange
 
         for ri in Any[2:3, Base.OneTo(2)]
-            for r in [IdentityUnitRange(ri), IdOffsetRange(ri), IdOffsetRange(ri, 1)]
+            for r in [IdentityUnitRange(ri), IdOffsetRange(ri), IdOffsetRange(ri, 1), OffsetArray(ri), OffsetArray(ri, 2)]
                 for T in [Int8, Int16, Int32, Int64, Int128, BigInt, Float32, Float64, BigFloat]
                     r2 = map(T, r)
                     @test eltype(r2) == T
@@ -1903,7 +1903,7 @@ end
 
         @testset "Bool" begin
             for ri in Any[0:0, 0:1, 1:0, 1:1, Base.OneTo(0), Base.OneTo(1)]
-                for r = Any[IdentityUnitRange(ri), IdOffsetRange(ri), IdOffsetRange(ri .- 1, 1)]
+                for r = Any[IdentityUnitRange(ri), IdOffsetRange(ri), IdOffsetRange(ri .- 1, 1), OffsetVector(ri)]
                     r2 = map(Bool, r)
                     @test eltype(r2) == Bool
                     @test axes(r2) == axes(r)
