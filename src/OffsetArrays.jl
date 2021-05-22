@@ -632,10 +632,10 @@ _no_offset_view(::Any, A::AbstractUnitRange) = UnitRange(A)
 # other scenarios and will be very likely to cause name conflicts if exported.
 #####
 """
-    center(A, [r::RoundingMode=RoundDown]) -> Dims
+    center(A, [r::RoundingMode=RoundDown])::Dims
 
 Return the center coordinate of given array `A`. If `size(A, k)` is even,
-a rounding will be applied with mode `r`.
+a rounding procedure will be applied with mode `r`.
 
 !!! compat "OffsetArrays 1.9"
     This function is newly introduced in OffsetArrays 1.9.
@@ -668,7 +668,7 @@ end
     centered(A, r::RoundingMode=RoundDown) -> Ao
 
 Shift the center coordinate of array `A` to `(0, 0, ...)`. If `size(A, k)`
-is even, a rounding will be applied with mode `r`.
+is even, a rounding procedure will be applied with mode `r`.
 
 !!! compat "OffsetArrays 1.9"
     This function is newly introduced in OffsetArrays 1.9.
