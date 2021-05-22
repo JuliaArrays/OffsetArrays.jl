@@ -63,6 +63,20 @@ OffsetArray(A, OffsetArrays.Origin(-1, -1))
 OffsetArray(OA, OffsetArrays.Origin(-1, -1))
 ```
 
+Sometimes, it will be convenient to shift the center coordinate of the given array to `(0, 0, ...)`,
+`OffsetArrays.centered` is a helper for this very purpose:
+
+```@repl index
+Ao = OffsetArrays.centered(A)
+Ao[0, 0] == 8.0
+```
+
+and `OffsetArrays.center` tells you the center coordinate of given array:
+
+```@repl index
+c = OffsetArrays.center(A)
+A[c...] == 8.0
+```
 
 ## Example: Relativistic Notation
 

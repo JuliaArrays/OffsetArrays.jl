@@ -626,6 +626,64 @@ _no_offset_view(::Tuple{<:Base.OneTo,Vararg{<:Base.OneTo}}, A::AbstractUnitRange
 _no_offset_view(::Any, A::AbstractArray) = OffsetArray(A, Origin(1))
 _no_offset_view(::Any, A::AbstractUnitRange) = UnitRange(A)
 
+"""
+    center(A, [r::RoundingMode=RoundDown]) -> Dims
+
+Return the center coordinate of given array `A`. If `size(A, k)` is even,
+a rounding will be applied with mode `r`.
+
+# Examples
+
+```jldoctest; setup=:(using OffsetArrays)
+A = reshape(collect(1:9), 3, 3)
+c = OffsetArrays.center(A) # (2, 2)
+A[c...] == 5 # true
+
+Ao = OffsetArray(A, -2, -2)
+c = OffsetArrays.center(Ao) # (0, 0)
+Ao[c...] == 5 # true
+
+# output
+true
+```
+
+To shift the center coordinate of the given array to `(0, 0, ...)`, you
+can use [`centered`](@ref OffsetArrays.centered).
+"""
+function center(A::AbstractArray, r::RoundingMode=RoundDown)
+    map(axes(A)) do inds
+        round(Int, (length(inds)-1)/2, r) + first(inds)
+    end
+end
+
+"""
+    centered(A, r::RoundingMode=RoundDown) -> Ao
+
+Shift the center coordinate of array `A` to `(0, 0, ...)`. If `size(A, k)`
+is even, a rounding will be applied with mode `r`.
+
+# Examples
+
+```jldoctest; setup=:(using OffsetArrays)
+A = reshape(collect(1:9), 3, 3)
+Ao = OffsetArrays.centered(A)
+Ao[0, 0] == 5 # true
+
+A = reshape(collect(1:9), 3, 3)
+Ao = OffsetArray(A, OffsetArrays.Origin(0))
+Aoo = OffsetArrays.centered(Ao)
+Aoo[0, 0] == 5 # true
+
+# output
+true
+```
+
+To query the center coordinate of the given array, you can
+instead use [`center`](@ref OffsetArrays.center).
+"""
+centered(A::AbstractArray, r::RoundingMode=RoundDown) = OffsetArray(A, .-center(A, r))
+
+
 ####
 # work around for segfault in searchsorted*
 #  https://github.com/JuliaLang/julia/issues/33977

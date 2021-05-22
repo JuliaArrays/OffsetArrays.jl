@@ -2408,4 +2408,53 @@ end
     @test_throws MethodError convert(OffsetArray{Float64, 3, Array{Float64,3}}, A)
 end
 
+@testset "center/centered" begin
+    @testset "center" begin
+        A = reshape(collect(1:9), 3, 3)
+        c = OffsetArrays.center(A)
+        @test c == (2, 2)
+        @test A[c...] == 5
+        @test OffsetArrays.center(A, RoundDown) == OffsetArrays.center(A, RoundUp)
+
+        A = reshape(collect(1:6), 2, 3)
+        c = OffsetArrays.center(A)
+        @test OffsetArrays.center(A, RoundDown) == c
+        @test c == (1, 2)
+        @test A[c...] == 3
+        c = OffsetArrays.center(A, RoundUp)
+        @test c == (2, 2)
+        @test A[c...] == 4
+    end
+
+    @testset "centered" begin
+        A = reshape(collect(1:9), 3, 3)
+        Ao = OffsetArrays.centered(A)
+        @test typeof(Ao) <: OffsetArray
+        @test parent(Ao) === A
+        @test Ao.offsets == (-2, -2)
+        @test Ao[0, 0] == 5
+        @test OffsetArrays.centered(A, RoundDown) == OffsetArrays.centered(A, RoundUp)
+
+        A = reshape(collect(1:6), 2, 3)
+        Ao = OffsetArrays.centered(A)
+        @test OffsetArrays.centered(A, RoundDown) == Ao
+        @test typeof(Ao) <: OffsetArray
+        @test parent(Ao) === A
+        @test Ao.offsets == (-1, -2)
+        @test Ao[0, 0] == 3
+        Ao = OffsetArrays.centered(A, RoundUp)
+        @test typeof(Ao) <: OffsetArray
+        @test parent(Ao) === A
+        @test Ao.offsets == (-2, -2)
+        @test Ao[0, 0] == 4
+
+        A = reshape(collect(1:9), 3, 3)
+        Ao = OffsetArray(A, -1, -1)
+        Aoo = OffsetArrays.centered(Ao)
+        @test parent(Aoo) === A # there will be only one OffsetArray wrapper
+        @test Aoo.offsets == (-2, -2)
+        @test Aoo[0, 0] == 5
+    end
+end
+
 include("origin.jl")
