@@ -626,11 +626,19 @@ _no_offset_view(::Tuple{<:Base.OneTo,Vararg{<:Base.OneTo}}, A::AbstractUnitRange
 _no_offset_view(::Any, A::AbstractArray) = OffsetArray(A, Origin(1))
 _no_offset_view(::Any, A::AbstractUnitRange) = UnitRange(A)
 
+#####
+# center/centered
+# These two helpers are deliberately not exported; their meaning can be very different in
+# other scenarios and will be very likely to cause name conflicts if exported.
+#####
 """
     center(A, [r::RoundingMode=RoundDown]) -> Dims
 
 Return the center coordinate of given array `A`. If `size(A, k)` is even,
 a rounding will be applied with mode `r`.
+
+!!! compat "OffsetArrays 1.9"
+    This function is newly introduced in OffsetArrays 1.9.
 
 # Examples
 
@@ -661,6 +669,9 @@ end
 
 Shift the center coordinate of array `A` to `(0, 0, ...)`. If `size(A, k)`
 is even, a rounding will be applied with mode `r`.
+
+!!! compat "OffsetArrays 1.9"
+    This function is newly introduced in OffsetArrays 1.9.
 
 # Examples
 
