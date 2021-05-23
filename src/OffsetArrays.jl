@@ -638,7 +638,7 @@ Return the center coordinate of given array `A`. If `size(A, k)` is even,
 a rounding procedure will be applied with mode `r`.
 
 !!! compat "OffsetArrays 1.9"
-    This function is newly introduced in OffsetArrays 1.9.
+    This method requires at least OffsetArrays 1.9.
 
 # Examples
 
@@ -671,7 +671,7 @@ Shift the center coordinate of array `A` to `(0, 0, ...)`. If `size(A, k)`
 is even, a rounding procedure will be applied with mode `r`.
 
 !!! compat "OffsetArrays 1.9"
-    This function is newly introduced in OffsetArrays 1.9.
+    This method requires at least OffsetArrays 1.9.
 
 # Examples
 
