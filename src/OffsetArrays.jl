@@ -375,6 +375,9 @@ Base.trues(inds::NTuple{N, Union{Integer, AbstractUnitRange}}) where {N} =
 Base.falses(inds::NTuple{N, Union{Integer, AbstractUnitRange}}) where {N} =
     fill!(similar(BitArray, inds), false)
 
+Base.zero(A::OffsetArray) = parent_call(zero, A)
+Base.fill!(A::OffsetArray, x) = parent_call(Ap -> fill!(Ap, x), A)
+
 ## Indexing
 
 # Note this gets the index of the parent *array*, not the index of the parent *range*

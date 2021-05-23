@@ -9,6 +9,7 @@ using EllipsisNotation
 using Adapt
 using StaticArrays
 using FillArrays
+using DistributedArrays
 
 DocMeta.setdocmeta!(OffsetArrays, :DocTestSetup, :(using OffsetArrays); recursive=true)
 
@@ -2037,6 +2038,18 @@ end
     B = fill(5, 3, -1:1)
     @test axes(B) == (1:3,-1:1)
     @test all(B.==5)
+
+    @testset "fill!" begin
+        D = dzeros((2,2))
+        DO = OffsetArray(D, 2, 2)
+        fill!(DO, 1)
+        @test all(isequal(1), DO)
+        @test all(iszero, zero(DO))
+
+        S = SVector{2,Int}(1,1)
+        SO = OffsetVector(S, -1)
+        @test zero(SO) isa typeof(SO)
+    end
 end
 
 @testset "broadcasting" begin
