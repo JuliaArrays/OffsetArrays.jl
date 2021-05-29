@@ -9,15 +9,15 @@ end
 
 export OffsetArray, OffsetMatrix, OffsetVector
 
-include("axes.jl")
-include("utils.jl")
-include("origin.jl")
-
 # Technically we know the length of CartesianIndices but we need to convert it first, so here we
 # don't put it in OffsetAxisKnownLength.
 const OffsetAxisKnownLength = Union{Integer, AbstractUnitRange}
 const OffsetAxis = Union{OffsetAxisKnownLength, Colon}
 const ArrayInitializer = Union{UndefInitializer, Missing, Nothing}
+
+include("axes.jl")
+include("utils.jl")
+include("origin.jl")
 
 ## OffsetArray
 """
@@ -349,13 +349,15 @@ _similar_axes_or_length(AT, ax::I, ::I) where {I} = similar(AT, map(_indexlength
 Base.reshape(A::AbstractArray, inds::OffsetAxis...) = reshape(A, inds)
 function Base.reshape(A::AbstractArray, inds::Tuple{OffsetAxis,Vararg{OffsetAxis}})
     AR = reshape(A, map(_indexlength, inds))
-    return OffsetArray(AR, map(_offset, axes(AR), inds))
+    return OffsetArray(AR, _offset_reshape_uncolon(A, inds))
 end
 
 # Reshaping OffsetArrays can "pop" the original OffsetArray wrapper and return
 # an OffsetArray(reshape(...)) instead of an OffsetArray(reshape(OffsetArray(...)))
-Base.reshape(A::OffsetArray, inds::Tuple{OffsetAxis,Vararg{OffsetAxis}}) =
-    OffsetArray(reshape(parent(A), map(_indexlength, inds)), map(_indexoffset, inds))
+function Base.reshape(A::OffsetArray, inds::Tuple{OffsetAxis,Vararg{OffsetAxis}})
+    AR = reshape(parent(A), map(_indexlength, inds))
+    OffsetArray(AR, _offset_reshape_uncolon(A, inds))
+end
 # And for non-offset axes, we can just return a reshape of the parent directly
 Base.reshape(A::OffsetArray, inds::Tuple{Union{Integer,Base.OneTo},Vararg{Union{Integer,Base.OneTo}}}) = reshape(parent(A), inds)
 Base.reshape(A::OffsetArray, inds::Dims) = reshape(parent(A), inds)
