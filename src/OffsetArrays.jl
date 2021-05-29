@@ -364,6 +364,10 @@ Base.reshape(A::OffsetVector, ::Colon) = A
 Base.reshape(A::OffsetArray, inds::Union{Int,Colon}...) = reshape(parent(A), inds)
 Base.reshape(A::OffsetArray, inds::Tuple{Vararg{Union{Int,Colon}}}) = reshape(parent(A), inds)
 
+# permutedims in Base does not preserve axes, and can not be fixed in a non-breaking way
+# This is a stopgap solution
+Base.permutedims(v::OffsetVector) = reshape(v, (1, axes(v, 1)))
+
 Base.fill(v, inds::NTuple{N, Union{Integer, AbstractUnitRange}}) where {N} =
     fill!(similar(Array{typeof(v)}, inds), v)
 Base.zeros(::Type{T}, inds::NTuple{N, Union{Integer, AbstractUnitRange}}) where {T, N} =

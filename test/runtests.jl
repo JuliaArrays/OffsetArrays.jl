@@ -1769,6 +1769,15 @@ end
     @test first(A) == 5
 end
 
+@testset "permutedims" begin
+    a = OffsetArray(1:2, 2:3)
+    @test permutedims(a) == reshape(1:2, 1, 2:3)
+    a = OffsetArray([10,11], Base.OneTo(2))
+    @test permutedims(a) == reshape(10:11, 1, 1:2)
+    a = OffsetArray(SVector{2}(1,2), 3:4)
+    @test permutedims(a) == reshape(1:2, 1, 3:4)
+end
+
 @testset "Indexing with OffsetArray axes" begin
     A0 = [1 3; 2 4]
 
