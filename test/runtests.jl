@@ -1795,6 +1795,11 @@ end
     @test permutedims(a) == reshape(10:11, 1, 1:2)
     a = OffsetArray(SVector{2}(1,2), 3:4)
     @test permutedims(a) == reshape(1:2, 1, 3:4)
+
+    # check that the 2D case is unaffected
+    a = OffsetArray(reshape(1:2, 1, 2), 2:2, 4:5)
+    b = permutedims(a)
+    @test a[2,:] == b[:,2]
 end
 
 @testset "Indexing with OffsetArray axes" begin
