@@ -1767,6 +1767,39 @@ end
     Arsc = reshape(A, :, 1)
     Arsc[1,1] = 5
     @test first(A) == 5
+
+    @testset "issue #235" begin
+        Vec64  = zeros(6)
+        ind_a_64 = 3
+        ind_a_32 =Int32.(ind_a_64)
+        @test reshape(Vec64, ind_a_32, :) == reshape(Vec64, ind_a_64, :)
+    end
+
+    R = reshape(zeros(6), 2, :)
+    @test R isa Matrix
+    @test axes(R) == (1:2, 1:3)
+    R = reshape(zeros(6,1), 2, :)
+    @test R isa Matrix
+    @test axes(R) == (1:2, 1:3)
+
+    R = reshape(zeros(6), 1:2, :)
+    @test axes(R) == (1:2, 1:3)
+    R = reshape(zeros(6,1), 1:2, :)
+    @test axes(R) == (1:2, 1:3)
+end
+
+@testset "permutedims" begin
+    a = OffsetArray(1:2, 2:3)
+    @test permutedims(a) == reshape(1:2, 1, 2:3)
+    a = OffsetArray([10,11], Base.OneTo(2))
+    @test permutedims(a) == reshape(10:11, 1, 1:2)
+    a = OffsetArray(SVector{2}(1,2), 3:4)
+    @test permutedims(a) == reshape(1:2, 1, 3:4)
+
+    # check that the 2D case is unaffected
+    a = OffsetArray(reshape(1:2, 1, 2), 2:2, 4:5)
+    b = permutedims(a)
+    @test a[2,:] == b[:,2]
 end
 
 @testset "Indexing with OffsetArray axes" begin

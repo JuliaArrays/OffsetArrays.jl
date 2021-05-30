@@ -349,7 +349,8 @@ _similar_axes_or_length(AT, ax::I, ::I) where {I} = similar(AT, map(_indexlength
 Base.reshape(A::AbstractArray, inds::OffsetAxis...) = reshape(A, inds)
 function Base.reshape(A::AbstractArray, inds::Tuple{OffsetAxis,Vararg{OffsetAxis}})
     AR = reshape(A, map(_indexlength, inds))
-    return OffsetArray(AR, map(_offset, axes(AR), inds))
+    O = OffsetArray(AR, map(_offset, axes(AR), inds))
+    return _popreshape(O, axes(AR), _filterreshapeinds(inds))
 end
 
 # Reshaping OffsetArrays can "pop" the original OffsetArray wrapper and return
@@ -363,6 +364,10 @@ Base.reshape(A::OffsetArray, ::Colon) = reshape(parent(A), Colon())
 Base.reshape(A::OffsetVector, ::Colon) = A
 Base.reshape(A::OffsetArray, inds::Union{Int,Colon}...) = reshape(parent(A), inds)
 Base.reshape(A::OffsetArray, inds::Tuple{Vararg{Union{Int,Colon}}}) = reshape(parent(A), inds)
+
+# permutedims in Base does not preserve axes, and can not be fixed in a non-breaking way
+# This is a stopgap solution
+Base.permutedims(v::OffsetVector) = reshape(v, (1, axes(v, 1)))
 
 Base.fill(v, inds::NTuple{N, Union{Integer, AbstractUnitRange}}) where {N} =
     fill!(similar(Array{typeof(v)}, inds), v)
