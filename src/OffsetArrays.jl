@@ -349,7 +349,8 @@ _similar_axes_or_length(AT, ax::I, ::I) where {I} = similar(AT, map(_indexlength
 Base.reshape(A::AbstractArray, inds::OffsetAxis...) = reshape(A, inds)
 function Base.reshape(A::AbstractArray, inds::Tuple{OffsetAxis,Vararg{OffsetAxis}})
     AR = reshape(A, map(_indexlength, inds))
-    return OffsetArray(AR, map(_offset, axes(AR), inds))
+    O = OffsetArray(AR, map(_offset, axes(AR), inds))
+    return _popreshape(O, axes(AR), _filterreshapeinds(inds))
 end
 
 # Reshaping OffsetArrays can "pop" the original OffsetArray wrapper and return

@@ -1774,6 +1774,18 @@ end
         ind_a_32 =Int32.(ind_a_64)
         @test reshape(Vec64, ind_a_32, :) == reshape(Vec64, ind_a_64, :)
     end
+
+    R = reshape(zeros(6), 2, :)
+    @test R isa Matrix
+    @test axes(R) == (1:2, 1:3)
+    R = reshape(zeros(6,1), 2, :)
+    @test R isa Matrix
+    @test axes(R) == (1:2, 1:3)
+
+    R = reshape(zeros(6), 1:2, :)
+    @test axes(R) == (1:2, 1:3)
+    R = reshape(zeros(6,1), 1:2, :)
+    @test axes(R) == (1:2, 1:3)
 end
 
 @testset "permutedims" begin

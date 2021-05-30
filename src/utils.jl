@@ -102,3 +102,11 @@ end
 
 _of_eltype(::Type{T}, M::AbstractArray{T}) where {T} = M
 _of_eltype(T, M::AbstractArray) = map(T, M)
+
+# filter the arguments to reshape to check if there are any ranges
+# If not, we may pop the parent array
+_filterreshapeinds(t::Tuple{AbstractUnitRange, Vararg{Any}}) = t
+_filterreshapeinds(t::Tuple) = _filterreshapeinds(tail(t))
+_filterreshapeinds(t::Tuple{}) = t
+_popreshape(A::AbstractArray, ax::Tuple{Vararg{Base.OneTo}}, inds::Tuple{}) = no_offset_view(A)
+_popreshape(A::AbstractArray, ax, inds) = A
