@@ -1767,6 +1767,13 @@ end
     Arsc = reshape(A, :, 1)
     Arsc[1,1] = 5
     @test first(A) == 5
+
+    @testset "issue #235" begin
+        Vec64  = zeros(6)
+        ind_a_64 = 3
+        ind_a_32 =Int32.(ind_a_64)
+        @test reshape(Vec64, ind_a_32, :) == reshape(Vec64, ind_a_64, :)
+    end
 end
 
 @testset "permutedims" begin
