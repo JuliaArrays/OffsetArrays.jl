@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>For developers · OffsetArrays</title><link href="https://fonts.googleapis.com/css?family=Lato|Roboto+Mono" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.0/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.0/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.0/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.11.1/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit">OffsetArrays</span></div><form class="docs-search" action="../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../">OffsetArrays.jl</a></li><li class="is-active"><a class="tocitem" href>For developers</a><ul class="internal"><li><a class="tocitem" href="#Internals"><span>Internals</span></a></li><li><a class="tocitem" href="#The-axes-of-OffsetArrays"><span>The axes of OffsetArrays</span></a></li><li><a class="tocitem" href="#Wrapping-other-offset-array-types"><span>Wrapping other offset array types</span></a></li><li><a class="tocitem" href="#Caveats"><span>Caveats</span></a></li><li><a class="tocitem" href="#Using-custom-axis-types"><span>Using custom axis types</span></a></li></ul></li><li><a class="tocitem" href="../reference/">Reference</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>For developers</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>For developers</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/JuliaArrays/OffsetArrays.jl/blob/master/docs/src/internals.md" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="For-developers"><a class="docs-heading-anchor" href="#For-developers">For developers</a><a id="For-developers-1"></a><a class="docs-heading-anchor-permalink" href="#For-developers" title="Permalink"></a></h1><p>Writing code that supports OffsetArrays is generally fairly straightforward. The majority of cases can be handled with these tips:</p><ul><li>replace many uses of <code>size</code> with <code>axes</code></li><li>replace <code>1:length(A)</code> with <code>eachindex(A)</code>, or if you need an integer index with <code>LinearIndices(A)</code></li><li>replace explicit allocations like <code>Array{Int}(undef, size(B))</code> with <code>similar(Array{Int}, axes(B))</code></li></ul><p>More information can be found in <a href="https://docs.julialang.org/en/v1/devdocs/offset-arrays/">Julia&#39;s developer documentation</a>. The most subtle issues tend to arise around the axes, and further detail specific to OffsetArrays.jl follows below.</p><h2 id="Internals"><a class="docs-heading-anchor" href="#Internals">Internals</a><a id="Internals-1"></a><a class="docs-heading-anchor-permalink" href="#Internals" title="Permalink"></a></h2><p>How does OffsetArrays work? The fundamental principle is very simple: an <code>OffsetArray</code> is just a wrapper around a &quot;parent&quot; array, together with an index offset:</p><pre><code class="language-julia-repl">julia&gt; oa = OffsetArray([1 2; 3 4], 0:1, 5:6)
+2×2 OffsetArray(::Matrix{Int64}, 0:1, 5:6) with eltype Int64 with indices 0:1×5:6:
+ 1  2
+ 3  4
+
+julia&gt; parent(oa)
+2×2 Matrix{Int64}:
+ 1  2
+ 3  4
+
+julia&gt; oa.offsets
+(-1, 4)</code></pre><p>So <code>parent(oa)</code> is the original array we constructed it with, and <code>oa.offsets</code> is a tuple, each entry encoding the index-shift to be applied along the corresponding axis. When you index <code>oa[i,j]</code>, it &quot;translates&quot; the <code>i,j</code> indexes back to the parent array&#39;s indexes and then returns the value in the parent.</p><h2 id="The-axes-of-OffsetArrays"><a class="docs-heading-anchor" href="#The-axes-of-OffsetArrays">The axes of OffsetArrays</a><a id="The-axes-of-OffsetArrays-1"></a><a class="docs-heading-anchor-permalink" href="#The-axes-of-OffsetArrays" title="Permalink"></a></h2><p>The internal of offset computing is achieved by <a href="../reference/#OffsetArrays.IdOffsetRange"><code>IdOffsetRange</code></a> type:</p><pre><code class="language-julia-repl">julia&gt; ax = axes(oa, 2)
+OffsetArrays.IdOffsetRange(values=5:6, indices=5:6)</code></pre><p>This has a similar design to <code>Base.IdentityUnitRange</code> that <code>ax[x] == x</code> always holds.</p><pre><code class="language-julia-repl">julia&gt; ax[5]
+5
+julia&gt; ax[1]
+ERROR: BoundsError: attempt to access 2-element Base.OneTo{Int64} at index [-3]
+[...]</code></pre><p>This property makes sure that they tend to be their own axes:</p><pre><code class="language-julia-repl">julia&gt; axes(ax)
+(OffsetArrays.IdOffsetRange(values=5:6, indices=5:6),)
+
+julia&gt; axes(ax[ax])
+(OffsetArrays.IdOffsetRange(values=5:6, indices=5:6),)</code></pre><p>This example of indexing is <a href="https://en.wikipedia.org/wiki/Idempotence">idempotent</a>. This is a useful characteristic for ensuring the &quot;fundamental axiom&quot; of generalized indexing, that <code>a[ax][i] == a[ax[i]]</code>:</p><pre><code class="language-julia-repl">julia&gt; oa2 = OffsetArray([5, 10, 15, 20], 0:3)
+4-element OffsetArray(::Vector{Int64}, 0:3) with eltype Int64 with indices 0:3:
+  5
+ 10
+ 15
+ 20
+
+julia&gt; ax2 = axes(oa2, 1)
+OffsetArrays.IdOffsetRange(values=0:3, indices=0:3)
+
+julia&gt; oa2[2]
+15
+
+julia&gt; oa2[ax2][2]
+15
+
+julia&gt; oa2[ax2[2]]
+15</code></pre><p><code>IdOffsetRange</code>s apply the offset both to the values and the indices of the range, and otherwise preserve the parent range.</p><div class="admonition is-warning"><header class="admonition-header">Warning</header><div class="admonition-body"><p>There are circumstances where constructing a specific type of <code>IdOffsetRange</code> cannot be supported without changing the axes of the range (see <a href="../reference/#OffsetArrays.IdOffsetRange"><code>OffsetArrays.IdOffsetRange</code></a>.) In the future, this package will distinguish between <em>construction</em>  and <em>conversion</em>:</p><ul><li>construction (aka, <em>coercion</em>) will always succeed, even if it has to change the axes of the result (Examples: <code>RangeType(rng)</code>, <code>typeof(rng1)(rng2)</code>)</li><li>conversion will succeed only if it can preserve both the values and the axes (Examples: <code>convert(RangeType, rng)</code>, <code>oftype(rng1, rng2)</code>)</li></ul><p>While these behave equivalently now (conversion currently performs coercion), developers are encouraged to &quot;future-proof&quot; their code by choosing the behavior appropriate for each usage.</p></div></div><h2 id="Wrapping-other-offset-array-types"><a class="docs-heading-anchor" href="#Wrapping-other-offset-array-types">Wrapping other offset array types</a><a id="Wrapping-other-offset-array-types-1"></a><a class="docs-heading-anchor-permalink" href="#Wrapping-other-offset-array-types" title="Permalink"></a></h2><p>An <code>OffsetArray</code> may wrap any subtype of <code>AbstractArray</code>, including ones that do not use <code>1</code>-based indexing. Such arrays however need to satisfy the fundamental axiom of idempotent indexing for things to work correctly. In other words, an axis of an offset array needs to have the same values as its own axis. This property is built into <code>OffsetArray</code>s if the parent uses 1-based indexing, but it&#39;s up to the user to ensure the correctness in case a type is to be wrapped that uses offset indices.</p><p>We demonstrate this through an example by creating a custom 0-based range type that we wrap in an <code>OffsetArray</code>:</p><pre><code class="language-julia-repl">julia&gt; struct ZeroBasedRange{T,A&lt;:AbstractRange{T}} &lt;: AbstractRange{T}
+           a :: A
+           function ZeroBasedRange(a::AbstractRange{T}) where {T}
+               @assert !Base.has_offset_axes(a)
+               new{T, typeof(a)}(a)
+           end
+       end;
+
+julia&gt; Base.parent(A::ZeroBasedRange) = A.a;
+
+julia&gt; Base.first(A::ZeroBasedRange) = first(A.a);
+
+julia&gt; Base.length(A::ZeroBasedRange) = length(A.a);
+
+julia&gt; Base.last(A::ZeroBasedRange) = last(A.a);
+
+julia&gt; Base.size(A::ZeroBasedRange) = size(A.a);
+
+julia&gt; Base.axes(A::ZeroBasedRange) = map(x -&gt; 0:x-1, size(A.a));
+
+julia&gt; Base.getindex(A::ZeroBasedRange, i::Int) = A.a[i + 1];
+
+julia&gt; Base.step(A::ZeroBasedRange) = step(A.a);
+
+julia&gt; function Base.show(io::IO, A::ZeroBasedRange)
+           show(io, A.a)
+           print(io, &quot; with indices $(axes(A,1))&quot;)
+       end;</code></pre><p>This definition of a <code>ZeroBasedRange</code> appears to have the correct indices, for example:</p><pre><code class="language-julia-repl">julia&gt; z = ZeroBasedRange(1:4)
+1:4 with indices 0:3
+
+julia&gt; z[0]
+1
+
+julia&gt; z[3]
+4</code></pre><p>However this does not use idempotent indexing, as the axis of a <code>ZeroBasedRange</code> is not its own axis.</p><pre><code class="language-julia-repl">julia&gt; axes(z, 1)
+0:3
+
+julia&gt; axes(axes(z, 1), 1)
+Base.OneTo(4)</code></pre><p>This will lead to complications in certain functions –- for example <code>LinearIndices</code> –- that tend to implictly assume idempotent indexing. In this case the <code>LinearIndices</code> of <code>z</code> will not match its axis.</p><pre><code class="language-julia-repl">julia&gt; LinearIndices(z)
+4-element LinearIndices{1, Tuple{UnitRange{Int64}}}:
+ 1
+ 2
+ 3
+ 4</code></pre><p>Wrapping such a type in an <code>OffsetArray</code> might lead to unexpected bugs.</p><pre><code class="language-julia-repl">julia&gt; zo = OffsetArray(z, 1);
+
+julia&gt; axes(zo, 1)
+OffsetArrays.IdOffsetRange(values=1:4, indices=2:5)
+
+julia&gt; Array(zo)
+ERROR: BoundsError: attempt to access 4-element UnitRange{Int64} at index [5]
+[...]</code></pre><p>The <code>Array</code> conversion errors despite <code>zo</code> having 1-based indices. The function <code>axes(zo, 1)</code> hints at the underlying problem –- the values and the indices of the axis are different. We may check that the axis of <code>zo</code> is not its own axis:</p><pre><code class="language-julia-repl">julia&gt; axes(zo, 1)
+OffsetArrays.IdOffsetRange(values=1:4, indices=2:5)
+
+julia&gt; axes(axes(zo, 1), 1)
+OffsetArrays.IdOffsetRange(values=2:5, indices=2:5)</code></pre><p>In this case the bug may be fixed by defining the <code>axes</code> of a <code>ZeroBasedRange</code> to be idempotent, for example using the <code>OffsetArrays.IdentityUnitRange</code> wrapper:</p><pre><code class="language-julia-repl">julia&gt; Base.axes(A::ZeroBasedRange) = map(x -&gt; OffsetArrays.IdentityUnitRange(0:x-1), size(A.a))
+
+julia&gt; axes(zo, 1)
+OffsetArrays.IdOffsetRange(values=1:4, indices=1:4)</code></pre><p>With this new definition, the values and indices of the axis are identical, which makes indexing idempotent. The conversion to an <code>Array</code> works as expected now:</p><pre><code class="language-julia-repl">julia&gt; Array(zo)
+4-element Vector{Int64}:
+ 1
+ 2
+ 3
+ 4</code></pre><h2 id="Caveats"><a class="docs-heading-anchor" href="#Caveats">Caveats</a><a id="Caveats-1"></a><a class="docs-heading-anchor-permalink" href="#Caveats" title="Permalink"></a></h2><p>Because <code>IdOffsetRange</code> behaves quite differently to the normal <code>UnitRange</code> type, there are some cases that you should be aware of, especially when you are working with multi-dimensional arrays.</p><p>One such cases is <code>getindex</code>:</p><pre><code class="language-julia-repl">julia&gt; Ao = zeros(-3:3, -3:3); Ao[:] .= 1:49;
+
+julia&gt; Ao[-3:0, :] |&gt; axes # the first dimension does not preserve offsets
+(OffsetArrays.IdOffsetRange(values=1:4, indices=1:4), OffsetArrays.IdOffsetRange(values=-3:3, indices=-3:3))
+
+julia&gt; Ao[-3:0, -3:3] |&gt; axes # neither dimensions preserve offsets
+(Base.OneTo(4), Base.OneTo(7))
+
+julia&gt; Ao[axes(Ao)...] |&gt; axes # offsets are preserved
+(OffsetArrays.IdOffsetRange(values=-3:3, indices=-3:3), OffsetArrays.IdOffsetRange(values=-3:3, indices=-3:3))
+
+julia&gt; Ao[:] |&gt; axes # This is linear indexing
+(Base.OneTo(49),)</code></pre><p>Note that if you pass a <code>UnitRange</code>, the offsets in corresponding dimension will not be preserved. This might look weird at first, but since it follows the <code>a[ax][i] == a[ax[i]]</code> rule, it is not a bug.</p><pre><code class="language-julia-repl">julia&gt; I = -3:0; # UnitRange always starts at index 1
+
+julia&gt; Ao[I, 0][1] == Ao[I[1], 0]
+true
+
+julia&gt; ax = axes(Ao, 1) # ax starts at index -3
+OffsetArrays.IdOffsetRange(values=-3:3, indices=-3:3)
+
+julia&gt; Ao[ax, 0][1] == Ao[ax[1], 0]
+true</code></pre><h2 id="Using-custom-axis-types"><a class="docs-heading-anchor" href="#Using-custom-axis-types">Using custom axis types</a><a id="Using-custom-axis-types-1"></a><a class="docs-heading-anchor-permalink" href="#Using-custom-axis-types" title="Permalink"></a></h2><p>While a wide variety of <code>AbstractUnitRange</code>s provided by <code>Base</code> may be used as indices to construct an <code>OffsetArray</code>, at times it might be convenient to define custom types. The <code>OffsetArray</code> constructor accepts any type that may be converted to an <code>AbstractUnitRange</code>. This proceeds through a two-step process. Let&#39;s assume that the constructor called is <code>OffsetArray(A, indstup)</code>, where <code>indstup</code> is a <code>Tuple</code> of indices.</p><ol><li><p>At the first step, the constructor calls <code>to_indices(A, axes(A), indstup)</code> to lower <code>indstup</code> to a <code>Tuple</code> of <code>AbstractUnitRange</code>s. This step converts –- among other things –- <code>Colon</code>s to axis ranges. Custom types may extend <code>Base.to_indices(A, axes(A), indstup)</code> with the desired conversion of <code>indstup</code> to <code>Tuple{Vararg{AbstractUnitRange{Int}}}</code> if this is feasible.</p></li><li><p>At the second step, the result obtained from the previous step treated again to convert it to a <code>Tuple</code> of <code>AbstractUnitRange</code>s to handle cases where the first step doesn&#39;t achieve this. An additional customization option may be specified at this stage: a type may be converted either to a single <code>AbstractUnitRange{Int}</code>, or to a <code>Tuple</code> of them. A type might specify which of these two behaviours is desired by extending <a href="../reference/#OffsetArrays.AxisConversionStyle"><code>OffsetArrays.AxisConversionStyle</code></a>. An example of a type that is acted upon at this stage is <code>CartesianIndices</code>, which is converted to a <code>Tuple</code> of <code>AbstractUnitRange</code>s.</p></li></ol><p>For example, here are a couple of custom type that facilitate zero-based indexing:</p><pre><code class="language-julia-repl">julia&gt; struct ZeroBasedIndexing end
+
+julia&gt; Base.to_indices(A, inds, ::Tuple{ZeroBasedIndexing}) = map(x -&gt; 0:length(x)-1, inds)
+
+julia&gt; a = zeros(3, 3);
+
+julia&gt; oa = OffsetArray(a, ZeroBasedIndexing());
+
+julia&gt; axes(oa)
+(OffsetArrays.IdOffsetRange(values=0:2, indices=0:2), OffsetArrays.IdOffsetRange(values=0:2, indices=0:2))</code></pre><p>In this example we had to define the action of <code>to_indices</code> as the type <code>ZeroBasedIndexing</code> did not have a familiar hierarchy. Things are even simpler if we subtype <code>AbstractUnitRange</code>, in which case we need to define <code>first</code> and <code>length</code> for the custom range to be able to use it as an axis:</p><pre><code class="language-julia-repl">julia&gt; struct ZeroTo &lt;: AbstractUnitRange{Int}
+       n :: Int
+       ZeroTo(n) = new(n &lt; 0 ? -1 : n)
+       end
+
+julia&gt; Base.first(::ZeroTo) = 0
+
+julia&gt; Base.length(r::ZeroTo) = r.n + 1
+
+julia&gt; oa = OffsetArray(zeros(2,2), ZeroTo(1), ZeroTo(1));
+
+julia&gt; axes(oa)
+(OffsetArrays.IdOffsetRange(values=0:1, indices=0:1), OffsetArrays.IdOffsetRange(values=0:1, indices=0:1))</code></pre><p>Note that zero-based indexing may also be achieved using the pre-defined type <a href="../reference/#OffsetArrays.Origin"><code>OffsetArrays.Origin</code></a>.</p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« OffsetArrays.jl</a><a class="docs-footer-nextpage" href="../reference/">Reference »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Sunday 30 May 2021 09:07">Sunday 30 May 2021</span>. Using Julia version 1.6.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
