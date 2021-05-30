@@ -205,7 +205,7 @@ for FT in (:OffsetArray, :OffsetVector, :OffsetMatrix)
     @eval @inline $FT(A::AbstractArray, inds::Vararg; kw...) = $FT(A, inds; kw...)
     @eval @inline $FT(A::AbstractArray; checkoverflow = false) = $FT(A, ntuple(zero, Val(ndims(A))), checkoverflow = checkoverflow)
 
-    @eval @inline $FT(A::AbstractArray, origin::Origin; checkoverflow = false) = $FT(A, origin(A); checkoverflow = checkoverflow)
+    @eval @inline $FT(A::AbstractArray, origin::Origin; checkoverflow = true) = $FT(A, origin(A); checkoverflow = checkoverflow)
 end
 
 # conversion-related methods

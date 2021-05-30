@@ -546,6 +546,7 @@ Base.Int(a::WeirdInteger) = a
         @test_throws OverflowError OffsetVector(1:0, typemax(Int))
         @test_throws OverflowError OffsetVector(OffsetVector(1:0, 0), typemax(Int))
         @test_throws OverflowError OffsetArray(zeros(Int, typemax(Int):typemax(Int)), 2)
+        @test_throws OverflowError OffsetArray(v, OffsetArrays.Origin(typemax(Int)))
 
         b = OffsetArray(OffsetArray(big(1):2, 1), typemax(Int)-1)
         @test axes(b, 1) == big(typemax(Int)) .+ (1:2)
