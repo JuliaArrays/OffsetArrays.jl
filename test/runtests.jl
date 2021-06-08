@@ -2534,6 +2534,20 @@ end
     end
 end
 
+@testset "Conversion to AbstractArray{T}" begin
+    r = 1:4
+    T = Float64
+    V = typeof(map(T, r))
+    @test (V <: AbstractRange) && (eltype(V) == T)
+    v = OffsetVector(r)
+    @test OffsetArray{T}(v) isa OffsetVector{T,V}
+    @test AbstractArray{T}(v) isa OffsetVector{T,V}
+    @test AbstractVector{T}(v) isa OffsetVector{T,V}
+    @test convert(AbstractVector{T}, v) isa OffsetVector{T,V}
+    @test convert(AbstractArray{T}, v) isa OffsetVector{T,V}
+end
+
+
 include("origin.jl")
 
 @testset "misc" begin
