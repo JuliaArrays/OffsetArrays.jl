@@ -9,6 +9,8 @@ end
 
 export OffsetArray, OffsetMatrix, OffsetVector
 
+const IIUR = IdentityUnitRange{<:AbstractUnitRange{<:Integer}}
+
 include("axes.jl")
 include("utils.jl")
 include("origin.jl")
@@ -434,10 +436,8 @@ Base.dataids(A::OffsetArray) = Base.dataids(parent(A))
 Broadcast.broadcast_unalias(dest::OffsetArray, src::OffsetArray) = parent(dest) === parent(src) ? src : Broadcast.unalias(dest, src)
 
 ### Special handling for AbstractRange
-
 const OffsetRange{T} = OffsetVector{T,<:AbstractRange{T}}
 const OffsetUnitRange{T} = OffsetVector{T,<:AbstractUnitRange{T}}
-const IIUR = IdentityUnitRange{S} where S<:AbstractUnitRange{T} where T<:Integer
 
 Base.step(a::OffsetRange) = step(parent(a))
 
@@ -501,21 +501,31 @@ end
     IdOffsetRange(_subtractoffset(parent(r), of), of)
 end
 
+@inline function _boundscheck_index_retaining_axes(r, s)
+    @boundscheck checkbounds(r, s)
+    @inbounds pr = r[UnitRange(s)]
+    _indexedby(pr, axes(s))
+end
+@inline _boundscheck_return(r, s) = (@boundscheck checkbounds(r, s); s)
+
 for OR in [:IIUR, :IdOffsetRange]
-    for R in [:StepRange, :StepRangeLen, :LinRange, :UnitRange]
-        @eval @inline function Base.getindex(r::$R, s::$OR)
-            @boundscheck checkbounds(r, s)
-            @inbounds pr = r[UnitRange(s)]
-            _indexedby(pr, axes(s))
-        end
+    for R in [:StepRange, :StepRangeLen, :LinRange, :AbstractUnitRange]
+        @eval @inline Base.getindex(r::$R, s::$OR) = _boundscheck_index_retaining_axes(r, s)
     end
 
     # this method is needed for ambiguity resolution
     @eval @inline function Base.getindex(r::StepRangeLen{T,<:Base.TwicePrecision,<:Base.TwicePrecision}, s::$OR) where T
-        @boundscheck checkbounds(r, s)
-        @inbounds pr = r[UnitRange(s)]
-        _indexedby(pr, axes(s))
+        _boundscheck_index_retaining_axes(r, s)
     end
+end
+
+# These methods are added to avoid ambiguities with Base.
+# The ones involving Base types should be ported to Base and version-limited here
+@inline Base.getindex(r::IdentityUnitRange, s::IIUR) = _boundscheck_return(r, s)
+@inline Base.getindex(r::IdentityUnitRange, s::IdOffsetRange) = _boundscheck_return(r, s)
+if IdentityUnitRange !== Base.Slice
+    @inline Base.getindex(r::Base.Slice, s::IIUR) = _boundscheck_return(r, s)
+    @inline Base.getindex(r::Base.Slice, s::IdOffsetRange) = _boundscheck_return(r, s)
 end
 
 # eltype conversion

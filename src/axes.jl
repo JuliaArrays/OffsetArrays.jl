@@ -227,6 +227,14 @@ for T in [:AbstractUnitRange, :StepRange]
     end
 end
 
+# These methods are necessary to avoid ambiguity
+for R in [:IIUR, :IdOffsetRange]
+    @eval @inline function Base.getindex(r::IdOffsetRange, s::$R)
+        @boundscheck checkbounds(r, s)
+        return _getindex(r, s)
+    end
+end
+
 # offset-preserve broadcasting
 Broadcast.broadcasted(::Base.Broadcast.DefaultArrayStyle{1}, ::typeof(-), r::IdOffsetRange{T}, x::Integer) where T =
     IdOffsetRange{T}(r.parent .- x, r.offset)
