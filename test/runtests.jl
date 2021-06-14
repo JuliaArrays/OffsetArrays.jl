@@ -1,5 +1,6 @@
 using OffsetArrays
-using OffsetArrays: IdentityUnitRange, no_offset_view
+using OffsetArrays: IdentityUnitRange, no_offset_view, IIUR
+using Base: Slice
 using OffsetArrays: IdOffsetRange
 using Test, Aqua, Documenter
 using LinearAlgebra
@@ -10,6 +11,8 @@ using Adapt
 using StaticArrays
 using FillArrays
 using DistributedArrays
+
+const SliceIntUR = Slice{<:AbstractUnitRange{<:Integer}}
 
 DocMeta.setdocmeta!(OffsetArrays, :DocTestSetup, :(using OffsetArrays); recursive=true)
 
@@ -26,58 +29,7 @@ struct TupleOfRanges{N}
     x ::NTuple{N, UnitRange{Int}}
 end
 
-# Useful for testing indexing
-struct ZeroBasedRange{T,A<:AbstractRange{T}} <: AbstractRange{T}
-    a :: A
-    function ZeroBasedRange(a::AbstractRange{T}) where {T}
-        @assert !Base.has_offset_axes(a)
-        new{T, typeof(a)}(a)
-    end
-end
-
-struct ZeroBasedUnitRange{T,A<:AbstractUnitRange{T}} <: AbstractUnitRange{T}
-    a :: A
-    function ZeroBasedUnitRange(a::AbstractUnitRange{T}) where {T}
-        @assert !Base.has_offset_axes(a)
-        new{T, typeof(a)}(a)
-    end
-end
-
-for Z in [:ZeroBasedRange, :ZeroBasedUnitRange]
-    @eval Base.parent(A::$Z) = A.a
-    @eval Base.first(A::$Z) = first(A.a)
-    @eval Base.length(A::$Z) = length(A.a)
-    @eval Base.last(A::$Z) = last(A.a)
-    @eval Base.size(A::$Z) = size(A.a)
-    @eval Base.axes(A::$Z) = map(x -> IdentityUnitRange(0:x-1), size(A.a))
-    @eval Base.getindex(A::$Z, i::Int) = A.a[i + 1]
-    @eval Base.firstindex(A::$Z) = 0
-    @eval Base.axes(A::$Z) = map(x -> IdentityUnitRange(0:x-1), size(A.a))
-    @eval Base.getindex(A::$Z, i::Integer) = A.a[i + 1]
-    @eval Base.step(A::$Z) = step(A.a)
-    @eval OffsetArrays.no_offset_view(A::$Z) = A.a
-    @eval function Base.show(io::IO, A::$Z)
-        show(io, A.a)
-        print(io, " with indices $(axes(A,1))")
-    end
-
-    for R in [:AbstractRange, :AbstractUnitRange, :StepRange]
-        @eval @inline function Base.getindex(A::$Z, r::$R{<:Integer})
-            @boundscheck checkbounds(A, r)
-            OffsetArrays._indexedby(A.a[r .+ 1], axes(r))
-        end
-    end
-    for R in [:UnitRange, :StepRange, :StepRangeLen, :LinRange]
-        @eval @inline function Base.getindex(A::$R, r::$Z)
-            @boundscheck checkbounds(A, r)
-            OffsetArrays._indexedby(A[r.a], axes(r))
-        end
-    end
-    @eval @inline function Base.getindex(A::StepRangeLen{<:Any,<:Base.TwicePrecision,<:Base.TwicePrecision}, r::$Z)
-        @boundscheck checkbounds(A, r)
-        OffsetArrays._indexedby(A[r.a], axes(r))
-    end
-end
+include("customranges.jl")
 
 function same_value(r1, r2)
     length(r1) == length(r2) || return false
@@ -1128,6 +1080,10 @@ end
         OffsetArray(IdOffsetRange(IdOffsetRange(10:1000, -1), 1), 3), # offset index
 
         # AbstractRanges
+        Base.OneTo(1000),
+        CustomRange(Base.OneTo(1000)),
+        Slice(Base.OneTo(1000)),
+        SOneTo(1000),
         1:1000,
         UnitRange(1.0, 1000.0),
         1:3:1000,
@@ -1144,6 +1100,7 @@ end
         ZeroBasedUnitRange(1:1000), # offset range
         ZeroBasedRange(1:1000), # offset range
         ZeroBasedRange(1:1:1000), # offset range
+        CustomRange(ZeroBasedRange(1:1:1000)), # offset range
         ]
 
         # AbstractArrays with 1-based indices
@@ -1158,7 +1115,7 @@ end
             test_indexing_axes_and_vals(r1, r2)
             test_indexing_axes_and_vals(r1, collect(r2))
 
-            if r1 isa AbstractRange && axes(r2, 1) isa Base.OneTo
+            if r1 isa AbstractRange && !(r1 isa CustomRange) && axes(r2, 1) isa Base.OneTo
                 @test r1[r2] isa AbstractRange
             end
         end
@@ -1269,6 +1226,10 @@ end
         OffsetArray(IdOffsetRange(IdOffsetRange(10:1000, -1), 1), 3), # offset index
 
         # AbstractRanges
+        Base.OneTo(1000),
+        Slice(Base.OneTo(1000)),
+        SOneTo(1000),
+        CustomRange(Base.OneTo(1000)),
         1:1000,
         UnitRange(1.0, 1000.0),
         1:2:2000,
@@ -1276,6 +1237,7 @@ end
         1.0:2.0:2000.0,
         StepRangeLen(Float64(1), Float64(1000), 1000),
         LinRange(1.0, 2000.0, 2000),
+        Base.Slice(Base.OneTo(1000)), # 1-based index
         IdOffsetRange(Base.OneTo(1000)), # 1-based index
         IdOffsetRange(1:1000, 0), # 1-based index
         IdOffsetRange(Base.OneTo(1000), 4), # offset index
@@ -1288,6 +1250,7 @@ end
         ZeroBasedRange(1:1000), # offset index
         ZeroBasedRange(1:1:1000), # offset index
         ZeroBasedUnitRange(IdentityUnitRange(1:1000)), # offset index
+        CustomRange(ZeroBasedUnitRange(IdentityUnitRange(1:1000))), # offset index
         ]
 
         # AbstractArrays with offset axes
