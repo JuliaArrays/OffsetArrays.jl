@@ -1780,6 +1780,7 @@ end
 
     # more than one colon is not allowed
     @test_throws Exception reshape(ones(3:4, 4:5, 1:2), :, :, 2)
+    @test_throws Exception reshape(ones(3:4, 4:5, 1:2), :, 2, :)
 end
 
 @testset "permutedims" begin
