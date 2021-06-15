@@ -1776,6 +1776,8 @@ end
     @test reshape(r, :) == OffsetArray(0:1, -1:0)
     @test reshape(r, (:,)) == OffsetArray(0:1, -1:0)
 
+    @test reshape(ones(2:3, 4:5), (2, :)) == ones(2,2)
+
     # more than one colon is not allowed
     @test_throws Exception reshape(ones(3:4, 4:5, 1:2), :, :, 2)
 end
