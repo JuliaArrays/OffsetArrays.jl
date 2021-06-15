@@ -1763,7 +1763,10 @@ end
     @test reshape(r, :) == 3:4
     @test reshape(r, (:,)) == 3:4
 
-    @test reshape(r, (2,:,4:4)) == OffsetArray(reshape(3:4, 2, 1, 1), 1:2, 1:1, 4:4)
+    # getindex for a reshaped array that wraps an offset array is broken on 1.0
+    if VERSION >= v"1.1"
+        @test reshape(r, (2,:,4:4)) == OffsetArray(reshape(3:4, 2, 1, 1), 1:2, 1:1, 4:4)
+    end
 
     # reshape works even if the parent doesn't have 1-based indices
     # this works even if the parent doesn't support the reshape
