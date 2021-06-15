@@ -7,6 +7,9 @@ _indexlength(r::AbstractRange) = length(r)
 _indexlength(i::Integer) = Int(i)
 _indexlength(i::Colon) = Colon()
 
+_toaxis(i::Integer) = Base.OneTo(i)
+_toaxis(i::OffsetAxis) = i
+
 _strip_IdOffsetRange(r::IdOffsetRange) = parent(r)
 _strip_IdOffsetRange(r) = r
 
@@ -111,3 +114,18 @@ _filterreshapeinds(t::Tuple) = _filterreshapeinds(tail(t))
 _filterreshapeinds(t::Tuple{}) = t
 _popreshape(A::AbstractArray, ax::Tuple{Vararg{Base.OneTo}}, inds::Tuple{}) = no_offset_view(A)
 _popreshape(A::AbstractArray, ax, inds) = A
+
+@inline function _colon_check(dims)
+    @noinline throw1(dims) = throw(DimensionMismatch(string("new dimensions $(dims) ",
+        "may have at most one omitted dimension specified by `Colon()`")))
+    post = _after_colon(dims...)
+    _any_colon(post...) && throw1(dims)
+    nothing
+end
+@inline _any_colon() = false
+@inline _any_colon(dim::Colon, tail...) = true
+@inline _any_colon(dim::Any, tail...) = _any_colon(tail...)
+@inline _before_colon(dim::Any, tail...) = (dim, _before_colon(tail...)...)
+@inline _before_colon(dim::Colon, tail...) = ()
+@inline _after_colon(dim::Any, tail...) =  _after_colon(tail...)
+@inline _after_colon(dim::Colon, tail...) = tail

@@ -1756,6 +1756,25 @@ end
     @test axes(R) == (1:2, 1:3)
     R = reshape(zeros(6,1), 1:2, :)
     @test axes(R) == (1:2, 1:3)
+
+    r = OffsetArray(ZeroBasedRange(3:4), 1);
+    @test reshape(r, 2) == 3:4
+    @test reshape(r, (2,)) == 3:4
+    @test reshape(r, :) == 3:4
+    @test reshape(r, (:,)) == 3:4
+
+    @test reshape(r, (2,:,4:4)) == OffsetArray(reshape(3:4, 2, 1, 1), 1:2, 1:1, 4:4)
+
+    # reshape works even if the parent doesn't have 1-based indices
+    # this works even if the parent doesn't support the reshape
+    r = OffsetArray(IdentityUnitRange(0:1), -1)
+    @test reshape(r, 2) == 0:1
+    @test reshape(r, (2,)) == 0:1
+    @test reshape(r, :) == OffsetArray(0:1, -1:0)
+    @test reshape(r, (:,)) == OffsetArray(0:1, -1:0)
+
+    # more than one colon is not allowed
+    @test_throws Exception reshape(ones(3:4, 4:5, 1:2), :, :, 2)
 end
 
 @testset "permutedims" begin
