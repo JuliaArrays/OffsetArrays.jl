@@ -1781,6 +1781,19 @@ end
     # more than one colon is not allowed
     @test_throws Exception reshape(ones(3:4, 4:5, 1:2), :, :, 2)
     @test_throws Exception reshape(ones(3:4, 4:5, 1:2), :, 2, :)
+
+    A = OffsetArray(rand(4, 4), -1, -1);
+    B = reshape(A, (2, :))
+    @test axes(B, 1) == 1:2
+    @test axes(B, 2) == 1:8
+
+    # some more exotic vector types
+    r = OffsetVector(CustomRange(ZeroBasedRange(0:2)), -2)
+    r2 = reshape(r, :)
+    @test r2 == r
+    r2 = reshape(r, 3)
+    @test axes(r2, 1) == 1:3
+    @test r2 == no_offset_view(r)
 end
 
 @testset "permutedims" begin

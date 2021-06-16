@@ -11,15 +11,15 @@ export OffsetArray, OffsetMatrix, OffsetVector
 
 const IIUR = IdentityUnitRange{<:AbstractUnitRange{<:Integer}}
 
+include("axes.jl")
+include("utils.jl")
+include("origin.jl")
+
 # Technically we know the length of CartesianIndices but we need to convert it first, so here we
 # don't put it in OffsetAxisKnownLength.
 const OffsetAxisKnownLength = Union{Integer, AbstractUnitRange}
 const OffsetAxis = Union{OffsetAxisKnownLength, Colon}
 const ArrayInitializer = Union{UndefInitializer, Missing, Nothing}
-
-include("axes.jl")
-include("utils.jl")
-include("origin.jl")
 
 ## OffsetArray
 """
@@ -350,10 +350,9 @@ end
 # try to pass on the indices as received to the parent.
 # If the parent doesn't define an appropriate method, this will fall back to using the lengths
 # Short-circuit the case with matching indices to circumvent the Base restriction to 1-based indices
-_reshape(A::AbstractArray{<:Any,N}, ::NTuple{N,Union{Integer, AbstractUnitRange}}) where {N} = A
-_reshape(A::AbstractArray{<:Any,N}, inds::NTuple{N,OffsetAxis}) where {N} = (_colon_check(inds); A)
+_reshape(A::AbstractVector, ::Tuple{OffsetAxis}) = A
 _reshape(A, inds) = reshape(A, inds)
-_reshape_nov(A, inds) = no_offset_view(_reshape(A, inds))
+_reshape_nov(A, inds) = _reshape(no_offset_view(A), inds)
 
 Base.reshape(A::OffsetArray, inds::Tuple{OffsetAxis,Vararg{OffsetAxis}}) =
     OffsetArray(_reshape(parent(A), inds), map(_toaxis, inds))
