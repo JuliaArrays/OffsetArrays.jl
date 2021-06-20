@@ -39,6 +39,14 @@ function same_value(r1, r2)
     return true
 end
 
+module AmbiguityTest
+    using Test
+    using ArrayInterface
+    using OffsetArrays
+    using Aqua
+    Aqua.test_ambiguities([OffsetArrays, ArrayInterface])
+end
+
 @testset "Project meta quality checks" begin
     # Not checking compat section for test-only dependencies
     Aqua.test_all(OffsetArrays; project_extras=true, deps_compat=true, stale_deps=true, project_toml_formatting=true)
@@ -1083,7 +1091,6 @@ end
         Base.OneTo(1000),
         CustomRange(Base.OneTo(1000)),
         Slice(Base.OneTo(1000)),
-        SOneTo(1000),
         1:1000,
         UnitRange(1.0, 1000.0),
         1:3:1000,
@@ -1228,7 +1235,6 @@ end
         # AbstractRanges
         Base.OneTo(1000),
         Slice(Base.OneTo(1000)),
-        SOneTo(1000),
         CustomRange(Base.OneTo(1000)),
         1:1000,
         UnitRange(1.0, 1000.0),

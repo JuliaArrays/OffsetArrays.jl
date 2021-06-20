@@ -509,7 +509,7 @@ end
 @inline _boundscheck_return(r, s) = (@boundscheck checkbounds(r, s); s)
 
 for OR in [:IIUR, :IdOffsetRange]
-    for R in [:StepRange, :StepRangeLen, :LinRange, :AbstractUnitRange]
+    for R in [:StepRange, :StepRangeLen, :LinRange, :UnitRange, :(Base.OneTo)]
         @eval @inline Base.getindex(r::$R, s::$OR) = _boundscheck_index_retaining_axes(r, s)
     end
 
