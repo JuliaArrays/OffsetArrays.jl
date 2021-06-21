@@ -864,7 +864,7 @@ end
 @testset "unwrap" begin
     for A in [ones(2, 2), ones(2:3, 2:3), ZeroBasedRange(1:4)]
         p, f = OffsetArrays.unwrap(A)
-        @test f(map(y -> y^2, p)) == A.^2
+        @test f(map(y -> y^2, p...)) == A.^2
     end
 end
 
