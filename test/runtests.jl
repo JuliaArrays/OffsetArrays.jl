@@ -39,14 +39,6 @@ function same_value(r1, r2)
     return true
 end
 
-module AmbiguityTest
-    using Test
-    using ArrayInterface
-    using OffsetArrays
-    using Aqua
-    Aqua.test_ambiguities([OffsetArrays, ArrayInterface])
-end
-
 @testset "Project meta quality checks" begin
     # Not checking compat section for test-only dependencies
     Aqua.test_all(OffsetArrays; project_extras=true, deps_compat=true, stale_deps=true, project_toml_formatting=true)
