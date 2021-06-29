@@ -1083,7 +1083,6 @@ end
         Base.OneTo(1000),
         CustomRange(Base.OneTo(1000)),
         Slice(Base.OneTo(1000)),
-        SOneTo(1000),
         1:1000,
         UnitRange(1.0, 1000.0),
         1:3:1000,
@@ -1228,7 +1227,6 @@ end
         # AbstractRanges
         Base.OneTo(1000),
         Slice(Base.OneTo(1000)),
-        SOneTo(1000),
         CustomRange(Base.OneTo(1000)),
         1:1000,
         UnitRange(1.0, 1000.0),
