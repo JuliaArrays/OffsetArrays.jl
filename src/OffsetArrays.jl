@@ -509,7 +509,7 @@ end
 @inline _boundscheck_return(r, s) = (@boundscheck checkbounds(r, s); s)
 
 for OR in [:IIUR, :IdOffsetRange]
-    for R in [:StepRange, :StepRangeLen, :LinRange, :UnitRange, :(Base.OneTo)]
+    for R in [:StepRange, :StepRangeLen, :LinRange, :UnitRange]
         @eval @inline Base.getindex(r::$R, s::$OR) = _boundscheck_index_retaining_axes(r, s)
     end
 
@@ -517,6 +517,10 @@ for OR in [:IIUR, :IdOffsetRange]
     @eval @inline function Base.getindex(r::StepRangeLen{T,<:Base.TwicePrecision,<:Base.TwicePrecision}, s::$OR) where T
         _boundscheck_index_retaining_axes(r, s)
     end
+end
+Base.getindex(r::Base.OneTo, s::IdOffsetRange) = _boundscheck_index_retaining_axes(r, s)
+if VERSION < v"1.7.0"
+    Base.getindex(r::Base.OneTo, s::IIUR) = _boundscheck_index_retaining_axes(r, s)
 end
 
 # These methods are added to avoid ambiguities with Base.
