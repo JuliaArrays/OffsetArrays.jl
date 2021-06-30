@@ -519,7 +519,7 @@ for OR in [:IIUR, :IdOffsetRange]
     end
 end
 Base.getindex(r::Base.OneTo, s::IdOffsetRange) = _boundscheck_index_retaining_axes(r, s)
-if VERSION < v"1.7.0"
+if VERSION < v"1.7.0-beta2"
     Base.getindex(r::Base.OneTo, s::IIUR) = _boundscheck_index_retaining_axes(r, s)
 end
 
@@ -632,9 +632,9 @@ no_offset_view(a::Array) = a
 no_offset_view(i::Number) = i
 no_offset_view(A::AbstractArray) = _no_offset_view(axes(A), A)
 _no_offset_view(::Tuple{}, A::AbstractArray{T,0}) where T = A
-_no_offset_view(::Tuple{<:Base.OneTo,Vararg{<:Base.OneTo}}, A::AbstractArray) = A
+_no_offset_view(::Tuple{Base.OneTo, Vararg{Base.OneTo}}, A::AbstractArray) = A
 # the following method is needed for ambiguity resolution
-_no_offset_view(::Tuple{<:Base.OneTo,Vararg{<:Base.OneTo}}, A::AbstractUnitRange) = A
+_no_offset_view(::Tuple{Base.OneTo, Vararg{Base.OneTo}}, A::AbstractUnitRange) = A
 _no_offset_view(::Any, A::AbstractArray) = OffsetArray(A, Origin(1))
 _no_offset_view(::Any, A::AbstractUnitRange) = UnitRange(A)
 
