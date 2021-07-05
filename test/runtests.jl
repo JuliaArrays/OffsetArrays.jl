@@ -221,7 +221,6 @@ end
             @test OrdinalRange{BigInt,BigInt}(r2) === r2
         end
     end
-<<<<<<< HEAD
 
     @testset "Bool IdOffsetRange (issue #223)" begin
         for b1 in [false, true], b2 in [false, true]
@@ -345,7 +344,8 @@ end
             @test_throws BoundsError r[true:true:false]
             @test_throws BoundsError r[false:true:false]
         end
-=======
+    end
+
     @testset "iteration" begin
         # parent has Base.OneTo axes
         A = ones(4:10)
@@ -363,7 +363,6 @@ end
         @test C[ind] == C[4]
         ind, st = iterate(ax, st)
         @test C[ind] == C[5]
->>>>>>> df172e1... specialize for Base.OneTo
     end
 end
 
