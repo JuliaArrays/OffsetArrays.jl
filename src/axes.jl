@@ -193,7 +193,9 @@ end
 # and has no specialized iteration defined for it,
 # so we may add the offset to the range directly and iterate over the result
 # This gets around the performance issue described in issue #214
-@inline _iterate(r::IdOffsetRange{<:Integer, <:Base.OneTo}, i...) = iterate(r.parent .+ r.offset, i...)
+# We use the helper function _addoffset to evaluate the range instead of broadcasting
+# just in case this makes it easy for the compiler.
+@inline _iterate(r::IdOffsetRange{<:Integer, <:Base.OneTo}, i...) = iterate(_addoffset(r.parent, r.offset), i...)
 
 @inline function Base.getindex(r::IdOffsetRange, i::Integer)
     i isa Bool && throw(ArgumentError("invalid index: $i of type Bool"))

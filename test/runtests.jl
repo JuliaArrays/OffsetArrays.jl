@@ -2491,3 +2491,15 @@ end
 end
 
 include("origin.jl")
+
+@testset "misc" begin
+    @test OffsetArrays._subtractoffset(Base.OneTo(2), 1) isa AbstractUnitRange{Int}
+    @test OffsetArrays._subtractoffset(Base.OneTo(2), 1) == 0:1
+    @test OffsetArrays._subtractoffset(3:2:9, 1) isa AbstractRange{Int}
+    @test OffsetArrays._subtractoffset(3:2:9, 1) == 2:2:8
+
+    @test OffsetArrays._addoffset(Base.OneTo(2), 1) isa AbstractUnitRange{Int}
+    @test OffsetArrays._addoffset(Base.OneTo(2), 1) == 2:3
+    @test OffsetArrays._addoffset(3:2:9, 1) isa AbstractRange{Int}
+    @test OffsetArrays._addoffset(3:2:9, 1) == 4:2:10
+end
