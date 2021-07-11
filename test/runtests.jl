@@ -345,6 +345,25 @@ end
             @test_throws BoundsError r[false:true:false]
         end
     end
+
+    @testset "iteration" begin
+        # parent has Base.OneTo axes
+        A = ones(4:10)
+        ax = axes(A, 1)
+        ind, st = iterate(ax)
+        @test A[ind] == A[4]
+        ind, st = iterate(ax, st)
+        @test A[ind] == A[5]
+
+        # parent doesn't have Base.OneTo axes
+        B = @view A[:]
+        C = OffsetArray(B, 0)
+        ax = axes(C, 1)
+        ind, st = iterate(ax)
+        @test C[ind] == C[4]
+        ind, st = iterate(ax, st)
+        @test C[ind] == C[5]
+    end
 end
 
 # used in testing the constructor
@@ -2472,3 +2491,15 @@ end
 end
 
 include("origin.jl")
+
+@testset "misc" begin
+    @test OffsetArrays._subtractoffset(Base.OneTo(2), 1) isa AbstractUnitRange{Int}
+    @test OffsetArrays._subtractoffset(Base.OneTo(2), 1) == 0:1
+    @test OffsetArrays._subtractoffset(3:2:9, 1) isa AbstractRange{Int}
+    @test OffsetArrays._subtractoffset(3:2:9, 1) == 2:2:8
+
+    @test OffsetArrays._addoffset(Base.OneTo(2), 1) isa AbstractUnitRange{Int}
+    @test OffsetArrays._addoffset(Base.OneTo(2), 1) == 2:3
+    @test OffsetArrays._addoffset(3:2:9, 1) isa AbstractRange{Int}
+    @test OffsetArrays._addoffset(3:2:9, 1) == 4:2:10
+end

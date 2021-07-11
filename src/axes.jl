@@ -167,6 +167,7 @@ offset_coerce(::Type{I}, r::AbstractUnitRange) where I<:AbstractUnitRange =
 @inline Base.axes1(r::IdOffsetRange) = IdOffsetRange(Base.axes1(r.parent), r.offset)
 @inline Base.unsafe_indices(r::IdOffsetRange) = (Base.axes1(r),)
 @inline Base.length(r::IdOffsetRange) = length(r.parent)
+@inline Base.isempty(r::IdOffsetRange) = isempty(r.parent)
 Base.reduced_index(i::IdOffsetRange) = typeof(i)(first(i):first(i))
 # Workaround for #92 on Julia < 1.4
 Base.reduced_index(i::IdentityUnitRange{<:IdOffsetRange}) = typeof(i)(first(i):first(i))
@@ -178,16 +179,23 @@ for f in [:first, :last]
     @eval @inline Base.$f(r::IdOffsetRange) = eltype(r)($f(r.parent) + r.offset)
 end
 
-@inline function Base.iterate(r::IdOffsetRange)
-    ret = iterate(r.parent)
+# Iteration for an IdOffsetRange
+@inline Base.iterate(r::IdOffsetRange, i...) = _iterate(r, i...)
+# In general we iterate over the parent term by term and add the offset.
+# This might have some performance degradation when coupled with bounds-checking
+# See https://github.com/JuliaArrays/OffsetArrays.jl/issues/214
+@inline function _iterate(r::IdOffsetRange, i...)
+    ret = iterate(r.parent, i...)
     ret === nothing && return nothing
     return (eltype(r)(ret[1] + r.offset), ret[2])
 end
-@inline function Base.iterate(r::IdOffsetRange, i)
-    ret = iterate(r.parent, i)
-    ret === nothing && return nothing
-    return (eltype(r)(ret[1] + r.offset), ret[2])
-end
+# Base.OneTo(n) is known to be exactly equivalent to the range 1:n,
+# and has no specialized iteration defined for it,
+# so we may add the offset to the range directly and iterate over the result
+# This gets around the performance issue described in issue #214
+# We use the helper function _addoffset to evaluate the range instead of broadcasting
+# just in case this makes it easy for the compiler.
+@inline _iterate(r::IdOffsetRange{<:Integer, <:Base.OneTo}, i...) = iterate(_addoffset(r.parent, r.offset), i...)
 
 @inline function Base.getindex(r::IdOffsetRange, i::Integer)
     i isa Bool && throw(ArgumentError("invalid index: $i of type Bool"))

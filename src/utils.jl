@@ -92,8 +92,12 @@ end
 # These functions are equivalent to the broadcasted operation r .- of
 # However these ensure that the result is an AbstractRange even if a specific
 # broadcasting behavior is not defined for a custom type
-_subtractoffset(r::AbstractUnitRange, of) = UnitRange(first(r) - of, last(r) - of)
-_subtractoffset(r::AbstractRange, of) = range(first(r) - of, stop = last(r) - of, step = step(r))
+@inline _subtractoffset(r::AbstractUnitRange, of) = UnitRange(first(r) - of, last(r) - of)
+@inline _subtractoffset(r::AbstractRange, of) = range(first(r) - of, stop = last(r) - of, step = step(r))
+
+# similar to _subtractoffset, except these evaluate r .+ of
+@inline _addoffset(r::AbstractUnitRange, of) = UnitRange(first(r) + of, last(r) + of)
+@inline _addoffset(r::AbstractRange, of) = range(first(r) + of, stop = last(r) + of, step = step(r))
 
 if VERSION <= v"1.7.0-DEV.1039"
     _contiguousindexingtype(r::AbstractUnitRange{<:Integer}) = UnitRange{Int}(r)
