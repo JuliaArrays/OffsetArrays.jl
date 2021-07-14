@@ -1794,6 +1794,14 @@ end
     r2 = reshape(r, 3)
     @test axes(r2, 1) == 1:3
     @test r2 == no_offset_view(r)
+    @test_throws Exception reshape(r, length(r) + 1)
+    @test_throws Exception reshape(r, 1:length(r) + 1)
+    rp = parent(r)
+    @test axes(reshape(rp, 4:6), 1) == 4:6
+    @test axes(reshape(r, (3,1))) == (1:3, 1:1)
+    # the following is broken if rp doesn't define its own reshape
+    # we may fix it here but that's perhaps too much type-piracy
+    @test_broken reshape(rp, length(rp))
 end
 
 @testset "permutedims" begin
