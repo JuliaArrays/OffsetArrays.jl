@@ -10,7 +10,6 @@ _indexlength(i::Colon) = Colon()
 # we don't use _indexlength in this to avoid converting the arguments to Int
 _checksize(ind::Integer, s) = ind == s
 _checksize(ind::AbstractUnitRange, s) = length(ind) == s
-_checksize(::Colon, s) = true
 
 _toaxis(i::Integer) = Base.OneTo(i)
 _toaxis(i) = i
