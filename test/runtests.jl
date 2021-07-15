@@ -1799,9 +1799,6 @@ end
     rp = parent(r)
     @test axes(reshape(rp, 4:6), 1) == 4:6
     @test axes(reshape(r, (3,1))) == (1:3, 1:1)
-    # the following is broken if rp doesn't define its own reshape
-    # we may fix it here but that's perhaps too much type-piracy
-    @test_broken reshape(rp, length(rp))
 end
 
 @testset "permutedims" begin
