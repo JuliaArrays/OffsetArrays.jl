@@ -2,10 +2,17 @@
 
 _indexoffset(r::AbstractRange) = first(r) - 1
 _indexoffset(i::Integer) = 0
-_indexoffset(i::Colon) = 0
 _indexlength(r::AbstractRange) = length(r)
 _indexlength(i::Integer) = Int(i)
 _indexlength(i::Colon) = Colon()
+
+# utility methods used in reshape
+# we don't use _indexlength in this to avoid converting the arguments to Int
+_checksize(ind::Integer, s) = ind == s
+_checksize(ind::AbstractUnitRange, s) = length(ind) == s
+
+_toaxis(i::Integer) = Base.OneTo(i)
+_toaxis(i) = i
 
 _strip_IdOffsetRange(r::IdOffsetRange) = parent(r)
 _strip_IdOffsetRange(r) = r

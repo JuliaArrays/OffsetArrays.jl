@@ -340,22 +340,39 @@ _similar_axes_or_length(AT, ax::I, ::I) where {I} = similar(AT, map(_indexlength
 # reshape accepts a single colon
 Base.reshape(A::AbstractArray, inds::OffsetAxis...) = reshape(A, inds)
 function Base.reshape(A::AbstractArray, inds::Tuple{OffsetAxis,Vararg{OffsetAxis}})
-    AR = reshape(A, map(_indexlength, inds))
+    AR = reshape(no_offset_view(A), map(_indexlength, inds))
     O = OffsetArray(AR, map(_offset, axes(AR), inds))
     return _popreshape(O, axes(AR), _filterreshapeinds(inds))
 end
 
 # Reshaping OffsetArrays can "pop" the original OffsetArray wrapper and return
 # an OffsetArray(reshape(...)) instead of an OffsetArray(reshape(OffsetArray(...)))
+# Short-circuit for AbstractVectors if the axes are compatible to get around the Base restriction
+# to 1-based vectors
+function _reshape(A::AbstractVector, inds::Tuple{OffsetAxis})
+    @noinline throw_dimerr(ind::Integer) = throw(
+        DimensionMismatch("parent has $(size(A,1)) elements, which is incompatible with length $ind"))
+    @noinline throw_dimerr(ind) = throw(
+        DimensionMismatch("parent has $(size(A,1)) elements, which is incompatible with indices $ind"))
+    _checksize(first(inds), size(A,1)) || throw_dimerr(first(inds))
+    A
+end
+_reshape(A, inds) = _reshape2(A, inds)
+_reshape2(A, inds) = reshape(A, inds)
+# avoid a stackoverflow by relegating to the parent if no_offset_view returns an offsetarray
+_reshape2(A::OffsetArray, inds) = reshape(parent(A), inds)
+_reshape_nov(A, inds) = _reshape(no_offset_view(A), inds)
+
 Base.reshape(A::OffsetArray, inds::Tuple{OffsetAxis,Vararg{OffsetAxis}}) =
-    OffsetArray(reshape(parent(A), map(_indexlength, inds)), map(_indexoffset, inds))
+    OffsetArray(_reshape(parent(A), inds), map(_toaxis, inds))
 # And for non-offset axes, we can just return a reshape of the parent directly
-Base.reshape(A::OffsetArray, inds::Tuple{Union{Integer,Base.OneTo},Vararg{Union{Integer,Base.OneTo}}}) = reshape(parent(A), inds)
-Base.reshape(A::OffsetArray, inds::Dims) = reshape(parent(A), inds)
-Base.reshape(A::OffsetArray, ::Colon) = reshape(parent(A), Colon())
+Base.reshape(A::OffsetArray, inds::Tuple{Union{Integer,Base.OneTo},Vararg{Union{Integer,Base.OneTo}}}) = _reshape_nov(A, inds)
+Base.reshape(A::OffsetArray, inds::Dims) = _reshape_nov(A, inds)
 Base.reshape(A::OffsetVector, ::Colon) = A
-Base.reshape(A::OffsetArray, inds::Union{Int,Colon}...) = reshape(parent(A), inds)
-Base.reshape(A::OffsetArray, inds::Tuple{Vararg{Union{Int,Colon}}}) = reshape(parent(A), inds)
+Base.reshape(A::OffsetVector, ::Tuple{Colon}) = A
+Base.reshape(A::OffsetArray, ::Colon) = reshape(A, (Colon(),))
+Base.reshape(A::OffsetArray, inds::Union{Int,Colon}...) = reshape(A, inds)
+Base.reshape(A::OffsetArray, inds::Tuple{Vararg{Union{Int,Colon}}}) = _reshape_nov(A, inds)
 
 # permutedims in Base does not preserve axes, and can not be fixed in a non-breaking way
 # This is a stopgap solution

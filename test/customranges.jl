@@ -65,6 +65,10 @@ for Z in [:ZeroBasedRange, :ZeroBasedUnitRange]
         @boundscheck checkbounds(A, r)
         OffsetArrays._indexedby(A[r.a], axes(r))
     end
+
+    @eval Base.reshape(z::$Z, inds::Tuple{}) = reshape(parent(z), inds)
+    @eval Base.reshape(z::$Z, inds::Tuple{Int, Vararg{Int}}) = reshape(parent(z), inds)
+    @eval Base.reshape(z::$Z, inds::Tuple{Union{Int, AbstractUnitRange{<:Integer}}, Vararg{Union{Int, AbstractUnitRange{<:Integer}}}}) = reshape(parent(z), inds)
 end
 
 # A basic range that does not have specialized vector indexing methods defined
@@ -75,6 +79,7 @@ struct CustomRange{T,A<:AbstractRange{T}} <: AbstractRange{T}
 end
 Base.parent(r::CustomRange) = r.a
 Base.size(r::CustomRange) = size(parent(r))
+Base.length(r::CustomRange) = length(parent(r))
 Base.axes(r::CustomRange) = axes(parent(r))
 Base.first(r::CustomRange) = first(parent(r))
 Base.last(r::CustomRange) = last(parent(r))

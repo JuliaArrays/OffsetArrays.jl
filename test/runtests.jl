@@ -1773,6 +1773,49 @@ end
     @test axes(R) == (1:2, 1:3)
     R = reshape(zeros(6,1), 1:2, :)
     @test axes(R) == (1:2, 1:3)
+
+    r = OffsetArray(ZeroBasedRange(3:4), 1);
+    @test reshape(r, 2) == 3:4
+    @test reshape(r, (2,)) == 3:4
+    @test reshape(r, :) == 3:4
+    @test reshape(r, (:,)) == 3:4
+
+    # getindex for a reshaped array that wraps an offset array is broken on 1.0
+    if VERSION >= v"1.1"
+        @test reshape(r, (2,:,4:4)) == OffsetArray(reshape(3:4, 2, 1, 1), 1:2, 1:1, 4:4)
+    end
+
+    # reshape works even if the parent doesn't have 1-based indices
+    # this works even if the parent doesn't support the reshape
+    r = OffsetArray(IdentityUnitRange(0:1), -1)
+    @test reshape(r, 2) == 0:1
+    @test reshape(r, (2,)) == 0:1
+    @test reshape(r, :) == OffsetArray(0:1, -1:0)
+    @test reshape(r, (:,)) == OffsetArray(0:1, -1:0)
+
+    @test reshape(ones(2:3, 4:5), (2, :)) == ones(2,2)
+
+    # more than one colon is not allowed
+    @test_throws Exception reshape(ones(3:4, 4:5, 1:2), :, :, 2)
+    @test_throws Exception reshape(ones(3:4, 4:5, 1:2), :, 2, :)
+
+    A = OffsetArray(rand(4, 4), -1, -1);
+    B = reshape(A, (2, :))
+    @test axes(B, 1) == 1:2
+    @test axes(B, 2) == 1:8
+
+    # some more exotic vector types
+    r = OffsetVector(CustomRange(ZeroBasedRange(0:2)), -2)
+    r2 = reshape(r, :)
+    @test r2 == r
+    r2 = reshape(r, 3)
+    @test axes(r2, 1) == 1:3
+    @test r2 == no_offset_view(r)
+    @test_throws Exception reshape(r, length(r) + 1)
+    @test_throws Exception reshape(r, 1:length(r) + 1)
+    rp = parent(r)
+    @test axes(reshape(rp, 4:6), 1) == 4:6
+    @test axes(reshape(r, (3,1))) == (1:3, 1:1)
 end
 
 @testset "permutedims" begin
