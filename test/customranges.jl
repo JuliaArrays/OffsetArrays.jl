@@ -79,6 +79,7 @@ struct CustomRange{T,A<:AbstractRange{T}} <: AbstractRange{T}
 end
 Base.parent(r::CustomRange) = r.a
 Base.size(r::CustomRange) = size(parent(r))
+Base.length(r::CustomRange) = length(parent(r))
 Base.axes(r::CustomRange) = axes(parent(r))
 Base.first(r::CustomRange) = first(parent(r))
 Base.last(r::CustomRange) = last(parent(r))
