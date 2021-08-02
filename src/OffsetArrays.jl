@@ -694,7 +694,7 @@ function center(A::AbstractArray, r::RoundingMode=RoundDown)
 end
 
 """
-    centered(A, r::RoundingMode=RoundDown) -> Ao
+    centered(A, cp=center(A)) -> Ao
 
 Shift the center coordinate of array `A` to `(0, 0, ...)`. If `size(A, k)`
 is even, a rounding procedure will be applied with mode `r`.
@@ -718,10 +718,9 @@ Aoo[0, 0] == 5 # true
 true
 ```
 
-To query the center coordinate of the given array, you can
-instead use [`center`](@ref OffsetArrays.center).
+See also [`center`](@ref OffsetArrays.center).
 """
-centered(A::AbstractArray, r::RoundingMode=RoundDown) = OffsetArray(A, .-center(A, r))
+centered(A::AbstractArray, cp::Dims=center(A)) = OffsetArray(A, .-cp)
 
 
 ####
@@ -813,5 +812,13 @@ if Base.VERSION >= v"1.4.2"
     include("precompile.jl")
     _precompile_()
 end
+
+
+##
+# Deprecations
+##
+
+# This is a bad API design as it introduces counter intuitive results (#250)
+@deprecate centered(A::AbstractArray, r::RoundingMode) OffsetArray(A, .-center(A, r))
 
 end # module

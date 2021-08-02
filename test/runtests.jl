@@ -2505,20 +2505,21 @@ end
     @testset "centered" begin
         A = reshape(collect(1:9), 3, 3)
         Ao = OffsetArrays.centered(A)
+        @test OffsetArrays.centered(Ao) === Ao
+        @test OffsetArrays.centered(Ao, OffsetArrays.center(Ao)) === Ao
         @test typeof(Ao) <: OffsetArray
         @test parent(Ao) === A
         @test Ao.offsets == (-2, -2)
         @test Ao[0, 0] == 5
-        @test OffsetArrays.centered(A, RoundDown) == OffsetArrays.centered(A, RoundUp)
 
         A = reshape(collect(1:6), 2, 3)
         Ao = OffsetArrays.centered(A)
-        @test OffsetArrays.centered(A, RoundDown) == Ao
+        @test OffsetArrays.centered(A, OffsetArrays.center(A, RoundDown)) == Ao
         @test typeof(Ao) <: OffsetArray
         @test parent(Ao) === A
         @test Ao.offsets == (-1, -2)
         @test Ao[0, 0] == 3
-        Ao = OffsetArrays.centered(A, RoundUp)
+        Ao = OffsetArrays.centered(A, OffsetArrays.center(A, RoundUp))
         @test typeof(Ao) <: OffsetArray
         @test parent(Ao) === A
         @test Ao.offsets == (-2, -2)
@@ -2545,4 +2546,10 @@ include("origin.jl")
     @test OffsetArrays._addoffset(Base.OneTo(2), 1) == 2:3
     @test OffsetArrays._addoffset(3:2:9, 1) isa AbstractRange{Int}
     @test OffsetArrays._addoffset(3:2:9, 1) == 4:2:10
+end
+
+@info "Following deprecations are expected"
+@testset "deprecations" begin
+    A = reshape(collect(1:9), 3, 3)
+    @test OffsetArrays.centered(A, RoundDown) == OffsetArrays.centered(A, RoundUp)
 end
