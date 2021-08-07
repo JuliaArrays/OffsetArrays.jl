@@ -819,6 +819,6 @@ end
 ##
 
 # This is a bad API design as it introduces counter intuitive results (#250)
-@deprecate centered(A::AbstractArray, r::RoundingMode) OffsetArray(A, .-center(A, r))
+@deprecate centered(A::AbstractArray, r::RoundingMode) OffsetArray(A, .-center(A, r)) false
 
 end # module
