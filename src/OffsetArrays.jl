@@ -672,16 +672,25 @@ a rounding procedure will be applied with mode `r`.
 # Examples
 
 ```jldoctest; setup=:(using OffsetArrays)
-A = reshape(collect(1:9), 3, 3)
-c = OffsetArrays.center(A) # (2, 2)
-A[c...] == 5 # true
+julia> A = reshape(collect(1:9), 3, 3)
+3×3 $(Matrix{Int}):
+ 1  4  7
+ 2  5  8
+ 3  6  9
 
-Ao = OffsetArray(A, -2, -2)
-c = OffsetArrays.center(Ao) # (0, 0)
-Ao[c...] == 5 # true
+julia> c = OffsetArrays.center(A)
+(2, 2)
 
-# output
-true
+julia> A[c...]
+5
+
+julia> Ao = OffsetArray(A, -2, -2); # axes (-1:1, -1:1)
+
+julia> c = OffsetArrays.center(Ao)
+(0, 0)
+
+julia> Ao[c...]
+5
 ```
 
 To shift the center coordinate of the given array to `(0, 0, ...)`, you
@@ -705,17 +714,23 @@ is even, a rounding procedure will be applied with mode `r`.
 # Examples
 
 ```jldoctest; setup=:(using OffsetArrays)
-A = reshape(collect(1:9), 3, 3)
-Ao = OffsetArrays.centered(A)
-Ao[0, 0] == 5 # true
+julia> A = reshape(collect(1:9), 3, 3)
+3×3 $(Matrix{Int}):
+ 1  4  7
+ 2  5  8
+ 3  6  9
 
-A = reshape(collect(1:9), 3, 3)
-Ao = OffsetArray(A, OffsetArrays.Origin(0))
-Aoo = OffsetArrays.centered(Ao)
-Aoo[0, 0] == 5 # true
+julia> Ao = OffsetArrays.centered(A); # axes (-1:1, -1:1)
 
-# output
-true
+julia> Ao[0, 0]
+5
+
+julia> Ao = OffsetArray(A, OffsetArrays.Origin(0)); # axes (0:2, 0:2)
+
+julia> Aoo = OffsetArrays.centered(Ao); # axes (-1:1, -1:1)
+
+julia> Aoo[0, 0]
+5
 ```
 
 See also [`center`](@ref OffsetArrays.center).
