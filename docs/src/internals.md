@@ -53,7 +53,7 @@ This has a similar design to `Base.IdentityUnitRange` that `ax[x] == x` always h
 julia> ax[5]
 5
 julia> ax[1]
-ERROR: BoundsError: attempt to access 2-element Base.OneTo{Int64} at index [-3]
+ERROR: BoundsError: attempt to access 2-element OffsetArrays.IdOffsetRange{Int64, Base.OneTo{Int64}} with indices 5:6 at index [1]
 [...]
 ```
 
