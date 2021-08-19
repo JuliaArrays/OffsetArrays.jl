@@ -1493,10 +1493,10 @@ end
         end
     end
 
+    v = ones(10)
     for r in Any[1:1:10, 1:10], s in Any[r, collect(r)]
-        ro = OffsetArray(r)
-        v = ones(10)
-        @test Float64[v[i] for i in r] == Float64[v[i] for i in ro]
+        so = OffsetArray(s)
+        @test Float64[v[i] for i in s] == Float64[v[i] for i in so]
     end
 end
 
