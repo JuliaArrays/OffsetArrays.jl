@@ -1492,6 +1492,14 @@ end
             @test a == d
         end
     end
+
+    # Special methods for an OffsetRange
+    for r in Any[3:10, 3:1:10, UnitRange(3.0, 10.0), 3.0:1.0:10.0]
+        ro = OffsetArray(r)
+        @test first(ro) == first(r)
+        @test last(ro) == last(r)
+        @test step(ro) == step(r)
+    end
 end
 
 @testset "show/summary" begin

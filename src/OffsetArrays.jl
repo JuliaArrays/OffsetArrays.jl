@@ -456,7 +456,9 @@ Broadcast.broadcast_unalias(dest::OffsetArray, src::OffsetArray) = parent(dest) 
 const OffsetRange{T} = OffsetVector{T,<:AbstractRange{T}}
 const OffsetUnitRange{T} = OffsetVector{T,<:AbstractUnitRange{T}}
 
-Base.step(a::OffsetRange) = step(parent(a))
+for f in [:first, :last, :step]
+    @eval Base.$f(a::OffsetRange) = $f(parent(a))
+end
 
 Base.checkindex(::Type{Bool}, inds::AbstractUnitRange, or::OffsetRange) = Base.checkindex(Bool, inds, parent(or))
 
