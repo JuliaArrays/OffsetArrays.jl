@@ -2540,6 +2540,38 @@ end
     end
 end
 
+@testset "Conversion to AbstractArray{T}" begin
+    r = 1:4
+    T = Float64
+    V = typeof(map(T, r))
+    v = OffsetVector(r)
+    @test OffsetArray{T}(v) isa OffsetVector{T,V}
+    @test AbstractArray{T}(v) isa OffsetVector{T,V}
+    @test AbstractVector{T}(v) isa OffsetVector{T,V}
+    @test convert(AbstractVector{T}, v) isa OffsetVector{T,V}
+    @test convert(AbstractArray{T}, v) isa OffsetVector{T,V}
+    @test axes(OffsetArray{T}(v)) === axes(v)
+    @test axes(AbstractArray{T}(v)) === axes(v)
+    @test axes(AbstractVector{T}(v)) === axes(v)
+    @test axes(convert(AbstractVector{T}, v)) === axes(v)
+    @test axes(convert(AbstractArray{T}, v)) == axes(v)
+
+    A = SMatrix{2,2}(1, 0, 0, 1)
+    TA = typeof(map(T, A))
+    OA = OffsetMatrix(A, 3:4, 5:6)
+    @test OffsetArray{T}(OA) isa OffsetMatrix{T,TA}
+    @test AbstractArray{T}(OA) isa OffsetMatrix{T,TA}
+    @test AbstractMatrix{T}(OA) isa OffsetMatrix{T,TA}
+    @test convert(AbstractMatrix{T}, OA) isa OffsetMatrix{T,TA}
+    @test convert(AbstractArray{T}, OA) isa OffsetMatrix{T,TA}
+    @test axes(OffsetArray{T}(OA)) === axes(OA)
+    @test axes(AbstractArray{T}(OA)) === axes(OA)
+    @test axes(AbstractMatrix{T}(OA)) === axes(OA)
+    @test axes(convert(AbstractMatrix{T}, OA)) === axes(OA)
+    @test axes(convert(AbstractArray{T}, OA)) === axes(OA)
+end
+
+
 include("origin.jl")
 
 @testset "misc" begin

@@ -252,6 +252,8 @@ end
 
 Base.convert(::Type{T}, M::AbstractArray) where {T<:OffsetArray} = M isa T ? M : T(M)
 
+@inline AbstractArray{T,N}(M::OffsetArray{S,N}) where {T,S,N} = OffsetArray{T}(M)
+
 # array initialization
 @inline function OffsetArray{T,N}(init::ArrayInitializer, inds::Tuple{Vararg{OffsetAxisKnownLength}}; kw...) where {T,N}
     _checkindices(N, inds, "indices")
