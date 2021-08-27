@@ -1492,6 +1492,12 @@ end
             @test a == d
         end
     end
+
+    v = ones(10)
+    for r in Any[1:1:10, 1:10], s in Any[r, collect(r)]
+        so = OffsetArray(s)
+        @test Float64[v[i] for i in s] == Float64[v[i] for i in so]
+    end
 end
 
 @testset "show/summary" begin

@@ -441,6 +441,8 @@ end
     A
 end
 
+@inline Base.iterate(a::OffsetArray, i...) = iterate(parent(a), i...)
+
 Base.in(x, A::OffsetArray) = in(x, parent(A))
 Base.copy(A::OffsetArray) = parent_call(copy, A)
 
