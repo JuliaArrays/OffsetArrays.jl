@@ -764,11 +764,6 @@ See also [`center`](@ref OffsetArrays.center).
 """
 centered(A::AbstractArray, cp::Dims=center(A)) = OffsetArray(A, .-cp)
 
-"""
-    centered(A, i::CartesianIndex) -> Ao
-
-Shift the center of array `A` to cartesian index `i`.
-"""
 centered(A::AbstractArray, i::CartesianIndex) = centered(A, Tuple(i))
 
 ####
