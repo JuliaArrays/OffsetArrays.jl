@@ -2537,6 +2537,13 @@ end
         @test parent(Aoo) === A # there will be only one OffsetArray wrapper
         @test Aoo.offsets == (-2, -2)
         @test Aoo[0, 0] == 5
+
+        A = reshape(collect(1:9), 3, 3)
+        Aoo = OffsetArrays.centered(A, CartesianIndex(2,2))
+        c = (0,0)
+        i = CartesianIndex(c...)
+        @test Aoo[i] == Aoo[c...]
+
     end
 end
 

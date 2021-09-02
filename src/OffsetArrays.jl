@@ -764,6 +764,7 @@ See also [`center`](@ref OffsetArrays.center).
 """
 centered(A::AbstractArray, cp::Dims=center(A)) = OffsetArray(A, .-cp)
 
+centered(A::AbstractArray, i::CartesianIndex) = centered(A, Tuple(i))
 
 ####
 # work around for segfault in searchsorted*
