@@ -1679,6 +1679,14 @@ end
     testsimilar(typeof(A), (:, :))
     testsimilar(typeof(A), (:, 2))
     testsimilar(typeof(A), (:, 1:3))
+
+    @testset "similar with OffsetArray type (issue #263)" begin
+        for i in Any[[1,2,3], 1:3, SVector{2,Int}(1,2)]
+            io = OffsetArray(i, -2)
+            j = similar(typeof(io), axes(io))
+            @test axes(j) == axes(io)
+        end
+    end
 end
 
 @testset "reshape" begin

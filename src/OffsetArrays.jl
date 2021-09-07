@@ -320,6 +320,7 @@ function Base.similar(A::AbstractArray, ::Type{T}, shape::Tuple{OffsetAxisKnownL
     P = _similar_axes_or_length(A, T, new_shape, shape)
     return OffsetArray(P, map(_offset, axes(P), shape))
 end
+Base.similar(::Type{A}, sz::Tuple{Vararg{Int}}) where {A<:OffsetArray} = similar(Array{eltype(A)}, sz)
 function Base.similar(::Type{T}, shape::Tuple{OffsetAxisKnownLength,Vararg{OffsetAxisKnownLength}}) where {T<:AbstractArray}
     new_shape = map(_strip_IdOffsetRange, shape)
     P = _similar_axes_or_length(T, new_shape, shape)
