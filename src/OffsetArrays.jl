@@ -204,7 +204,7 @@ for FT in (:OffsetArray, :OffsetVector, :OffsetMatrix)
         $FT(A, map(_offset, axes(A), inds); kw...)
     end
 
-    @eval @inline $FT(A::AbstractArray, inds::Vararg; kw...) = $FT(A, inds; kw...)
+    @eval @inline $FT(A::AbstractArray, inds...; kw...) = $FT(A, inds; kw...)
     @eval @inline $FT(A::AbstractArray; checkoverflow = false) = $FT(A, ntuple(zero, Val(ndims(A))), checkoverflow = checkoverflow)
 
     @eval @inline $FT(A::AbstractArray, origin::Origin; checkoverflow = true) = $FT(A, origin(A); checkoverflow = checkoverflow)
@@ -220,7 +220,7 @@ end
 @inline OffsetArray{T,N}(M::OffsetArray{T,N}, I...; kw...) where {T,N} = OffsetArray(M, I...; kw...)
 @inline OffsetArray{T,N}(M::AbstractArray{T,N}, I...; kw...) where {T,N} = OffsetArray{T,N,typeof(M)}(M, I...; kw...)
 
-@inline OffsetArray{T,N,A}(M::AbstractArray{<:Any,N}, I::Vararg; kw...) where {T,N,A<:AbstractArray{T,N}} = OffsetArray{T,N,A}(M, I; kw...)
+@inline OffsetArray{T,N,A}(M::AbstractArray{<:Any,N}, I...; kw...) where {T,N,A<:AbstractArray{T,N}} = OffsetArray{T,N,A}(M, I; kw...)
 @inline function OffsetArray{T,N,A}(M::AbstractArray{<:Any,N}, I::NTuple{N,Int}; checkoverflow = true) where {T,N,A<:AbstractArray{T,N}}
     checkoverflow && map(overflow_check, axes(M), I)
     Mv = no_offset_view(M)
@@ -263,13 +263,13 @@ end
 @inline function OffsetArray{T, N}(init::ArrayInitializer, inds::Tuple; kw...) where {T, N}
     OffsetArray{T, N}(init, _toAbstractUnitRanges(inds); kw...)
 end
-@inline OffsetArray{T,N}(init::ArrayInitializer, inds::Vararg; kw...) where {T,N} = OffsetArray{T,N}(init, inds; kw...)
+@inline OffsetArray{T,N}(init::ArrayInitializer, inds...; kw...) where {T,N} = OffsetArray{T,N}(init, inds; kw...)
 
 @inline OffsetArray{T}(init::ArrayInitializer, inds::NTuple{N, OffsetAxisKnownLength}; kw...) where {T,N} = OffsetArray{T,N}(init, inds; kw...)
 @inline function OffsetArray{T}(init::ArrayInitializer, inds::Tuple; kw...) where {T}
     OffsetArray{T}(init, _toAbstractUnitRanges(inds); kw...)
 end
-@inline OffsetArray{T}(init::ArrayInitializer, inds::Vararg; kw...) where {T} = OffsetArray{T}(init, inds; kw...)
+@inline OffsetArray{T}(init::ArrayInitializer, inds...; kw...) where {T} = OffsetArray{T}(init, inds; kw...)
 
 Base.IndexStyle(::Type{OA}) where {OA<:OffsetArray} = IndexStyle(parenttype(OA))
 parenttype(::Type{OffsetArray{T,N,AA}}) where {T,N,AA} = AA
