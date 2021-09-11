@@ -1681,8 +1681,8 @@ end
     testsimilar(typeof(A), (:, 1:3))
 
     @testset "similar with OffsetArray type (issue #263)" begin
-        for i in Any[[1,2,3], 1:3, SVector{2,Int}(1,2)]
-            k = OffsetArray(i, -2)
+        for i in Any[[1,2,3], 1:3, SVector{2,Int}(1,2), reshape(1:4, 2, 2)]
+            k = OffsetArray(i, map(x -> -2, size(i)))
             j = similar(typeof(k), axes(k))
             @test axes(j) == axes(k)
             @test eltype(j) == eltype(k)
