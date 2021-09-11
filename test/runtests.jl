@@ -1682,9 +1682,14 @@ end
 
     @testset "similar with OffsetArray type (issue #263)" begin
         for i in Any[[1,2,3], 1:3, SVector{2,Int}(1,2)]
-            io = OffsetArray(i, -2)
-            j = similar(typeof(io), axes(io))
-            @test axes(j) == axes(io)
+            k = OffsetArray(i, -2)
+            j = similar(typeof(k), axes(k))
+            @test axes(j) == axes(k)
+            @test eltype(j) == eltype(k)
+            j = similar(typeof(k), size(k))
+            @test eltype(j) == eltype(k)
+            @test size(j) == size(k)
+            @test all(==(1), first.(axes(j)))
         end
     end
 end
