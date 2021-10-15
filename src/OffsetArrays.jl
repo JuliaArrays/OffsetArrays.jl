@@ -1,11 +1,13 @@
 module OffsetArrays
 
+using ArrayInterface
 using Base: tail, @propagate_inbounds
 @static if !isdefined(Base, :IdentityUnitRange)
     const IdentityUnitRange = Base.Slice
 else
     using Base: IdentityUnitRange
 end
+using Static
 
 export OffsetArray, OffsetMatrix, OffsetVector
 
@@ -117,6 +119,19 @@ struct OffsetArray{T,N,AA<:AbstractArray{T,N}} <: AbstractArray{T,N}
         checkoverflow && map(overflow_check, axes(parent), offsets)
         new{T, N, AA}(parent, offsets)
     end
+end
+
+ArrayInterface.parent_type(::Type{O}) where {T,N,A<:AbstractArray{T,N},O<:OffsetArrays.OffsetArray{T,N,A}} = A
+function _offset_axis_type(::Type{T}, dim::StaticInt{D}) where {T,D}
+    OffsetArrays.IdOffsetRange{Int,ArrayInterface.axes_types(T, dim)}
+end
+function ArrayInterface.axes_types(::Type{T}) where {T<:OffsetArrays.OffsetArray}
+    ArrayInterface.Static.eachop_tuple(_offset_axis_type, Static.nstatic(Val(ndims(T))), ArrayInterface.parent_type(T))
+end
+@inline ArrayInterface.axes(A::OffsetArrays.OffsetArray) = Base.axes(A)
+@inline _axes(A::OffsetArrays.OffsetArray, dim::Integer) = Base.axes(A, dim)
+@inline function ArrayInterface.axes(A::OffsetArrays.OffsetArray{T,N}, ::StaticInt{M}) where {T,M,N}
+    _axes(A, StaticInt{M}(), gt(StaticInt{M}(),StaticInt{N}()))
 end
 
 """
