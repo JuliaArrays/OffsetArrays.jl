@@ -565,7 +565,8 @@ end
 
 # mapreduce is faster with an IdOffsetRange than with an OffsetUnitRange
 # We therefore convert OffsetUnitRanges to IdOffsetRanges with the same values and axes
-function Base.mapreduce(f, op, As::OffsetUnitRange{<:Integer}...; kw...)
+function Base.mapreduce(f, op, A1::OffsetUnitRange{<:Integer}, As::OffsetUnitRange{<:Integer}...; kw...)
+    As = (A1, As...)
     ofs = map(A -> first(axes(A,1)) - 1, As)
     AIds = map((A, of) -> IdOffsetRange(_subtractoffset(parent(A), of), of), As, ofs)
     mapreduce(f, op, AIds...; kw...)
