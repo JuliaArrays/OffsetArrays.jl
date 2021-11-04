@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Reference · OffsetArrays</title><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.039/juliamono-regular.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.11/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../">OffsetArrays</a></span></div><form class="docs-search" action="../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../">OffsetArrays.jl</a></li><li><a class="tocitem" href="../internals/">For developers</a></li><li class="is-active"><a class="tocitem" href>Reference</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Reference</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Reference</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/JuliaArrays/OffsetArrays.jl/blob/master/docs/src/reference.md" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="Reference"><a class="docs-heading-anchor" href="#Reference">Reference</a><a id="Reference-1"></a><a class="docs-heading-anchor-permalink" href="#Reference" title="Permalink"></a></h1><article class="docstring"><header><a class="docstring-binding" id="OffsetArrays.OffsetArray" href="#OffsetArrays.OffsetArray"><code>OffsetArrays.OffsetArray</code></a> — <span class="docstring-category">Type</span></header><section><div><pre><code class="language-julia hljs">OffsetArray(A, indices...)</code></pre><p>Return an <code>AbstractArray</code> that shares element type and size with the first argument but uses the supplied <code>indices</code> to infer its axes. If all the indices are <code>AbstractUnitRange</code>s then these are directly used as the axis span along each dimension. Refer to the examples below for other permissible types.</p><p>Alternatively it&#39;s possible to specify the coordinates of one corner of the array and have the axes be computed automatically from the size of <code>A</code>. This constructor makes it convenient to shift to an arbitrary starting index along each axis, for example to a zero-based indexing scheme followed by arrays in languages such as C and Python. See <a href="#OffsetArrays.Origin"><code>Origin</code></a> and the examples below for this usage.</p><p><strong>Example: offsets</strong></p><p>There are two types of <code>indices</code>: integers and ranges-like types.</p><p>Integers are recognized as offsets, where <code>0</code> means no offsets are applied:</p><pre><code class="language-julia-repl hljs">julia&gt; A = OffsetArray(reshape(1:6, 2, 3), -1, -2)
+2×3 OffsetArray(reshape(::UnitRange{Int64}, 2, 3), 0:1, -1:1) with eltype Int64 with indices 0:1×-1:1:
+ 1  3  5
+ 2  4  6
+
+julia&gt; A[0, 1]
+5</code></pre><p>Examples of range-like types are: <code>UnitRange</code> (e.g, <code>-1:2</code>), <code>CartesianIndices</code>, and <code>Colon()</code> (or concisely <code>:</code>). A <code>UnitRange</code> specifies the axis span along one particular dimension, <code>CartesianIndices</code> specify the axis spans along multiple dimensions, and a <code>Colon</code> is a placeholder that specifies that the <code>OffsetArray</code> shares its axis with its parent along that dimension.</p><pre><code class="language-julia-repl hljs">julia&gt; OffsetArray(reshape(1:6, 2, 3), 0:1, -1:1)
+2×3 OffsetArray(reshape(::UnitRange{Int64}, 2, 3), 0:1, -1:1) with eltype Int64 with indices 0:1×-1:1:
+ 1  3  5
+ 2  4  6
+
+julia&gt; OffsetArray(reshape(1:6, 2, 3), :, -1:1) # : as a placeholder to indicate that no offset is to be applied to the first dimension
+2×3 OffsetArray(reshape(::UnitRange{Int64}, 2, 3), 1:2, -1:1) with eltype Int64 with indices 1:2×-1:1:
+ 1  3  5
+ 2  4  6</code></pre><p>Use <code>CartesianIndices</code> to specify the coordinates of two diagonally opposite corners:</p><pre><code class="language-julia-repl hljs">julia&gt; OffsetArray(reshape(1:6, 2, 3), CartesianIndex(0, -1):CartesianIndex(1, 1))
+2×3 OffsetArray(reshape(::UnitRange{Int64}, 2, 3), 0:1, -1:1) with eltype Int64 with indices 0:1×-1:1:
+ 1  3  5
+ 2  4  6</code></pre><p>Integers and range-like types may not be combined in the same call:</p><pre><code class="language-julia hljs">julia&gt; OffsetArray(reshape(1:6, 2, 3), 0, -1:1)
+ERROR: [...]</code></pre><p><strong>Example: origin</strong></p><p><a href="#OffsetArrays.Origin"><code>OffsetArrays.Origin</code></a> may be used to specify the origin of the OffsetArray. The term origin here refers to the corner with the lowest values of coordinates, such as the left edge for an <code>AbstractVector</code>, the bottom left corner for an <code>AbstractMatrix</code> and so on. The coordinates of the origin sets the starting index of the array along each dimension.</p><pre><code class="language-julia-repl hljs">julia&gt; a = [1 2; 3 4];
+
+julia&gt; OffsetArray(a, OffsetArrays.Origin(0, 1))
+2×2 OffsetArray(::Matrix{Int64}, 0:1, 1:2) with eltype Int64 with indices 0:1×1:2:
+ 1  2
+ 3  4
+
+julia&gt; OffsetArray(a, OffsetArrays.Origin(0)) # set the origin to zero along each dimension
+2×2 OffsetArray(::Matrix{Int64}, 0:1, 0:1) with eltype Int64 with indices 0:1×0:1:
+ 1  2
+ 3  4</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaArrays/OffsetArrays.jl/blob/54ade62589fef2014fe9140c5d9ead0603773ad9/src/OffsetArrays.jl#L25-L111">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="OffsetArrays.OffsetVector" href="#OffsetArrays.OffsetVector"><code>OffsetArrays.OffsetVector</code></a> — <span class="docstring-category">Type</span></header><section><div><pre><code class="language-julia hljs">OffsetVector(v, index)</code></pre><p>Type alias and convenience constructor for one-dimensional <a href="#OffsetArrays.OffsetArray"><code>OffsetArray</code></a>s.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaArrays/OffsetArrays.jl/blob/54ade62589fef2014fe9140c5d9ead0603773ad9/src/OffsetArrays.jl#L122-L126">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="OffsetArrays.OffsetMatrix" href="#OffsetArrays.OffsetMatrix"><code>OffsetArrays.OffsetMatrix</code></a> — <span class="docstring-category">Type</span></header><section><div><pre><code class="language-julia hljs">OffsetMatrix(A, index1, index2)</code></pre><p>Type alias and convenience constructor for two-dimensional <a href="#OffsetArrays.OffsetArray"><code>OffsetArray</code></a>s.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaArrays/OffsetArrays.jl/blob/54ade62589fef2014fe9140c5d9ead0603773ad9/src/OffsetArrays.jl#L129-L133">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="OffsetArrays.Origin" href="#OffsetArrays.Origin"><code>OffsetArrays.Origin</code></a> — <span class="docstring-category">Type</span></header><section><div><pre><code class="language-julia hljs">Origin(indices...)
+Origin(origin::Tuple)
+Origin(origin::CartesianIndex)</code></pre><p>A helper type to construct OffsetArray with given origin.</p><p>The <code>origin</code> of an array is defined as the index of its first element, i.e., <code>first.(axes(A))</code>.</p><p><strong>Example</strong></p><pre><code class="language-julia-repl hljs">julia&gt; a = [1 2; 3 4];
+
+julia&gt; OffsetArray(a, OffsetArrays.Origin(0, 1))
+2×2 OffsetArray(::Matrix{Int64}, 0:1, 1:2) with eltype Int64 with indices 0:1×1:2:
+ 1  2
+ 3  4
+
+julia&gt; OffsetArray(a, OffsetArrays.Origin(0)) # short notation for `Origin(0, 0)`
+2×2 OffsetArray(::Matrix{Int64}, 0:1, 0:1) with eltype Int64 with indices 0:1×0:1:
+ 1  2
+ 3  4</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaArrays/OffsetArrays.jl/blob/54ade62589fef2014fe9140c5d9ead0603773ad9/src/origin.jl#L1-L25">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="OffsetArrays.IdOffsetRange" href="#OffsetArrays.IdOffsetRange"><code>OffsetArrays.IdOffsetRange</code></a> — <span class="docstring-category">Type</span></header><section><div><pre><code class="language-julia hljs">ro = IdOffsetRange(r::AbstractUnitRange, offset=0)</code></pre><p>Construct an &quot;identity offset range&quot;. Numerically, <code>collect(ro) == collect(r) .+ offset</code>, with the additional property that <code>axes(ro, 1) = axes(r, 1) .+ offset</code>. When <code>r</code> starts at 1, then <code>ro[i] == i</code> and even <code>ro[ro] == ro</code>, i.e., it&#39;s the &quot;identity,&quot; which is the origin of the &quot;Id&quot; in <code>IdOffsetRange</code>.</p><p><strong>Examples</strong></p><p>The most common case is shifting a range that starts at 1 (either <code>1:n</code> or <code>Base.OneTo(n)</code>):</p><pre><code class="language-julia-repl hljs">julia&gt; using OffsetArrays: IdOffsetRange
+
+julia&gt; ro = IdOffsetRange(1:3, -2)
+IdOffsetRange(values=-1:1, indices=-1:1)
+
+julia&gt; axes(ro, 1)
+IdOffsetRange(values=-1:1, indices=-1:1)
+
+julia&gt; ro[-1]
+-1
+
+julia&gt; ro[3]
+ERROR: BoundsError: attempt to access 3-element OffsetArrays.IdOffsetRange{Int64, UnitRange{Int64}} with indices -1:1 at index [3]</code></pre><p>If the range doesn&#39;t start at 1, the values may be different from the indices:</p><pre><code class="language-julia-repl hljs">julia&gt; ro = IdOffsetRange(11:13, -2)
+IdOffsetRange(values=9:11, indices=-1:1)
+
+julia&gt; axes(ro, 1)     # 11:13 is indexed by 1:3, and the offset is also applied to the axes
+IdOffsetRange(values=-1:1, indices=-1:1)
+
+julia&gt; ro[-1]
+9
+
+julia&gt; ro[3]
+ERROR: BoundsError: attempt to access 3-element OffsetArrays.IdOffsetRange{Int64, UnitRange{Int64}} with indices -1:1 at index [3]</code></pre><p><strong>Extended help</strong></p><p>Construction/coercion preserves the (shifted) values of the input range, but may modify the indices if required by the specified types. For example,</p><pre><code class="nohighlight hljs">r = OffsetArrays.IdOffsetRange{Int,UnitRange{Int}}(3:4)</code></pre><p>has <code>r[1] == 3</code> and <code>r[2] == 4</code>, whereas</p><pre><code class="nohighlight hljs">r = OffsetArrays.IdOffsetRange{Int,Base.OneTo{Int}}(3:4)</code></pre><p>has <code>r[3] == 3</code> and <code>r[4] == 4</code>, and <code>r[1]</code> would throw a <code>BoundsError</code>. In this latter case, a shift in the axes was needed because <code>Base.OneTo</code> ranges must start with value 1.</p><div class="admonition is-warning"><header class="admonition-header">Warning</header><div class="admonition-body"><p>In the future, <em>conversion</em> will preserve both the values and the indices, throwing an error when this is not achievable. For instance,</p><pre><code class="nohighlight hljs">r = convert(OffsetArrays.IdOffsetRange{Int,UnitRange{Int}}, 3:4)</code></pre><p>has <code>r[1] == 3</code> and <code>r[2] == 4</code> and would satisfy <code>r == 3:4</code>, whereas</p><pre><code class="language-julia hljs">julia&gt; convert(OffsetArrays.IdOffsetRange{Int,Base.OneTo{Int}}, 3:4)    # future behavior, not present behavior
+ERROR: ArgumentError: first element must be 1, got 3</code></pre><p>where the error will arise because the result could not have the same axes as the input.</p><p>An important corollary is that <code>typeof(r1)(r2)</code> and <code>oftype(r1, r2)</code> will behave differently: the first coerces <code>r2</code> to be of the type of <code>r1</code>, whereas the second converts. Developers are urged to future-proof their code by choosing the behavior appropriate for each usage.</p></div></div></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaArrays/OffsetArrays.jl/blob/54ade62589fef2014fe9140c5d9ead0603773ad9/src/axes.jl#L1-L77">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="OffsetArrays.no_offset_view" href="#OffsetArrays.no_offset_view"><code>OffsetArrays.no_offset_view</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">no_offset_view(A)</code></pre><p>Return an <code>AbstractArray</code> that shares structure and underlying data with the argument, but uses 1-based indexing. May just return the argument when applicable. Not exported.</p><p>The default implementation uses <code>OffsetArrays</code>, but other types should use something more specific to remove a level of indirection when applicable.</p><pre><code class="language-julia-repl hljs">julia&gt; A = [1 3 5; 2 4 6];
+
+julia&gt; O = OffsetArray(A, 0:1, -1:1)
+2×3 OffsetArray(::Matrix{Int64}, 0:1, -1:1) with eltype Int64 with indices 0:1×-1:1:
+ 1  3  5
+ 2  4  6
+
+julia&gt; OffsetArrays.no_offset_view(O)[1,1] = -9
+-9
+
+julia&gt; A
+2×3 Matrix{Int64}:
+ -9  3  5
+  2  4  6</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaArrays/OffsetArrays.jl/blob/54ade62589fef2014fe9140c5d9ead0603773ad9/src/OffsetArrays.jl#L620-L646">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="OffsetArrays.AxisConversionStyle" href="#OffsetArrays.AxisConversionStyle"><code>OffsetArrays.AxisConversionStyle</code></a> — <span class="docstring-category">Type</span></header><section><div><pre><code class="language-julia hljs">OffsetArrays.AxisConversionStyle(typeof(indices))</code></pre><p><code>AxisConversionStyle</code> declares if <code>indices</code> should be converted to a single <code>AbstractUnitRange{Int}</code> or to a <code>Tuple{Vararg{AbstractUnitRange{Int}}}</code> while flattening custom types into indices. This method is called after <code>to_indices(A::Array, axes(A), indices)</code> to provide further information in case <code>to_indices</code> does not return a <code>Tuple</code> of <code>AbstractUnitRange{Int}</code>.</p><p>Custom index types should extend <code>AxisConversionStyle</code> and return either <code>OffsetArray.SingleRange()</code>, which is the default, or <code>OffsetArray.TupleOfRanges()</code>. In the former case, the type <code>T</code> should define <code>Base.convert(::Type{AbstractUnitRange{Int}}, ::T)</code>, whereas in the latter it should define <code>Base.convert(::Type{Tuple{Vararg{AbstractUnitRange{Int}}}}, ::T)</code>.</p><p>An example of the latter is <code>CartesianIndices</code>, which is converted to a <code>Tuple</code> of <code>AbstractUnitRange{Int}</code> while flattening the indices.</p><p><strong>Example</strong></p><pre><code class="language-julia-repl hljs">julia&gt; struct NTupleOfUnitRanges{N}
+           x ::NTuple{N, UnitRange{Int}}
+       end
+
+julia&gt; Base.to_indices(A, inds, t::Tuple{NTupleOfUnitRanges{N}}) where {N} = t;
+
+julia&gt; OffsetArrays.AxisConversionStyle(::Type{NTupleOfUnitRanges{N}}) where {N} = OffsetArrays.TupleOfRanges();
+
+julia&gt; Base.convert(::Type{Tuple{Vararg{AbstractUnitRange{Int}}}}, t::NTupleOfUnitRanges) = t.x;
+
+julia&gt; a = zeros(3, 3);
+
+julia&gt; inds = NTupleOfUnitRanges((3:5, 2:4));
+
+julia&gt; oa = OffsetArray(a, inds);
+
+julia&gt; axes(oa, 1) == 3:5
+true
+
+julia&gt; axes(oa, 2) == 2:4
+true</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaArrays/OffsetArrays.jl/blob/54ade62589fef2014fe9140c5d9ead0603773ad9/src/utils.jl#L26-L66">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="OffsetArrays.center" href="#OffsetArrays.center"><code>OffsetArrays.center</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">center(A, [r::RoundingMode=RoundDown])::Dims</code></pre><p>Return the center coordinate of given array <code>A</code>. If <code>size(A, k)</code> is even, a rounding procedure will be applied with mode <code>r</code>.</p><div class="admonition is-compat"><header class="admonition-header">OffsetArrays 1.9</header><div class="admonition-body"><p>This method requires at least OffsetArrays 1.9.</p></div></div><p><strong>Examples</strong></p><pre><code class="language-julia-repl hljs">julia&gt; A = reshape(collect(1:9), 3, 3)
+3×3 Matrix{Int64}:
+ 1  4  7
+ 2  5  8
+ 3  6  9
+
+julia&gt; c = OffsetArrays.center(A)
+(2, 2)
+
+julia&gt; A[c...]
+5
+
+julia&gt; Ao = OffsetArray(A, -2, -2); # axes (-1:1, -1:1)
+
+julia&gt; c = OffsetArrays.center(Ao)
+(0, 0)
+
+julia&gt; Ao[c...]
+5</code></pre><p>To shift the center coordinate of the given array to <code>(0, 0, ...)</code>, you can use <a href="#OffsetArrays.centered"><code>centered</code></a>.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaArrays/OffsetArrays.jl/blob/54ade62589fef2014fe9140c5d9ead0603773ad9/src/OffsetArrays.jl#L669-L704">source</a></section></article><article class="docstring"><header><a class="docstring-binding" id="OffsetArrays.centered" href="#OffsetArrays.centered"><code>OffsetArrays.centered</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">centered(A, cp=center(A)) -&gt; Ao</code></pre><p>Shift the center coordinate/point <code>cp</code> of array <code>A</code> to <code>(0, 0, ..., 0)</code>. Internally, this is equivalent to <code>OffsetArray(A, .-cp)</code>.</p><div class="admonition is-compat"><header class="admonition-header">OffsetArrays 1.9</header><div class="admonition-body"><p>This method requires at least OffsetArrays 1.9.</p></div></div><p><strong>Examples</strong></p><pre><code class="language-julia-repl hljs">julia&gt; A = reshape(collect(1:9), 3, 3)
+3×3 Matrix{Int64}:
+ 1  4  7
+ 2  5  8
+ 3  6  9
+
+julia&gt; Ao = OffsetArrays.centered(A); # axes (-1:1, -1:1)
+
+julia&gt; Ao[0, 0]
+5
+
+julia&gt; Ao = OffsetArray(A, OffsetArrays.Origin(0)); # axes (0:2, 0:2)
+
+julia&gt; Aoo = OffsetArrays.centered(Ao); # axes (-1:1, -1:1)
+
+julia&gt; Aoo[0, 0]
+5</code></pre><p>Users are allowed to pass <code>cp</code> to change how &quot;center point&quot; is interpreted, but the meaning of the output array should be reinterpreted as well. For instance, if <code>cp = map(last, axes(A))</code> then this function no longer shifts the center point but instead the bottom-right point to <code>(0, 0, ..., 0)</code>. A commonly usage of <code>cp</code> is to change the rounding behavior when the array is of even size at some dimension:</p><pre><code class="language-julia-repl hljs">julia&gt; A = reshape(collect(1:4), 2, 2) # Ideally the center should be (1.5, 1.5) but OffsetArrays only support integer offsets
+2×2 Matrix{Int64}:
+ 1  3
+ 2  4
+
+julia&gt; OffsetArrays.centered(A, OffsetArrays.center(A, RoundUp)) # set (2, 2) as the center point
+2×2 OffsetArray(::Matrix{Int64}, -1:0, -1:0) with eltype Int64 with indices -1:0×-1:0:
+ 1  3
+ 2  4
+
+julia&gt; OffsetArrays.centered(A, OffsetArrays.center(A, RoundDown)) # set (1, 1) as the center point
+2×2 OffsetArray(::Matrix{Int64}, 0:1, 0:1) with eltype Int64 with indices 0:1×0:1:
+ 1  3
+ 2  4</code></pre><p>See also <a href="#OffsetArrays.center"><code>center</code></a>.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaArrays/OffsetArrays.jl/blob/54ade62589fef2014fe9140c5d9ead0603773ad9/src/OffsetArrays.jl#L711-L766">source</a></section></article></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../internals/">« For developers</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.10 on <span class="colophon-date" title="Thursday 4 November 2021 11:31">Thursday 4 November 2021</span>. Using Julia version 1.6.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
