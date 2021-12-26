@@ -853,6 +853,8 @@ end
 import Adapt
 Adapt.adapt_structure(to, O::OffsetArray) = parent_call(x -> Adapt.adapt(to, x), O)
 
+include("linearalgebra.jl")
+
 if Base.VERSION >= v"1.4.2"
     include("precompile.jl")
     _precompile_()
