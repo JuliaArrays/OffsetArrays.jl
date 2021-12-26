@@ -2,9 +2,14 @@ using LinearAlgebra
 using LinearAlgebra: MulAddMul, mul!
 lapack_axes(t::AbstractChar, M::AbstractVecOrMat) = (axes(M, t=='N' ? 1 : 2), axes(M, t=='N' ? 2 : 1))
 
-# The signature of this differs from LinearAlgebra's only on C
-function LinearAlgebra.generic_matvecmul!(C::OffsetVector, tA, A::AbstractVecOrMat, B::AbstractVector,
-                            _add::MulAddMul = MulAddMul())
+# The signatures of these differs from LinearAlgebra's *only* on C.
+LinearAlgebra.generic_matvecmul!(C::OffsetVector, tA, A::AbstractVecOrMat, B::AbstractVector,
+                            _add::MulAddMul) = unwrap_matvecmul!(C, tA, A, B, _add.alpha, _add.beta)
+LinearAlgebra.generic_matvecmul!(C::OffsetVector, tA, A::AbstractVecOrMat, B::AbstractVector,
+                            alpha, beta) = unwrap_matvecmul!(C, tA, A, B, alpha, beta)
+
+function unwrap_matvecmul!(C::OffsetVector, tA, A::AbstractVecOrMat, B::AbstractVector,
+                            alpha, beta)
 
     mB_axis = Base.axes1(B)
     mA_axis, nA_axis = lapack_axes(tA, A)
@@ -21,11 +26,11 @@ function LinearAlgebra.generic_matvecmul!(C::OffsetVector, tA, A::AbstractVecOrM
     B1 = no_offset_view(B)
 
     if tA == 'T'
-        mul!(C1, transpose(A1),  B1, _add.alpha, _add.beta)
+        mul!(C1, transpose(A1),  B1, alpha, beta)
     elseif tA == 'C'
-        mul!(C1, adjoint(A1), B1, _add.alpha, _add.beta)
+        mul!(C1, adjoint(A1), B1, alpha, beta)
     elseif tA == 'N'
-        mul!(C1, A1, B1, _add.alpha, _add.beta)
+        mul!(C1, A1, B1, alpha, beta)
     else
         error("illegal char")
     end
@@ -33,13 +38,22 @@ function LinearAlgebra.generic_matvecmul!(C::OffsetVector, tA, A::AbstractVecOrM
     C
 end
 
+# The signatures of these differs from LinearAlgebra's *only* on C:
+# Old path
 LinearAlgebra.generic_matmatmul!(C::OffsetMatrix, tA, tB, A::AbstractMatrix, B::AbstractMatrix,
-                             _add::MulAddMul) = unwrap_matmatmul!(C, tA, tB, A, B, _add)
+                             _add::MulAddMul) = unwrap_matmatmul!(C, tA, tB, A, B, _add.alpha, _add.beta)
 LinearAlgebra.generic_matmatmul!(C::Union{OffsetMatrix, OffsetVector}, tA, tB, A::AbstractVecOrMat, B::AbstractVecOrMat,
-                             _add::MulAddMul) = unwrap_matmatmul!(C, tA, tB, A, B, _add)
+                             _add::MulAddMul) = unwrap_matmatmul!(C, tA, tB, A, B, _add.alpha, _add.beta)
 
-function unwrap_matmatmul!(C::Union{OffsetMatrix, OffsetVector}, tA, tB, A::AbstractVecOrMat, B::AbstractVecOrMat,
-                             _add::MulAddMul)
+# New path
+LinearAlgebra.generic_matmatmul!(C::OffsetMatrix, tA, tB, A::AbstractMatrix, B::AbstractMatrix,
+                             alpha, beta) = unwrap_matmatmul!(C, tA, tB, A, B, alpha, beta)
+LinearAlgebra.generic_matmatmul!(C::Union{OffsetMatrix, OffsetVector}, tA, tB, A::AbstractVecOrMat, B::AbstractVecOrMat,
+                             alpha, beta) = unwrap_matmatmul!(C, tA, tB, A, B, alpha, beta)
+
+# Worker
+@inline function unwrap_matmatmul!(C::Union{OffsetMatrix, OffsetVector}, tA, tB, A::AbstractVecOrMat, B::AbstractVecOrMat,
+                             alpha, beta)
 
     mA_axis, nA_axis = lapack_axes(tA, A)
     mB_axis, nB_axis = lapack_axes(tB, B)
@@ -58,31 +72,31 @@ function unwrap_matmatmul!(C::Union{OffsetMatrix, OffsetVector}, tA, tB, A::Abst
 
    if tA == 'N'
         if tB == 'N'
-            mul!(C1, A1, B1, _add.alpha, _add.beta)
+            mul!(C1, A1, B1, alpha, beta)
         elseif tB == 'T'
-            mul!(C1, A1, transpose(B1), _add.alpha, _add.beta)
+            mul!(C1, A1, transpose(B1), alpha, beta)
         elseif tB == 'C'
-            mul!(C1, A1, adjoint(B1), _add.alpha, _add.beta)
+            mul!(C1, A1, adjoint(B1), alpha, beta)
         else
             error("illegal char")
         end
     elseif tA == 'T'
         if tB == 'N'
-            mul!(C1, transpose(A1), B1, _add.alpha, _add.beta)
+            mul!(C1, transpose(A1), B1, alpha, beta)
         elseif tB == 'T'
-            mul!(C1, transpose(A1), transpose(B1), _add.alpha, _add.beta)
+            mul!(C1, transpose(A1), transpose(B1), alpha, beta)
         elseif tB == 'C'
-            mul!(C1, transpose(A1), adjoint(B1), _add.alpha, _add.beta)
+            mul!(C1, transpose(A1), adjoint(B1), alpha, beta)
         else
             error("illegal char")
         end
     elseif tA == 'C'
         if tB == 'N'
-            mul!(C1, adjoint(A1), B1, _add.alpha, _add.beta)
+            mul!(C1, adjoint(A1), B1, alpha, beta)
         elseif tB == 'T'
-            mul!(C1, adjoint(A1), transpose(B1), _add.alpha, _add.beta)
+            mul!(C1, adjoint(A1), transpose(B1), alpha, beta)
         elseif tB == 'C'
-            mul!(C1, adjoint(A1), adjoint(B1), _add.alpha, _add.beta)
+            mul!(C1, adjoint(A1), adjoint(B1), alpha, beta)
         else
             error("illegal char")
         end
@@ -92,3 +106,8 @@ function unwrap_matmatmul!(C::Union{OffsetMatrix, OffsetVector}, tA, tB, A::Abst
 
     C
 end
+
+no_offset_view(A::Adjoint) = Adjoint(no_offset_view(parent(A)))
+no_offset_view(A::Transpose) = Transpose(no_offset_view(parent(A)))
+no_offset_view(D::Diagonal) = Diagonal(no_offset_view(parent(D)))
+

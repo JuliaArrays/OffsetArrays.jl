@@ -651,6 +651,7 @@ if isdefined(Base, :IdentityUnitRange)
     no_offset_view(a::Base.Slice) = Base.Slice(UnitRange(a))
     no_offset_view(S::SubArray) = view(parent(S), map(no_offset_view, parentindices(S))...)
 end
+no_offset_view(A::PermutedDimsArray{T,N,perm,iperm,P}) where {T,N,perm,iperm,P} = PermutedDimsArray(no_offset_view(parent(A)), perm)
 no_offset_view(a::Array) = a
 no_offset_view(i::Number) = i
 no_offset_view(A::AbstractArray) = _no_offset_view(axes(A), A)
