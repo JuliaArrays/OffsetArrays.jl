@@ -1968,7 +1968,7 @@ end
         @test parent(b) isa AbstractRange
 
         for ri in Any[2:3, Base.OneTo(2)]
-            for r in [IdentityUnitRange(ri), IdOffsetRange(ri), IdOffsetRange(ri, 1), OffsetArray(ri), OffsetArray(ri, 2)]
+            for r in Any[IdentityUnitRange(ri), IdOffsetRange(ri), IdOffsetRange(ri, 1), OffsetArray(ri), OffsetArray(ri, 2)]
                 for T in [Int8, Int16, Int32, Int64, Int128, BigInt, Float32, Float64, BigFloat]
                     r2 = map(T, r)
                     @test eltype(r2) == T
