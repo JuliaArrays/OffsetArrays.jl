@@ -768,6 +768,26 @@ centered(A::AbstractArray, cp::Dims=center(A)) = OffsetArray(A, .-cp)
 
 centered(A::AbstractArray, i::CartesianIndex) = centered(A, Tuple(i))
 
+"""
+    offset_to(X::AbstractArray, As::AbstractArray...)
+
+Shifting the axes of all arrays in `As` so that their origin matches `X`. The output will be
+a tuple of `OffsetArray`s.
+
+```jldoctest; setup=:(using OffsetArrays)
+julia> X = OffsetArray(rand(4, 4), (2, 3)); # origin: (3, 4)
+
+julia> A1, A2, A3 = rand(4, 4), rand(2, 3), OffsetArray(rand(3, 2), (-1, -1)); # all have different axes
+
+julia> A1o, A2o, A3o = OffsetArrays.offset_to(X, A1, A2, A3);
+
+julia> first.(axes(A1o)), first.(axes(A2o)), first.(axes(A3o))
+((3, 4), (3, 4), (3, 4))
+```
+"""
+offset_to(X::AbstractArray, As::AbstractArray...) = offset_to(Origin(first.(axes(X))), As...)
+offset_to(o::Origin, As::AbstractArray...) = map(A->OffsetArray(A, o), As)
+
 ####
 # work around for segfault in searchsorted*
 #  https://github.com/JuliaLang/julia/issues/33977
