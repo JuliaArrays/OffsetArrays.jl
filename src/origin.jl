@@ -63,12 +63,12 @@ julia> origin_b(ones(2,2)) # shift the origin of another array to that of b, in 
     julia> first.(axes(ao)) == first.(axes(bo)) == first.(axes(co)) == (0,0)
     true
 
-    julia> ao, bo, co = Origin(b).((a, b, c)); # shift all orgigins to that of b
+    julia> ao, bo, co = Origin(b).((a, b, c)); # shift all origins to that of b
 
     julia> first.(axes(ao)) == first.(axes(bo)) == first.(axes(co)) == (2,3)
     true
 
-    julia> ao, bo, co = OffsetArray.((a, b, c), Origin(b)); # same as above
+    julia> ao, bo, co = OffsetArray.((a, b, c), Origin(b)); # another way to do the same
 
     julia> first.(axes(ao)) == first.(axes(bo)) == first.(axes(co)) == (2,3)
     true
