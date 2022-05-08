@@ -29,7 +29,7 @@ An `Origin` object is callable, and it may shift the origin of an array to the s
 
 ```jldoctest origin
 julia> b = Origin(0)(a) # shift the origin of the array to (0,0)
-2×2 OffsetArray(::Matrix{Int64}, 0:1, 0:1) with eltype Int64 with indices 0:1×0:1:
+2×2 OffsetArray(::$(Array{Int, 2}), 0:1, 0:1) with eltype $Int with indices 0:1×0:1:
  1  2
  3  4
 ```
@@ -42,7 +42,7 @@ julia> origin_b = Origin(b) # retrieve the origin of the array as an Origin inst
 Origin(0, 0)
 
 julia> origin_b(ones(2,2)) # shift the origin of another array to that of b, in this case to (0,0)
-2×2 OffsetArray(::Matrix{Float64}, 0:1, 0:1) with eltype Float64 with indices 0:1×0:1:
+2×2 OffsetArray(::$(Array{Float64, 2}), 0:1, 0:1) with eltype Float64 with indices 0:1×0:1:
  1.0  1.0
  1.0  1.0
 ```
@@ -73,7 +73,6 @@ julia> origin_b(ones(2,2)) # shift the origin of another array to that of b, in 
     julia> first.(axes(ao)) == first.(axes(bo)) == first.(axes(co)) == (2,3)
     true
     ```
-
 """
 struct Origin{T<:Union{Tuple{Vararg{Int}}, Int}}
     index::T
