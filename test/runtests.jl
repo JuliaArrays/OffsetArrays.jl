@@ -1,5 +1,5 @@
 using OffsetArrays
-using OffsetArrays: IdentityUnitRange, no_offset_view, IIUR
+using OffsetArrays: IdentityUnitRange, no_offset_view, IIUR, Origin
 using Base: Slice
 using OffsetArrays: IdOffsetRange
 using Test, Aqua, Documenter
@@ -2593,6 +2593,20 @@ end
 
 
 include("origin.jl")
+
+@testset "Origin" begin
+    a = [1 2; 3 4];
+    for (index, firstinds) in Any[(1, (1,1)), ((2,3), (2,3))]
+        b = Origin(index)(a)
+        @test first.(axes(b)) == firstinds
+        @test Origin(b) === Origin(firstinds)
+    end
+    io = IOBuffer()
+    show(io, Origin(1))
+    @test String(take!(io)) == "Origin(1)"
+    show(io, Origin(1, 1))
+    @test String(take!(io)) == "Origin(1, 1)"
+end
 
 @testset "misc" begin
     @test OffsetArrays._subtractoffset(Base.OneTo(2), 1) isa AbstractUnitRange{Int}

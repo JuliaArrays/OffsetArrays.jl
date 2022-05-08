@@ -46,6 +46,34 @@ julia> origin_b(ones(2,2)) # shift the origin of another array to that of b, in 
  1.0  1.0
  1.0  1.0
 ```
+
+!!! tip
+    One may broadcast an `Origin` instance over multiple arrays to shift them all to the same origin.
+    ```jldoctest
+    julia> using OffsetArrays: Origin
+
+    julia> a = [1 2; 3 4]; # origin at (1,1)
+
+    julia> b = Origin(2,3)(a); # origin at (2,3)
+
+    julia> c = Origin(4)(a); # origin at (4,4)
+
+    julia> ao, bo, co = Origin(0).((a, b, c)); # shift all origins to (0,0)
+
+    julia> first.(axes(ao)) == first.(axes(bo)) == first.(axes(co)) == (0,0)
+    true
+
+    julia> ao, bo, co = Origin(b).((a, b, c)); # shift all orgigins to that of b
+
+    julia> first.(axes(ao)) == first.(axes(bo)) == first.(axes(co)) == (2,3)
+    true
+
+    julia> ao, bo, co = OffsetArray.((a, b, c), Origin(b)); # same as above
+
+    julia> first.(axes(ao)) == first.(axes(bo)) == first.(axes(co)) == (2,3)
+    true
+    ```
+
 """
 struct Origin{T<:Union{Tuple{Vararg{Int}}, Int}}
     index::T
