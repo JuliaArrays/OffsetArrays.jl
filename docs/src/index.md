@@ -63,6 +63,12 @@ OffsetArray(A, OffsetArrays.Origin(-1, -1))
 OffsetArray(OA, OffsetArrays.Origin(-1, -1))
 ```
 
+An equivalent — but possibly more convenient — way to specify the origin of an array is
+
+```@repl index
+OffsetArrays.Origin(-1, -1)(A)
+```
+
 Sometimes, it will be convenient to shift the center coordinate of the given array to `(0, 0, ...)`,
 `OffsetArrays.centered` is a helper for this very purpose:
 
