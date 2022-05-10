@@ -1,7 +1,7 @@
 # OffsetArrays.jl
 
 | Documentation (stable) | Documentation (dev) |  Unit Tests | Code coverage | PkgEval |
-| :--- | ---: | ---: | ---: | ---: |
+| :-: | :-: | :-: | :-: | :-: |
 | [![][docs-stable-img]][docs-stable-url] |  [![][docs-dev-img]][docs-dev-url] | [![][action-img]][action-url] | [![][codecov-img]][codecov-url] | [![][pkgeval-img]][pkgeval-url] |
 
 ## Introduction
