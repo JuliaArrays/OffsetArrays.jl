@@ -1,8 +1,9 @@
 # OffsetArrays.jl
 
-| Documentation (stable) | Documentation (dev) |  Unit Tests | Code coverage | PkgEval |
-| :-: | :-: | :-: | :-: | :-: |
-| [![][docs-stable-img]][docs-stable-url] |  [![][docs-dev-img]][docs-dev-url] | [![][action-img]][action-url] | [![][codecov-img]][codecov-url] | [![][pkgeval-img]][pkgeval-url] |
+| Documentation |  Build Status | Code coverage |
+| :-: | :-: | :-: |
+| [![][docs-stable-img]][docs-stable-url] |  [![][action-img]][action-url] | [![][codecov-img]][codecov-url] |
+| [![][docs-dev-img]][docs-dev-url]  |  [![][pkgeval-img]][pkgeval-url] | |
 
 ## Introduction
 
