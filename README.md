@@ -28,7 +28,8 @@ where you want `OA` to have axes `(axis1, axis2, ...)` and be indexed by values 
 fall within these axis ranges. Example:
 
 ```julia
-using OffsetArrays
+julia> using OffsetArrays
+
 julia> A = Float64.(reshape(1:15, 3, 5))
 3×5 Matrix{Float64}:
  1.0  4.0  7.0  10.0  13.0
@@ -44,10 +45,10 @@ julia> OA = OffsetArray(A, -1:1, 0:4) # OA will have the axes (-1:1, 0:4)
  2.0  5.0  8.0  11.0  14.0
  3.0  6.0  9.0  12.0  15.0
 
-julia> OA[-1,0]
+julia> OA[-1, 0]
 1.0
 
-julia> OA[1,4]
+julia> OA[1, 4]
 15.0
 ```
 
