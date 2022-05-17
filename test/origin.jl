@@ -48,4 +48,31 @@ using OffsetArrays: Origin
         oa = OffsetArray.(a, Origin(0, -1))
         @test get_origin.(oa) == [ (0,-1), (0,-1) ]
     end
+
+    @testset "as a callable" begin
+        a = [1 2; 3 4];
+        @test OffsetArray(a, Origin(2)) == Origin(2)(a)
+        for (index, firstinds) in Any[(1, (1,1)), ((2,3), (2,3))]
+            b = Origin(index)(a)
+            @test first.(axes(b)) == firstinds
+            @test Origin(b) == Origin(firstinds)
+            @test Origin(OffsetArrays.no_offset_view(b)) == Origin(ntuple(_ -> 1, Val(ndims(b))))
+        end
+        # compatibility with other array types
+        @test Origin(Ones(2,2)) == Origin(1,1)
+        @test Origin(SMatrix{2,2,Int,4}(1,2,3,4)) == Origin(1,1)
+    end
+    @testset "display" begin
+        io = IOBuffer()
+        show(io, Origin(1))
+        @test String(take!(io)) == "Origin(1)"
+        show(io, Origin(1, 1))
+        @test String(take!(io)) == "Origin(1, 1)"
+    end
+
+    @testset "avoid overflow (issue #279)" begin
+        A = Origin(typemin(Int)+1)(rand(3,3))
+        B = Origin(typemax(Int)-4)(A)
+        @test first.(axes(B)) == ntuple(_ -> typemax(Int)-4, Val(ndims(B)))
+    end
 end
