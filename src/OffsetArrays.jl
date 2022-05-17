@@ -210,8 +210,8 @@ for FT in (:OffsetArray, :OffsetVector, :OffsetMatrix)
     @eval @inline $FT(A::AbstractArray, origin::Origin; checkoverflow = true) = $FT(A, origin.index .- first.(axes(A)); checkoverflow = checkoverflow)
 end
 
-(o::Origin)(A::AbstractArray) = OffsetArray(A, o)
-Origin(A::OffsetArray) = Origin(first.(axes(A)))
+(o::Origin)(A::AbstractArray) = OffsetArray(no_offset_view(A), o)
+Origin(A::AbstractArray) = Origin(first.(axes(A)))
 
 # conversion-related methods
 @inline OffsetArray{T}(M::AbstractArray, I...; kw...) where {T} = OffsetArray{T,ndims(M)}(M, I...; kw...)
