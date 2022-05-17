@@ -136,16 +136,19 @@ Here, `Origin(AO)` is able to automatically infer and use the indices of `AO`.
 
 **How to properly write functions that support OffsetArrays?**
 
-It turns out that many packages don't handle custom axes well
+It turns out that many packages don't handle custom axes well, here is some advice:
 
-- Don't loop the vector using explicit `for i in 1:length(x)` -- use `for i in eachindex(x)` instead.
+- Don't loop the vector using `for i in 1:length(x)` especially if there are `@inbounds` macro
+  -- use `for i in eachindex(x)` instead.
 - For multi-dimensional array, there are also `LinearIndices` and `CartesianIndices`.
 - When comparing the arrays, check the `axes(A) == axes(B)` instead of `size(A) == size(B)`.
 - Use `OffsetArrays.no_offset_view(x)`, handle it in 1-based indexing scenario, and optionally add the
   offsets back. But don't overuse this, because
 - not every operation have a well-defined and unambiguous behavior for generic offset array. If that
-  is the case, use `Base.require_one_based_indexing` to early check the axes and early throw errors.
-  Let the user to the decision.
+  is the case, use `Base.require_one_based_indexing` to early check axes and throw errors. It's better
+  to let user to make the decision.
+- Most importantly, _test against OffsetArrays_. And remember,
+- `OffsetArray` is not the only array type that has custom axes.
 
 <!-- badges -->
 
