@@ -132,22 +132,48 @@ julia> Origin(AO)(D)
 
 Here, `Origin(AO)` is able to automatically infer and use the indices of `AO`.
 
-## FAQ
+## Best practice on adopting OffsetArrays
 
-**How to properly write functions that support OffsetArrays?**
+For some applications, OffsetArrays give users an easy-to-understand interface. However, handling
+the non-conventional axes of OffsetArrays requires extra care. Otherwise, the code might
+error, crash, or return incorrect results. You can read [the Julialang documentation on
+offset](https://docs.julialang.org/en/v1/devdocs/offset-arrays/) for more information. Here
+we briefly summarize some of the best practices for users and package authors.
 
-It turns out that many packages don't handle custom axes well, here is some advice:
+### There is no need to support OffsetArrays for every function
 
-- Don't loop the vector using `for i in 1:length(x)` especially if there are `@inbounds` macro
-  -- use `for i in eachindex(x)` instead.
-- For multi-dimensional array, there are also `LinearIndices` and `CartesianIndices`.
-- Instead of checking the size `size(A) == size(B)`, check the axes `axes(A) == axes(B)`.
-- Use `OffsetArrays.no_offset_view(x)` to put everything back to 1-based indexing. But don't
-  overuse this, because
-- not every operation have a well-defined and unambiguous behavior for generic offset array. If that
-  is the case, use `Base.require_one_based_indexing` to early check axes and throw errors. It's better
-  to let user to make the decision.
-- Most importantly, _test against OffsetArrays_. But remember `OffsetArray` is not the only array type that has custom axes.
+You don't need to support offset arrays for _internal functions_ that only consume standard 1-based
+arrays -- it doesn't change or improve anything.
+
+You don't need to support offset arrays for functions that _have no well-defined behavior on custom
+axes_. For instance, many linear algebra functions such as matrix multiplication `A * B` does not
+have an agreed behavior for offset arrays. In this case, it is a better practice to let users do the
+conversion.
+
+The helper function `Base.require_one_based_indexing` can be used to early check the axes and throw
+a meaningful error. If your interface functions do not intend to support offset arrays, we recommend
+you add this check before starting the real computation.
+
+### use `axes` instead of `size`/`length`
+
+Many implementations assume the array axes start at 1 by writing loops such as `for i in
+1:length(x)` or `for i in 1:size(x, 1)`. A better practice is to use `for i in eachindex(x)` or `for
+i in axes(x, 1)` -- `axes` provides more information than `size` with no performance overhead.
+
+Also, if you know what indices type you want to use, [`LinearIndices`][doc_LinearIndices] and
+[`CartesianIndices`][doc_CartesianIndices] allow you to loop multidimensional arrays efficiently
+without worrying about the axes.
+
+### test against OffsetArrays
+
+For package authors that declare support for `AbstractArray`, we recommend having a few test cases
+against `OffsetArray` to ensure the function works well for arrays with custom axes. This gives you
+more confidence that users don't run into strange situations.
+
+For package users that want to use offset arrays, many numerical correctness issues come from the
+fact that `@inbounds` is used inappropriately with the 1-based indexing assumption. Thus for debug
+purposes, it is not a bad idea to start Julia with `--check-bounds=yes`, which turns all `@inbounds`
+into a no-op and uncover potential out-of-bound errors.
 
 <!-- badges -->
 
@@ -164,3 +190,7 @@ It turns out that many packages don't handle custom axes well, here is some advi
 [docs-stable-url]: https://juliaarrays.github.io/OffsetArrays.jl/stable/
 [docs-dev-img]: https://img.shields.io/badge/docs-dev-blue.svg
 [docs-dev-url]: https://juliaarrays.github.io/OffsetArrays.jl/dev/
+
+
+[doc_LinearIndices]: https://docs.julialang.org/en/v1/base/arrays/#Base.LinearIndices
+[doc_CartesianIndices]: https://docs.julialang.org/en/v1/base/arrays/#Base.IteratorsMD.CartesianIndices
