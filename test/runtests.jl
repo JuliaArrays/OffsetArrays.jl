@@ -209,6 +209,15 @@ end
     @test length(rred) == 1
     @test first(rred) == first(r)
 
+    @testset "reduced_indices" begin
+        s = SArray{Tuple{2,2,2},Int,3,8}((1,2,3,4,5,6,7,8));
+        so = OffsetArray(s, (2, 3, 4));
+        @testset for dim in 1:ndims(so)
+            sosum = sum(so, dims = dim)
+            @test parent(sosum) == sum(s, dims = dim)
+        end
+    end
+
     @testset "conversion to AbstractUnitRange" begin
         r = IdOffsetRange(1:2)
         @test AbstractUnitRange{Int}(r) === r
