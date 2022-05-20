@@ -2342,6 +2342,12 @@ end
     @test searchsorted(soa, 2) == firstindex(soa) .+ (0:1) == typemax(Int) .+ (-2:-1)
     @test searchsorted(soa, 3) == lastindex(soa) .+ (0:0) == typemax(Int) .+ (0:0)
     @test searchsorted(soa, 4) === lastindex(soa) .+ (1:0)
+
+    soa = OffsetArray([2,2,3], typemin(Int))
+    @test searchsorted(soa, 1) === firstindex(soa) .+ (0:-1)
+    @test searchsorted(soa, 2) == firstindex(soa) .+ (0:1) == typemin(Int) .+ (1:2)
+    @test searchsorted(soa, 3) == lastindex(soa) .+ (0:0) == typemin(Int) .+ (3:3)
+    @test searchsorted(soa, 4) === lastindex(soa) .+ (1:0)
 end
 
 @testset "Adapt" begin
