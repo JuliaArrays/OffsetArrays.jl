@@ -781,7 +781,7 @@ function _safe_searchsorted(v::OffsetArray, x, ilo::T, ihi::T, o::Base.Ordering)
     lo = ilo - u
     hi = ihi + u
     @inbounds while lo < hi - u
-        m = (lo + hi) ÷ 2
+        m = lo + (hi - lo) ÷ 2
         if Base.lt(o, v[m], x)
             lo = m
         elseif Base.lt(o, x, v[m])
@@ -799,7 +799,7 @@ function _safe_searchsortedfirst(v::OffsetArray, x, lo::T, hi::T, o::Base.Orderi
     lo = lo - u
     hi = hi + u
     @inbounds while lo < hi - u
-        m = (lo + hi) ÷ 2
+        m = lo + (hi - lo) ÷ 2
         if Base.lt(o, v[m], x)
             lo = m
         else
@@ -813,7 +813,7 @@ function _safe_searchsortedlast(v::OffsetArray, x, lo::T, hi::T, o::Base.Orderin
     lo = lo - u
     hi = hi + u
     @inbounds while lo < hi - u
-        m = (lo + hi) ÷ 2
+        m = lo + (hi - lo) ÷ 2
         if Base.lt(o, x, v[m])
             hi = m
         else
