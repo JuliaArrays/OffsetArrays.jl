@@ -771,74 +771,25 @@ centered(A::AbstractArray, cp::Dims=center(A)) = OffsetArray(A, .-cp)
 
 centered(A::AbstractArray, i::CartesianIndex) = centered(A, Tuple(i))
 
-####
-# work around for segfault in searchsorted*
-#  https://github.com/JuliaLang/julia/issues/33977
-####
-
-function _safe_searchsorted(v::OffsetArray, x, ilo::T, ihi::T, o::Base.Ordering) where T<:Integer
-    u = T(1)
-    lo = ilo - u
-    hi = ihi + u
-    @inbounds while lo < hi - u
-        m = (lo + hi) ÷ 2
-        if Base.lt(o, v[m], x)
-            lo = m
-        elseif Base.lt(o, x, v[m])
-            hi = m
-        else
-            a = searchsortedfirst(v, x, max(lo,ilo), m, o)
-            b = searchsortedlast(v, x, m, min(hi,ihi), o)
-            return a : b
-        end
+# we may pass the searchsorted* functions to the parent, and wrap the offset
+for f in [:searchsortedfirst, :searchsortedlast, :searchsorted]
+    _safe_f = Symbol("_safe_" * String(f))
+    @eval function $_safe_f(v::OffsetVector, x, ilo, ihi, o::Base.Ordering)
+        offset = v.offsets[1]
+        $f(parent(v), x, ilo - offset, ihi - offset, o) .+ offset
     end
-    return (lo + 1) : (hi - 1)
-end
-function _safe_searchsortedfirst(v::OffsetArray, x, lo::T, hi::T, o::Base.Ordering) where T<:Integer
-    u = T(1)
-    lo = lo - u
-    hi = hi + u
-    @inbounds while lo < hi - u
-        m = (lo + hi) ÷ 2
-        if Base.lt(o, v[m], x)
-            lo = m
-        else
-            hi = m
-        end
-    end
-    return hi
-end
-function _safe_searchsortedlast(v::OffsetArray, x, lo::T, hi::T, o::Base.Ordering) where T<:Integer
-    u = T(1)
-    lo = lo - u
-    hi = hi + u
-    @inbounds while lo < hi - u
-        m = (lo + hi) ÷ 2
-        if Base.lt(o, x, v[m])
-            hi = m
-        else
-            lo = m
-        end
-    end
-    return lo
+    @eval Base.$f(v::OffsetVector, x, ilo::T, ihi::T, o::Base.Ordering) where T<:Integer =
+        $_safe_f(v, x, ilo, ihi, o)
 end
 
-if VERSION ≤ v"1.2"
+if VERSION <= v"1.2"
     # ambiguity warnings in earlier versions
-    Base.searchsorted(v::OffsetArray, x, ilo::Int, ihi::Int, o::Base.Ordering) =
-        _safe_searchsorted(v, x, ilo, ihi, o)
-    Base.searchsortedfirst(v::OffsetArray, x, lo::Int, hi::Int, o::Base.Ordering) =
-        _safe_searchsortedfirst(v, x, lo, hi, o)
-    Base.searchsortedlast(v::OffsetArray, x, lo::Int, hi::Int, o::Base.Ordering) =
-        _safe_searchsortedlast(v, x, lo, hi, o)
+    for f in [:searchsortedfirst, :searchsortedlast, :searchsorted]
+        _safe_f = Symbol("_safe_" * String(f))
+        @eval Base.$f(v::OffsetVector, x, ilo::Int, ihi::Int, o::Base.Ordering) =
+            $_safe_f(v, x, ilo, ihi, o)
+    end
 end
-
-Base.searchsorted(v::OffsetArray, x, ilo::T, ihi::T, o::Base.Ordering) where T<:Integer =
-    _safe_searchsorted(v, x, ilo, ihi, o)
-Base.searchsortedfirst(v::OffsetArray, x, lo::T, hi::T, o::Base.Ordering) where T<:Integer =
-    _safe_searchsortedfirst(v, x, lo, hi, o)
-Base.searchsortedlast(v::OffsetArray, x, lo::T, hi::T, o::Base.Ordering) where T<:Integer =
-    _safe_searchsortedlast(v, x, lo, hi, o)
 
 if VERSION < v"1.1.0-DEV.783"
     Base.copyfirst!(dest::OffsetArray, src::OffsetArray) = (maximum!(parent(dest), parent(src)); return dest)
