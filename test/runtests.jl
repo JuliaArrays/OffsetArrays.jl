@@ -2321,6 +2321,45 @@ end
     @test searchsorted(o,  5) ==  2:2
     @test searchsorted(o,  6) ==  3:2
 
+    if VERSION > v"1.2"
+        # OffsetVector of another offset vector
+        v = OffsetVector(Base.IdentityUnitRange(4:10),-2)
+        @test searchsortedfirst(v, first(v)-1) == firstindex(v)
+        for i in axes(v,1)
+            @test searchsortedfirst(v, v[i]) == i
+        end
+        @test searchsortedfirst(v, last(v)+1) == lastindex(v)+1
+        @test searchsortedlast(v, first(v)-1) == firstindex(v)-1
+        for i in axes(v,1)
+            @test searchsortedlast(v, v[i]) == i
+        end
+        @test searchsortedlast(v, last(v)+1) == lastindex(v)
+        @test searchsorted(v, first(v)-1) === firstindex(v) .+ (0:-1)
+        for i in axes(v,1)
+            @test searchsorted(v, v[i]) == i:i
+        end
+        @test searchsorted(v, last(v)+1) === lastindex(v) .+ (1:0)
+    end
+
+    v = OffsetVector{Float64, OffsetVector{Float64, Vector{Float64}}}(OffsetVector([2,2,3,3,3,4], 3), 4)
+    @test searchsortedfirst(v, minimum(v)-1) == firstindex(v)
+    for el in unique(v)
+        @test searchsortedfirst(v, el) == findfirst(isequal(el), v)
+    end
+    @test searchsortedfirst(v, maximum(v)+1) == lastindex(v)+1
+
+    @test searchsortedlast(v, minimum(v)-1) == firstindex(v)-1
+    for el in unique(v)
+        @test searchsortedlast(v, el) == findlast(isequal(el), v)
+    end
+    @test searchsortedlast(v, maximum(v)+1) == lastindex(v)
+
+    @test searchsorted(v, minimum(v)-1) === firstindex(v) .+ (0:-1)
+    for el in unique(v)
+        @test searchsorted(v, el) == findfirst(isequal(el), v):findlast(isequal(el), v)
+    end
+    @test searchsorted(v, maximum(v)+1) === lastindex(v) .+ (1:0)
+
     soa = OffsetArray([2,2,3], typemax(Int)-3)
     @test searchsortedfirst(soa, 1) == firstindex(soa) == typemax(Int)-2
     @test searchsortedfirst(soa, 2) == firstindex(soa) == typemax(Int)-2

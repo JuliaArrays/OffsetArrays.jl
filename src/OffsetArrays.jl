@@ -774,8 +774,8 @@ centered(A::AbstractArray, i::CartesianIndex) = centered(A, Tuple(i))
 # we may pass the searchsorted* functions to the parent, and wrap the offset
 for f in [:searchsortedfirst, :searchsortedlast, :searchsorted]
     _safe_f = Symbol("_safe_" * String(f))
-    @eval function $_safe_f(v::OffsetArray, x, ilo, ihi, o::Base.Ordering)
-        offset = firstindex(v) - firstindex(parent(v))
+    @eval function $_safe_f(v::OffsetVector, x, ilo, ihi, o::Base.Ordering)
+        offset = v.offsets[1]
         $f(parent(v), x, ilo - offset, ihi - offset, o) .+ offset
     end
     @eval Base.$f(v::OffsetVector, x, ilo::T, ihi::T, o::Base.Ordering) where T<:Integer =
