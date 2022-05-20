@@ -2389,6 +2389,44 @@ end
     @test searchsorted(soa, 4) === lastindex(soa) .+ (1:0)
 end
 
+struct Foo end
+struct Bar end
+@testset "promotion in vect (#273)" begin
+    v1 = [ones(2), ones(2:3)]
+    @test v1 isa Vector{OffsetVector{Float64, Vector{Float64}}}
+    v1 = [ones(Int, 2), ones(2:3)]
+    @test v1 isa Vector{OffsetVector{Float64, Vector{Float64}}}
+    v2 = [ones(2, 2), ones(2:3, 2:3)]
+    @test v2 isa Vector{OffsetMatrix{Float64, Matrix{Float64}}}
+    v2 = [ones(2, 2), ones(Int, 2:3, 2:3)]
+    @test v2 isa Vector{OffsetMatrix{Float64, Matrix{Float64}}}
+    v2 = [ones(ComplexF64, 2, 2), ones(Int, 2:3, 2:3)]
+    @test v2 isa Vector{OffsetMatrix{ComplexF64, Matrix{ComplexF64}}}
+    v3 = [ones(ComplexF64, 2, 2, 1), ones(Int, 2:3, 2:3, 1:2)]
+    @test v3 isa Vector{OffsetArray{ComplexF64, 3, Array{ComplexF64, 3}}}
+
+    # mixed types
+    a = 1:2
+    b = ones(2)
+    v = [a, b]
+    @test v isa Vector{promote_type(typeof(a), typeof(b))}
+
+    a = SA[Foo()]
+    b = OffsetArray([Bar()], 2)
+    v = [a, b]
+    @test v isa Vector{OffsetVector{Any,Vector{Any}}}
+
+    a = reshape(SA[Foo()], 1, 1)
+    b = OffsetArray(reshape([Bar()], Val(2)), 2, 2)
+    v = [a, b]
+    @test v isa Vector{OffsetMatrix{Any,Matrix{Any}}}
+
+    a = ["a"]
+    b = ones(2:3, 3:4)
+    v = [a, b]
+    @test v isa Vector{<:AbstractArray}
+end
+
 @testset "Adapt" begin
     # We need another storage type, CUDA.jl defines one but we can't use that for CI
     # let's define an appropriate method for SArrays

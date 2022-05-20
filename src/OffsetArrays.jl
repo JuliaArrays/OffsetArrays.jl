@@ -274,6 +274,16 @@ end
 end
 @inline OffsetArray{T}(init::ArrayInitializer, inds...; kw...) where {T} = OffsetArray{T}(init, inds; kw...)
 
+# promotion
+
+# return an OffsetArray if promote_type return a concrete result
+_promote(A::Type{<:AbstractArray{T,N}}) where {T,N} = OffsetArray{T,N,A}
+_promote(A::Type{<:AbstractArray}) = A
+function Base.promote_rule(A::Type{<:AbstractArray{<:Any,N}}, OA::Type{<:OffsetArray{<:Any,N,<:AbstractArray{<:Any,N}}}) where {N}
+    AB = promote_type(A, parenttype(OA))
+    _promote(AB)
+end
+
 Base.IndexStyle(::Type{OA}) where {OA<:OffsetArray} = IndexStyle(parenttype(OA))
 parenttype(::Type{OffsetArray{T,N,AA}}) where {T,N,AA} = AA
 parenttype(A::OffsetArray) = parenttype(typeof(A))
