@@ -2339,8 +2339,8 @@ end
 
     soa = OffsetArray([2,2,3], typemax(Int)-3)
     @test searchsorted(soa, 1) === firstindex(soa) .+ (0:-1)
-    @test_broken searchsorted(soa, 2) == firstindex(soa) .+ (0:1) == typemax(Int) .+ (-2:-1)
-    @test_broken searchsorted(soa, 3) == firstindex(soa) .+ (0:0) == typemax(Int) .+ (0:0)
+    @test searchsorted(soa, 2) == firstindex(soa) .+ (0:1) == typemax(Int) .+ (-2:-1)
+    @test searchsorted(soa, 3) == lastindex(soa) .+ (0:0) == typemax(Int) .+ (0:0)
     @test searchsorted(soa, 4) === lastindex(soa) .+ (1:0)
 end
 
