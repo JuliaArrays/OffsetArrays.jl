@@ -2435,6 +2435,9 @@ struct Bar end
     b = OffsetArray(reshape([Foo()], Val(2)))
     v = [a, b]
     @test v isa Vector{<:OffsetMatrix}
+
+    v = [OffsetArray(["a"], 2), OffsetArray([1], 3), OffsetVector(['a'])]
+    @test v isa Vector{<:OffsetVector}
 end
 
 @testset "Adapt" begin

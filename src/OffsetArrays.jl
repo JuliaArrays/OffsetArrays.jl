@@ -279,14 +279,14 @@ end
 # return an OffsetArray if promote_type return a concrete result
 _promote(A::Type{<:AbstractArray{T,N}}) where {T,N} = OffsetArray{T,N,A}
 # try to narrow down the type parameters, return a generic wrapper if it fails
-_promote(A::Type{<:AbstractArray{T}}) where {T} = OffsetArray{T}
+_promote(A::Type{<:AbstractArray{T}}) where {T} = OffsetArray{T,<:Any,A}
 _promote(A::Type{<:AbstractArray{<:Any,N}}) where {N} = OffsetArray{<:Any,N}
 _promote(A::Type{<:AbstractArray}) = AbstractArray
-function Base.promote_rule(A::Type{<:AbstractArray{<:Any,N}}, OA::Type{<:OffsetArray{<:Any,N,<:AbstractArray{<:Any,N}}}) where {N}
+function Base.promote_rule(A::Type{<:AbstractArray{T1,N}}, OA::Type{<:OffsetArray{T2,N,<:AbstractArray{T2,N}}}) where {T1,T2,N}
     AB = promote_type(A, parenttype(OA))
     _promote(AB)
 end
-function Base.promote_rule(OA::Type{<:OffsetArray{<:Any,N,A}}, OB::Type{<:OffsetArray{<:Any,N,B}}) where {N,A<:AbstractArray{<:Any,N},B<:AbstractArray{<:Any,N}}
+function Base.promote_rule(::Type{OffsetArray{T1,N,A}}, ::Type{OffsetArray{T2,N,B}}) where {T1,T2,N,A<:AbstractArray{T1,N},B<:AbstractArray{T2,N}}
     AB = promote_type(A, B)
     _promote(AB)
 end
