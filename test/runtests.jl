@@ -2414,17 +2414,27 @@ struct Bar end
     a = SA[Foo()]
     b = OffsetArray([Bar()], 2)
     v = [a, b]
-    @test v isa Vector{OffsetVector{Any,Vector{Any}}}
+    @test v isa Vector{<:AbstractVector}
 
     a = reshape(SA[Foo()], 1, 1)
     b = OffsetArray(reshape([Bar()], Val(2)), 2, 2)
     v = [a, b]
-    @test v isa Vector{OffsetMatrix{Any,Matrix{Any}}}
+    @test v isa Vector{<:AbstractMatrix}
 
     a = ["a"]
     b = ones(2:3, 3:4)
     v = [a, b]
     @test v isa Vector{<:AbstractArray}
+
+    a = OffsetArray(["a"])
+    b = OffsetArray([Foo()], 2)
+    v = [a, b]
+    @test v isa Vector{<:OffsetVector}
+
+    a = OffsetArray(reshape(["a"], Val(2)), 2, 2)
+    b = OffsetArray(reshape([Foo()], Val(2)))
+    v = [a, b]
+    @test v isa Vector{<:OffsetMatrix}
 end
 
 @testset "Adapt" begin
