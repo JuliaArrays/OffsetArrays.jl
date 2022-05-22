@@ -654,20 +654,6 @@ end
 # Avoid ambiguity
 @inline function Base.unsafe_wrap(::OffsetArrayUnion{T,N}, pointer::Ptr{T}, inds::Vararg{<:Integer,N}; kw...) where {T,N}
     _unsafe_wrap(pointer, inds; kw...)
-=======
-# Avoid ambiguity
-@inline function Base.unsafe_wrap(::Union{Type{OffsetArray}, Type{OffsetArray{T}}, Type{OffsetArray{T,N}}, Type{OffsetArray{T1, N} where T1}}, pointer::Ptr{T}, inds::NTuple{N, <:Integer}; own = false, kw...) where {T,N}
-    _checkindices(N, inds, "indices")
-    AA = Base.unsafe_wrap(Array, pointer, map(_indexlength, inds); own=own)
-    OffsetArray{T, N, typeof(AA)}(AA, map(_indexoffset, inds); kw...)
-end
-@inline function Base.unsafe_wrap(::Union{Type{OffsetArray}, Type{OffsetArray{T}}, Type{OffsetArray{T,N}}, Type{OffsetArray{T1, N} where T1}}, pointer::Ptr{T}, inds::Vararg{OffsetAxisKnownLength,N}; own = false, kw...) where {T,N}
-    unsafe_wrap(OffsetArray{T,N}, pointer, inds; own=own, kw...)
-end
-# Avoid ambiguity
-@inline function Base.unsafe_wrap(::Union{Type{OffsetArray}, Type{OffsetArray{T}}, Type{OffsetArray{T,N}}, Type{OffsetArray{T1, N} where T1}}, pointer::Ptr{T}, inds::Vararg{<:Integer,N}; own = false, kw...) where {T,N}
-    unsafe_wrap(OffsetArray{T,N}, pointer, inds; own=own, kw...)
->>>>>>> b143212 (Implement Base.unsafe_wrap for OffsetArrays)
 end
 
 """
