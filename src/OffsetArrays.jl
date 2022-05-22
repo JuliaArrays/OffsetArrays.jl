@@ -623,6 +623,25 @@ function Base.replace_in_print_matrix(A::OffsetArray{<:Any,1}, i::Integer, j::In
     Base.replace_in_print_matrix(parent(A), ip, j, s)
 end
 
+@inline function Base.unsafe_wrap(::Union{Type{OffsetArray}, Type{OffsetArray{T}}, Type{OffsetArray{T,N}}, Type{OffsetArray{T1, N} where T1}}, pointer::Ptr{T}, inds::NTuple{N, OffsetAxisKnownLength}; own = false, kw...) where {T,N}
+    _checkindices(N, inds, "indices")
+    AA = Base.unsafe_wrap(Array, pointer, map(_indexlength, inds); own=own)
+    OffsetArray{T, N, typeof(AA)}(AA, map(_indexoffset, inds); kw...)
+end
+# Avoid ambiguity
+@inline function Base.unsafe_wrap(::Union{Type{OffsetArray}, Type{OffsetArray{T}}, Type{OffsetArray{T,N}}, Type{OffsetArray{T1, N} where T1}}, pointer::Ptr{T}, inds::NTuple{N, <:Integer}; own = false, kw...) where {T,N}
+    _checkindices(N, inds, "indices")
+    AA = Base.unsafe_wrap(Array, pointer, map(_indexlength, inds); own=own)
+    OffsetArray{T, N, typeof(AA)}(AA, map(_indexoffset, inds); kw...)
+end
+@inline function Base.unsafe_wrap(::Union{Type{OffsetArray}, Type{OffsetArray{T}}, Type{OffsetArray{T,N}}, Type{OffsetArray{T1, N} where T1}}, pointer::Ptr{T}, inds::Vararg{OffsetAxisKnownLength,N}; own = false, kw...) where {T,N}
+    unsafe_wrap(OffsetArray{T,N}, pointer, inds; own=own, kw...)
+end
+# Avoid ambiguity
+@inline function Base.unsafe_wrap(::Union{Type{OffsetArray}, Type{OffsetArray{T}}, Type{OffsetArray{T,N}}, Type{OffsetArray{T1, N} where T1}}, pointer::Ptr{T}, inds::Vararg{<:Integer,N}; own = false, kw...) where {T,N}
+    unsafe_wrap(OffsetArray{T,N}, pointer, inds; own=own, kw...)
+end
+
 """
     no_offset_view(A)
 
