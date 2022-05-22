@@ -2392,6 +2392,7 @@ end
 struct Foo end
 struct Bar end
 @testset "promotion in vect (#273)" begin
+    # eltype promotion in numeric types
     v1 = [ones(2), ones(2:3)]
     @test v1 isa Vector{OffsetVector{Float64, Vector{Float64}}}
     v1 = [ones(Int, 2), ones(2:3)]
@@ -2405,16 +2406,35 @@ struct Bar end
     v3 = [ones(ComplexF64, 2, 2, 1), ones(Int, 2:3, 2:3, 1:2)]
     @test v3 isa Vector{OffsetArray{ComplexF64, 3, Array{ComplexF64, 3}}}
 
+    # non-numeric but identical eltypes
+    v = [["a", "b"], OffsetArray(["c"], 2)]
+    @test v isa Vector{OffsetVector{String, Vector{String}}}
+
+    v = [[Foo()], OffsetArray([Foo()], 3)]
+    @test v isa Vector{OffsetVector{Foo, Vector{Foo}}}
+
+    v = [OffsetArray([Foo()]), OffsetArray([Foo()], 3)]
+    @test v isa Vector{OffsetVector{Foo, Vector{Foo}}}
+
     # mixed types
     a = 1:2
     b = ones(2)
     v = [a, b]
     @test v isa Vector{promote_type(typeof(a), typeof(b))}
 
+    # preserve eltype if ndims differ
+    v = [OffsetArray(["a"]), OffsetArray(["b";;], 2, 2)]
+    @test v isa Vector{<:OffsetArray{String}}
+
+    # preserve ndims if eltypes differ
     a = SA[Foo()]
     b = OffsetArray([Bar()], 2)
     v = [a, b]
-    @test v isa Vector{<:AbstractVector}
+    @test v isa Vector{<:OffsetVector}
+
+    # use a generic wrapper if both eltype and ndims differ
+    v = [OffsetArray(['a']), OffsetArray(["b";;], 2, 2)]
+    @test v isa Vector{<:AbstractArray}
 
     a = reshape(SA[Foo()], 1, 1)
     b = OffsetArray(reshape([Bar()], Val(2)), 2, 2)
@@ -2437,6 +2457,9 @@ struct Bar end
     @test v isa Vector{<:OffsetMatrix}
 
     v = [OffsetArray(["a"], 2), OffsetArray([1], 3), OffsetVector(['a'])]
+    @test v isa Vector{<:OffsetVector}
+
+    v = [["a", 'c'], OffsetArray([Foo()], 2)]
     @test v isa Vector{<:OffsetVector}
 end
 
