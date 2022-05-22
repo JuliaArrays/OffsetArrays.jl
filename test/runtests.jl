@@ -1835,6 +1835,11 @@ end
     rp = parent(r)
     @test axes(reshape(rp, 4:6), 1) == 4:6
     @test axes(reshape(r, (3,1))) == (1:3, 1:1)
+
+    # reshape with one single colon becomes a `vec`
+    A = OffsetArray(rand(4, 4), -1, -1)
+    @test reshape(A, (:, )) == vec(A)
+    @test reshape(A, :) == vec(A)
 end
 
 @testset "permutedims" begin
