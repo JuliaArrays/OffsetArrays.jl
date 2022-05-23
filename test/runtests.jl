@@ -2393,17 +2393,18 @@ struct Foo end
 struct Bar end
 @testset "promotion in vect (#273)" begin
     # eltype promotion in numeric types
-    v1 = [ones(2), ones(2:3)]
+    # wrap the vector allocation in an ananymous function for @inferred to work
+    v1 = @inferred (() -> [ones(2), ones(2:3)])()
     @test v1 isa Vector{OffsetVector{Float64, Vector{Float64}}}
-    v1 = [ones(Int, 2), ones(2:3)]
+    v1 = @inferred (() -> [ones(Int, 2), ones(2:3)])()
     @test v1 isa Vector{OffsetVector{Float64, Vector{Float64}}}
-    v2 = [ones(2, 2), ones(2:3, 2:3)]
+    v2 = @inferred (() -> [ones(2, 2), ones(2:3, 2:3)])()
     @test v2 isa Vector{OffsetMatrix{Float64, Matrix{Float64}}}
-    v2 = [ones(2, 2), ones(Int, 2:3, 2:3)]
+    v2 = @inferred (() -> [ones(2, 2), ones(Int, 2:3, 2:3)])()
     @test v2 isa Vector{OffsetMatrix{Float64, Matrix{Float64}}}
-    v2 = [ones(ComplexF64, 2, 2), ones(Int, 2:3, 2:3)]
+    v2 = @inferred (() -> [ones(ComplexF64, 2, 2), ones(Int, 2:3, 2:3)])()
     @test v2 isa Vector{OffsetMatrix{ComplexF64, Matrix{ComplexF64}}}
-    v3 = [ones(ComplexF64, 2, 2, 1), ones(Int, 2:3, 2:3, 1:2)]
+    v3 = @inferred (() -> [ones(ComplexF64, 2, 2, 1), ones(Int, 2:3, 2:3, 1:2)])()
     @test v3 isa Vector{OffsetArray{ComplexF64, 3, Array{ComplexF64, 3}}}
 
     # non-numeric but identical eltypes
@@ -2419,8 +2420,8 @@ struct Bar end
     # mixed types
     a = 1:2
     b = ones(2)
-    v = [a, b]
-    @test v isa Vector{promote_type(typeof(a), typeof(b))}
+    v = (() -> [OffsetArray(a), OffsetArray(b, 2)])()
+    @test v isa Vector{<:AbstractVector}
 
     # preserve eltype if ndims differ
     v = [OffsetArray(["a"]), OffsetArray(["b";;], 2, 2)]
