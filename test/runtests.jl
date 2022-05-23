@@ -2424,7 +2424,7 @@ struct Bar end
     @test v isa Vector{<:AbstractVector}
 
     # preserve eltype if ndims differ
-    v = [OffsetArray(["a"]), OffsetArray(["b";;], 2, 2)]
+    v = [OffsetArray(["a"]), reshape(["b"], 2:2, 2:2)]
     @test v isa Vector{<:AbstractArray{String}}
 
     # preserve ndims if eltypes differ
@@ -2434,7 +2434,7 @@ struct Bar end
     @test v isa Vector{<:AbstractVector}
 
     # use a generic wrapper if both eltype and ndims differ
-    v = [OffsetArray(['a']), OffsetArray(["b";;], 2, 2)]
+    v = [OffsetArray(['a']), reshape(["b"], 2:2, 2:2)]
     @test v isa Vector{<:AbstractArray}
 
     a = reshape(SA[Foo()], 1, 1)
