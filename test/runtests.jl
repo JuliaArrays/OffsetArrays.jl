@@ -2424,13 +2424,13 @@ struct Bar end
 
     # preserve eltype if ndims differ
     v = [OffsetArray(["a"]), OffsetArray(["b";;], 2, 2)]
-    @test v isa Vector{<:OffsetArray{String}}
+    @test v isa Vector{<:AbstractArray{String}}
 
     # preserve ndims if eltypes differ
     a = SA[Foo()]
     b = OffsetArray([Bar()], 2)
     v = [a, b]
-    @test v isa Vector{<:OffsetVector}
+    @test v isa Vector{<:AbstractVector}
 
     # use a generic wrapper if both eltype and ndims differ
     v = [OffsetArray(['a']), OffsetArray(["b";;], 2, 2)]
@@ -2449,18 +2449,18 @@ struct Bar end
     a = OffsetArray(["a"])
     b = OffsetArray([Foo()], 2)
     v = [a, b]
-    @test v isa Vector{<:OffsetVector}
+    @test v isa Vector{<:AbstractVector}
 
     a = OffsetArray(reshape(["a"], Val(2)), 2, 2)
     b = OffsetArray(reshape([Foo()], Val(2)))
     v = [a, b]
-    @test v isa Vector{<:OffsetMatrix}
+    @test v isa Vector{<:AbstractMatrix}
 
     v = [OffsetArray(["a"], 2), OffsetArray([1], 3), OffsetVector(['a'])]
-    @test v isa Vector{<:OffsetVector}
+    @test v isa Vector{<:AbstractVector}
 
     v = [["a", 'c'], OffsetArray([Foo()], 2)]
-    @test v isa Vector{<:OffsetVector}
+    @test v isa Vector{<:AbstractVector}
 end
 
 @testset "Adapt" begin
