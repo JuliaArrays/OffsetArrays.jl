@@ -164,16 +164,20 @@ end
 
     r = OffsetArrays.IdOffsetRange(3:5, -1)
     rc = copyto!(similar(r), r)
-    @test @inferred(broadcast(+, r, big(2))) == @inferred(broadcast(+, big(2), r)) == rc .+ big(2)
-    n = big(typemax(Int)) + 1
+    n = big(typemax(Int))
     @test @inferred(broadcast(+, r, n)) == @inferred(broadcast(+, n, r)) == rc .+ n
     @test @inferred(broadcast(-, r)) == .-rc
-    @test @inferred(broadcast(-, r, big(2))) == rc .- big(2)
-    @test @inferred(broadcast(-, big(2), r)) == big(2) .- rc
-    @test @inferred(broadcast(*, r, 2)) == @inferred(broadcast(*, 2, r)) == rc .* 2
-    @test @inferred(broadcast(*, r, 2.5)) == @inferred(broadcast(*, 2.5, r)) == rc .* 2.5
-    @test @inferred(broadcast(/, r, 2)) == @inferred(broadcast(\, 2, r)) == rc ./ 2
-    @test @inferred((r -> big.(r))(r)) == big.(rc)
+    @test @inferred(broadcast(big, r)) == big.(rc)
+    for n in Any[2, big(2)]
+        @test @inferred(broadcast(+, r, n)) == @inferred(broadcast(+, n, r)) == rc .+ n
+        @test @inferred(broadcast(-, r, n)) == rc .- n
+        @test @inferred(broadcast(-, n, r)) == n .- rc
+        @test @inferred(broadcast(*, r, n)) == @inferred(broadcast(*, n, r)) == rc .* n
+        @test @inferred(broadcast(/, r, n)) == @inferred(broadcast(\, n, r)) == rc ./ n
+    end
+    for n in Any[2.5, big(5)/2]
+        @test @inferred(broadcast(*, r, n)) == @inferred(broadcast(*, n, r)) == rc .* n
+    end
 
     @testset "Idempotent indexing" begin
         @testset "Indexing into an IdOffsetRange" begin
