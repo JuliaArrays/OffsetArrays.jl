@@ -246,12 +246,14 @@ for R in [:IIUR, :IdOffsetRange]
 end
 
 # offset-preserve broadcasting
-Broadcast.broadcasted(::Base.Broadcast.DefaultArrayStyle{1}, ::typeof(-), r::IdOffsetRange{T}, x::Integer) where T =
-    IdOffsetRange{T}(r.parent .- x, r.offset)
-Broadcast.broadcasted(::Base.Broadcast.DefaultArrayStyle{1}, ::typeof(+), r::IdOffsetRange{T}, x::Integer) where T =
-    IdOffsetRange{T}(r.parent .+ x, r.offset)
-Broadcast.broadcasted(::Base.Broadcast.DefaultArrayStyle{1}, ::typeof(+), x::Integer, r::IdOffsetRange{T}) where T =
-    IdOffsetRange{T}(x .+ r.parent, r.offset)
+Broadcast.broadcasted(::Base.Broadcast.DefaultArrayStyle{1}, ::typeof(-), r::IdOffsetRange, x::Integer) =
+    IdOffsetRange(r.parent .- x, r.offset)
+Broadcast.broadcasted(::Base.Broadcast.DefaultArrayStyle{1}, ::typeof(+), r::IdOffsetRange, x::Integer) =
+    IdOffsetRange(r.parent .+ x, r.offset)
+Broadcast.broadcasted(::Base.Broadcast.DefaultArrayStyle{1}, ::typeof(+), x::Integer, r::IdOffsetRange) =
+    IdOffsetRange(x .+ r.parent, r.offset)
+Broadcast.broadcasted(::Base.Broadcast.DefaultArrayStyle{1}, ::typeof(big), r::IdOffsetRange) =
+    IdOffsetRange(big.(r.parent), r.offset)
 
 Base.show(io::IO, r::IdOffsetRange) = print(io, IdOffsetRange, "(values=",first(r), ':', last(r),", indices=",first(eachindex(r)),':',last(eachindex(r)), ")")
 
