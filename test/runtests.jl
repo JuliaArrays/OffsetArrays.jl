@@ -171,6 +171,7 @@ end
     @test @inferred(broadcast(-, r, big(2))) == rc .- big(2)
     @test @inferred(broadcast(-, big(2), r)) == big(2) .- rc
     @test @inferred(broadcast(*, r, 2)) == @inferred(broadcast(*, 2, r)) == rc .* 2
+    @test @inferred(broadcast(*, r, 2.5)) == @inferred(broadcast(*, 2.5, r)) == rc .* 2.5
     @test @inferred(broadcast(/, r, 2)) == @inferred(broadcast(\, 2, r)) == rc ./ 2
     @test @inferred((r -> big.(r))(r)) == big.(rc)
 
