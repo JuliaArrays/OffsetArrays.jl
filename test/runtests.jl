@@ -168,7 +168,7 @@ end
     @test @inferred(broadcast(+, r, n)) == @inferred(broadcast(+, n, r)) == rc .+ n
     @test @inferred(broadcast(-, r)) == .-rc
     @test @inferred(broadcast(big, r)) == big.(rc)
-    for n in Any[2, big(2)]
+    for n in Any[typemax(Int), big(typemax(Int))]
         @test @inferred(broadcast(+, r, n)) == @inferred(broadcast(+, n, r)) == rc .+ n
         @test @inferred(broadcast(-, r, n)) == rc .- n
         @test @inferred(broadcast(-, n, r)) == n .- rc
