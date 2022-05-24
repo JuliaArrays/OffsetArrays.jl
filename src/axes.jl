@@ -139,7 +139,7 @@ end
 Base.AbstractUnitRange{T}(r::IdOffsetRange) where {T<:Integer} = IdOffsetRange{T}(r)
 
 # A version upper bound on this may be set after https://github.com/JuliaLang/julia/pull/40038 is merged
-if v"1.6" <= VERSION
+if v"1.6" <= VERSION < v"1.9.0-DEV.642"
     Base.OrdinalRange{T,T}(r::IdOffsetRange) where {T<:Integer} = IdOffsetRange{T}(r)
 end
 
