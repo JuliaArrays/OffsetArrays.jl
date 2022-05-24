@@ -168,14 +168,17 @@ end
     @test @inferred(broadcast(+, r, n)) == @inferred(broadcast(+, n, r)) == rc .+ n
     @test @inferred(broadcast(-, r)) == .-rc
     @test @inferred(broadcast(big, r)) == big.(rc)
-    for n in Any[typemax(Int), big(typemax(Int))]
+    for n in Any[2, big(typemax(Int))]
         @test @inferred(broadcast(+, r, n)) == @inferred(broadcast(+, n, r)) == rc .+ n
         @test @inferred(broadcast(-, r, n)) == rc .- n
         @test @inferred(broadcast(-, n, r)) == n .- rc
         @test @inferred(broadcast(*, r, n)) == @inferred(broadcast(*, n, r)) == rc .* n
-        @test @inferred(broadcast(/, r, n)) == @inferred(broadcast(\, n, r)) == rc ./ n
+        if VERSION >= v"1.6.0"
+            # this test fails on v1.0 due to a bug in evaluating (3:5) / big(2)
+            @test @inferred(broadcast(/, r, n)) == @inferred(broadcast(\, n, r)) == rc ./ n
+        end
     end
-    for n in Any[2.5, big(5)/2]
+    for n in Any[2.0, big(2.0)]
         @test @inferred(broadcast(*, r, n)) == @inferred(broadcast(*, n, r)) == rc .* n
     end
 
