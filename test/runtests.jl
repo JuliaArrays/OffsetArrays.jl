@@ -158,8 +158,21 @@ end
 
     # broadcasting behavior with scalars (issue #104)
     r3 = (1 .+ OffsetArrays.IdOffsetRange(3:5, -1) .+ 1) .- 1
+    @test r3 isa OffsetArrays.IdOffsetRange
     @test same_value(r3, 3:5)
-    check_indexed_by(r3, 0:2)
+    check_indexed_by(r3, axes(r3,1))
+
+    r = OffsetArrays.IdOffsetRange(3:5, -1)
+    rc = copyto!(similar(r), r)
+    @test @inferred(broadcast(+, r, big(2))) == @inferred(broadcast(+, big(2), r)) == rc .+ big(2)
+    n = big(typemax(Int)) + 1
+    @test @inferred(broadcast(+, r, n)) == @inferred(broadcast(+, n, r)) == rc .+ n
+    @test @inferred(broadcast(-, r)) == .-rc
+    @test @inferred(broadcast(-, r, big(2))) == rc .- big(2)
+    @test @inferred(broadcast(-, big(2), r)) == big(2) .- rc
+    @test @inferred(broadcast(*, r, 2)) == @inferred(broadcast(*, 2, r)) == rc .* 2
+    @test @inferred(broadcast(/, r, 2)) == @inferred(broadcast(\, 2, r)) == rc ./ 2
+    @test @inferred((r -> big.(r))(r)) == big.(rc)
 
     @testset "Idempotent indexing" begin
         @testset "Indexing into an IdOffsetRange" begin
