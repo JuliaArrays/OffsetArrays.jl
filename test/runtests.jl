@@ -2683,3 +2683,19 @@ end
     A = reshape(collect(1:9), 3, 3)
     @test OffsetArrays.centered(A, RoundDown) == OffsetArrays.centered(A, RoundUp)
 end
+@testset "unsafe_wrap" begin
+    p = Ptr{UInt16}(Libc.malloc(2*3*4*2))
+    @test unsafe_wrap(OffsetArray, p, 2, 3, 4) isa OffsetArray{UInt16, 3}
+    @test unsafe_wrap(OffsetArray, p, (2, 3, 4)) isa OffsetArray{UInt16, 3}
+    @test unsafe_wrap(OffsetVector, p, 2*3*4) isa OffsetVector{UInt16}
+    @test unsafe_wrap(OffsetMatrix, p, 2*3, 4) isa OffsetMatrix{UInt16}
+    @test unsafe_wrap(OffsetArray{UInt16}, p, 2, 3, 4) isa OffsetArray{UInt16, 3}
+    @test unsafe_wrap(OffsetArray{UInt16}, p, (2, 3, 4)) isa OffsetArray{UInt16, 3}
+    @test unsafe_wrap(OffsetVector{UInt16}, p, 2*3*4) isa OffsetVector{UInt16}
+    @test unsafe_wrap(OffsetMatrix{UInt16}, p, 2*3, 4) isa OffsetMatrix{UInt16}
+    p = Ptr{UInt8}(p)
+    @test unsafe_wrap(OffsetArray, p, 2:3, 3:5, 4:7) isa OffsetArray{UInt8, 3}
+    @test unsafe_wrap(OffsetArray, p, (2:3, 3:5, 4:7)) isa OffsetArray{UInt8, 3}
+    @test unsafe_wrap(OffsetVector, p, 1:(2*3*4) .- 1) isa OffsetVector{UInt8}
+    @test unsafe_wrap(OffsetMatrix, p, 1:(2*3) .+ 6, 4:7; own = true) isa OffsetMatrix{UInt8}
+end
