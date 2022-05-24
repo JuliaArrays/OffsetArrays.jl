@@ -178,7 +178,7 @@ end
             @test @inferred(broadcast(/, r, n)) == @inferred(broadcast(\, n, r)) == rc ./ n
         end
     end
-    for n in Any[2.0, big(2.0)]
+    for n in (VERSION >= v"1.6.0" ? Any[2.0, big(2.0)] : Any[2.0])
         @test @inferred(broadcast(*, r, n)) == @inferred(broadcast(*, n, r)) == rc .* n
     end
 
