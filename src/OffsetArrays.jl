@@ -569,13 +569,15 @@ if eltype(IIUR) === Int
     Base.map(::Type{T}, r::IdentityUnitRange) where {T<:Real} = _indexedby(map(T, UnitRange(r)), axes(r))
 end
 
-# mapreduce is faster with an IdOffsetRange than with an OffsetUnitRange
-# We therefore convert OffsetUnitRanges to IdOffsetRanges with the same values and axes
-function Base.mapreduce(f, op, A1::OffsetUnitRange{<:Integer}, As::OffsetUnitRange{<:Integer}...; kw...)
-    As = (A1, As...)
-    ofs = map(A -> first(axes(A,1)) - 1, As)
-    AIds = map((A, of) -> IdOffsetRange(_subtractoffset(parent(A), of), of), As, ofs)
-    mapreduce(f, op, AIds...; kw...)
+if VERSION < v"1.7.2"
+    # mapreduce is faster with an IdOffsetRange than with an OffsetUnitRange on Julia 1.6
+    # We therefore convert OffsetUnitRanges to IdOffsetRanges with the same values and axes
+    function Base.mapreduce(f, op, A1::OffsetUnitRange{<:Integer}, As::OffsetUnitRange{<:Integer}...; kw...)
+        As = (A1, As...)
+        ofs = map(A -> first(axes(A,1)) - 1, As)
+        AIds = map((A, of) -> IdOffsetRange(_subtractoffset(parent(A), of), of), As, ofs)
+        mapreduce(f, op, AIds...; kw...)
+    end
 end
 
 # Optimize certain reductions that treat an OffsetVector as a list
