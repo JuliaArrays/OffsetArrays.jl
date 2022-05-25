@@ -296,7 +296,7 @@ Base.parent(A::OffsetArray) = A.parent
 # See https://github.com/JuliaLang/julia/issues/37274 for the issue reported in Base
 # The fix https://github.com/JuliaLang/julia/pull/39404 should be available on v1.6
 # The following method is added on older Julia versions to ensure correct behavior for OffsetVectors
-if VERSION < v"1.6"
+if VERSION < v"1.6"
     @inline function Base.compute_linindex(A::OffsetVector, I::NTuple{N,Any}) where N
         IP = Base.fill_to_length(axes(A), Base.OneTo(1), Val(N))
         Base.compute_linindex(first(LinearIndices(A)), 1, IP, I)
