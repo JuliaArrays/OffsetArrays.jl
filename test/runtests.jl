@@ -2678,11 +2678,6 @@ include("origin.jl")
     @test OffsetArrays._addoffset(3:2:9, 1) == 4:2:10
 end
 
-@info "Following deprecations are expected"
-@testset "deprecations" begin
-    A = reshape(collect(1:9), 3, 3)
-    @test OffsetArrays.centered(A, RoundDown) == OffsetArrays.centered(A, RoundUp)
-end
 @testset "unsafe_wrap" begin
     p = Ptr{UInt16}(Libc.malloc(2*3*4*2))
     @test unsafe_wrap(OffsetArray, p, 2, 3, 4) isa OffsetArray{UInt16, 3}
@@ -2698,4 +2693,11 @@ end
     @test unsafe_wrap(OffsetArray, p, (2:3, 3:5, 4:7)) isa OffsetArray{UInt8, 3}
     @test unsafe_wrap(OffsetVector, p, 1:(2*3*4) .- 1) isa OffsetVector{UInt8}
     @test unsafe_wrap(OffsetMatrix, p, 1:(2*3) .+ 6, 4:7; own = true) isa OffsetMatrix{UInt8}
+    @test unsafe_wrap(OffsetMatrix, p, -5:5, Base.OneTo(3); own = true) isa OffsetMatrix{UInt8}
+end
+
+@info "Following deprecations are expected"
+@testset "deprecations" begin
+    A = reshape(collect(1:9), 3, 3)
+    @test OffsetArrays.centered(A, RoundDown) == OffsetArrays.centered(A, RoundUp)
 end
