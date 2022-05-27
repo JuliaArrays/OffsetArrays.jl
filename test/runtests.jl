@@ -2692,7 +2692,7 @@ end
     @test unsafe_wrap(OffsetArray, p, 2:3, 3:5, 4:7) isa OffsetArray{UInt8, 3}
     @test unsafe_wrap(OffsetArray, p, (2:3, 3:5, 4:7)) isa OffsetArray{UInt8, 3}
     @test unsafe_wrap(OffsetVector, p, 1:(2*3*4) .- 1) isa OffsetVector{UInt8}
-    @test unsafe_wrap(OffsetMatrix, p, 1:(2*3) .+ 6, 4:7; own = true) isa OffsetMatrix{UInt8}
+    @test unsafe_wrap(OffsetMatrix, p, 1:(2*3) .+ 6, 4:7) isa OffsetMatrix{UInt8}
     @test unsafe_wrap(OffsetMatrix, p, -5:5, Base.OneTo(3); own = true) isa OffsetMatrix{UInt8}
 end
 
