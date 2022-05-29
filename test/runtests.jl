@@ -158,8 +158,29 @@ end
 
     # broadcasting behavior with scalars (issue #104)
     r3 = (1 .+ OffsetArrays.IdOffsetRange(3:5, -1) .+ 1) .- 1
+    @test r3 isa OffsetArrays.IdOffsetRange
     @test same_value(r3, 3:5)
-    check_indexed_by(r3, 0:2)
+    check_indexed_by(r3, axes(r3,1))
+
+    r = OffsetArrays.IdOffsetRange(3:5, -1)
+    rc = copyto!(similar(r), r)
+    n = big(typemax(Int))
+    @test @inferred(broadcast(+, r, n)) == @inferred(broadcast(+, n, r)) == rc .+ n
+    @test @inferred(broadcast(-, r)) == .-rc
+    @test @inferred(broadcast(big, r)) == big.(rc)
+    for n in Any[2, big(typemax(Int))]
+        @test @inferred(broadcast(+, r, n)) == @inferred(broadcast(+, n, r)) == rc .+ n
+        @test @inferred(broadcast(-, r, n)) == rc .- n
+        @test @inferred(broadcast(-, n, r)) == n .- rc
+        @test @inferred(broadcast(*, r, n)) == @inferred(broadcast(*, n, r)) == rc .* n
+        if VERSION >= v"1.6.0"
+            # this test fails on v1.0 due to a bug in evaluating (3:5) / big(2)
+            @test @inferred(broadcast(/, r, n)) == @inferred(broadcast(\, n, r)) == rc ./ n
+        end
+    end
+    for n in (VERSION >= v"1.6.0" ? Any[2.0, big(2.0)] : Any[2.0])
+        @test @inferred(broadcast(*, r, n)) == @inferred(broadcast(*, n, r)) == rc .* n
+    end
 
     @testset "Idempotent indexing" begin
         @testset "Indexing into an IdOffsetRange" begin
