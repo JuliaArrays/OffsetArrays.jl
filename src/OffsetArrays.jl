@@ -626,7 +626,7 @@ function Base.replace_in_print_matrix(A::OffsetArray{<:Any,1}, i::Integer, j::In
 end
 
 # Actual unsafe_wrap implementation
-@inline function _unsafe_wrap(pointer::Ptr{T}, inds::NTuple{N}; own = false, kw...) where {T,N}
+@inline function _unsafe_wrap(pointer::Ptr{T}, inds::NTuple{N, OffsetAxisKnownLength}; own = false, kw...) where {T,N}
     _checkindices(N, inds, "indices")
     AA = Base.unsafe_wrap(Array, pointer, map(_indexlength, inds); own=own)
     OffsetArray{T, N, typeof(AA)}(AA, map(_indexoffset, inds); kw...)
