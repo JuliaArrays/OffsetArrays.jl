@@ -211,10 +211,12 @@ end
 
     @testset "reduced_indices" begin
         s = SArray{Tuple{2,2,2},Int,3,8}((1,2,3,4,5,6,7,8));
-        so = OffsetArray(s, (2, 3, 4));
-        @testset for dim in 1:ndims(so)
-            sosum = sum(so, dims = dim)
-            @test parent(sosum) == sum(s, dims = dim)
+        for a in Any[s, Array(s)]
+            so = OffsetArray(a, (2, 3, 4));
+            @testset for dim in 1:ndims(so)
+                sosum = sum(so, dims = dim)
+                @test parent(sosum) == sum(s, dims = dim)
+            end
         end
     end
 
