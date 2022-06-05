@@ -210,13 +210,13 @@ end
     @test first(rred) == first(r)
 
     @testset "reduced_indices" begin
-        s = SArray{Tuple{2,2,2},Int,3,8}((1,2,3,4,5,6,7,8));
-        for a in Any[s, Array(s)]
-            so = OffsetArray(a, (2, 3, 4));
-            @testset for dim in 1:ndims(so)
-                sosum = sum(so, dims = dim)
-                @test parent(sosum) == sum(s, dims = dim)
-            end
+        a = reshape(1:24, 2, 3, 4)
+        sa = OffsetArray(a, (2, 3, 4));
+        @testset for dim in 1:ndims(sa)
+            sasum = sum(sa, dims = dim)
+            @test parent(sasum) == sum(a, dims = dim)
+            find = firstindex(sa, dim)
+            @test axes(sasum, dim) == find:find
         end
     end
 
