@@ -1,11 +1,13 @@
 module OffsetArrays
 
+using ArrayInterface
 using Base: tail, @propagate_inbounds
 @static if !isdefined(Base, :IdentityUnitRange)
     const IdentityUnitRange = Base.Slice
 else
     using Base: IdentityUnitRange
 end
+using Static
 
 export OffsetArray, OffsetMatrix, OffsetVector
 
@@ -118,6 +120,8 @@ struct OffsetArray{T,N,AA<:AbstractArray{T,N}} <: AbstractArray{T,N}
         new{T, N, AA}(parent, offsets)
     end
 end
+
+ArrayInterface.parent_type(::Type{O}) where {T,N,A<:AbstractArray{T,N},O<:OffsetArrays.OffsetArray{T,N,A}} = A
 
 """
     OffsetVector(v, index)
@@ -287,10 +291,20 @@ Base.parent(A::OffsetArray) = A.parent
 # Base.Broadcast.BroadcastStyle(::Type{<:OffsetArray{<:Any, <:Any, AA}}) where AA = Base.Broadcast.BroadcastStyle(AA)
 
 @inline Base.size(A::OffsetArray) = size(parent(A))
+@inline Base.size(A::OffsetArray, dim) = size(parent(A), ArrayInterface.to_dims(A, dim))
 
-@inline Base.axes(A::OffsetArray) = map(IdOffsetRange, axes(parent(A)), A.offsets)
-@inline Base.axes(A::OffsetArray, d) = d <= ndims(A) ? IdOffsetRange(axes(parent(A), d), A.offsets[d]) : IdOffsetRange(axes(parent(A), d))
+@inline Base.axes(A::OffsetArray) = map(IdOffsetRange, ArrayInterface.axes(parent(A)), A.offsets)
+Base.axes(A::OffsetArray, d) = axes(A, ArrayInterface.to_dims(A, d))
+@inline function Base.axes(A::OffsetArray, d::Union{Int,StaticInt})
+    d <= ndims(A) ? IdOffsetRange(axes(parent(A), d), A.offsets[d]) : IdOffsetRange(axes(parent(A), d))
+end
 @inline Base.axes1(A::OffsetArray{T,0}) where {T} = IdOffsetRange(axes(parent(A), 1))  # we only need to specialize this one
+function _offset_axis_type(::Type{T}, dim::StaticInt{D}) where {T,D}
+    OffsetArrays.IdOffsetRange{Int,ArrayInterface.axes_types(T, dim)}
+end
+function ArrayInterface.axes_types(::Type{T}) where {T<:OffsetArrays.OffsetArray}
+    Static.eachop_tuple(_offset_axis_type, Static.nstatic(Val(ndims(T))), ArrayInterface.parent_type(T))
+end
 
 # Issue 128
 # See https://github.com/JuliaLang/julia/issues/37274 for the issue reported in Base

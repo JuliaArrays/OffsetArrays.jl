@@ -164,6 +164,7 @@ end
 offset_coerce(::Type{I}, r::AbstractUnitRange) where I<:AbstractUnitRange =
     convert(I, r)::I, 0
 
+ArrayInterface.parent_type(::Type{<:IdOffsetRange{<:Any,I}}) where {I} = I
 @inline Base.parent(r::IdOffsetRange) = r.parent
 @inline Base.axes(r::IdOffsetRange) = (Base.axes1(r),)
 @inline Base.axes1(r::IdOffsetRange) = IdOffsetRange(Base.axes1(r.parent), r.offset)
