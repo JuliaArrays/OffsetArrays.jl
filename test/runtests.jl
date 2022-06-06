@@ -149,8 +149,6 @@ end
 
     p = IdOffsetRange(values = Base.OneTo(2), indices = Base.OneTo(2))
     @test p isa IdOffsetRange{Int, Base.OneTo{Int}}
-    p = IdOffsetRange(values = SOneTo(2), indices = Base.OneTo(2))
-    @test p isa IdOffsetRange{Int, SOneTo{2}}
 
     # conversion preserves both the values and the axes, throwing an error if this is not possible
     @test @inferred(oftype(ro, ro)) === ro

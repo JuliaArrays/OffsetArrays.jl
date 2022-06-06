@@ -129,7 +129,7 @@ IdOffsetRange(r::IdOffsetRange) = r
 
 # Constructor to make `show` round-trippable
 # try to preserve typeof(values) if the indices are known to be 1-based
-_subtractindexoffset(values, indices::Base.OneTo, offset) = values
+_subtractindexoffset(values, indices::Union{Base.OneTo, IdentityUnitRange{<:Base.OneTo}}, offset) = values
 _subtractindexoffset(values, indices, offset) = _subtractoffset(values, offset)
 function IdOffsetRange(; values::AbstractUnitRange{<:Integer}, indices::AbstractUnitRange{<:Integer})
     length(values) == length(indices) || throw(ArgumentError("values and indices must have the same length"))
