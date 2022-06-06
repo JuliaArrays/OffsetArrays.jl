@@ -131,7 +131,7 @@ IdOffsetRange(r::IdOffsetRange) = r
 function IdOffsetRange(; values::AbstractUnitRange{<:Integer}, indices::AbstractUnitRange{<:Integer})
     length(values) == length(indices) || throw(ArgumentError("values and indices must have the same length"))
     offset = first(indices) - 1
-    return IdOffsetRange(values .- offset, offset)
+    return IdOffsetRange(_subtractoffset(values, offset), offset)
 end
 
 # Conversions to an AbstractUnitRange{Int} (and to an OrdinalRange{Int,Int} on Julia v"1.6") are necessary
