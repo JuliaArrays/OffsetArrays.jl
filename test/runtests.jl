@@ -143,6 +143,10 @@ end
     @test same_value(q, 1:3)
     check_indexed_by(q, p)
 
+    p = IdOffsetRange(values = IdOffsetRange(1:3, 2), indices = Base.OneTo(3))
+    @test same_value(p, 3:5)
+    check_indexed_by(p, 1:3)
+
     p = IdOffsetRange(values = Base.OneTo(2), indices = Base.OneTo(2))
     @test p isa IdOffsetRange{Int, Base.OneTo{Int}}
     p = IdOffsetRange(values = SOneTo(2), indices = Base.OneTo(2))

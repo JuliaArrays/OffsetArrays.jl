@@ -133,8 +133,10 @@ _subtractindexoffset(values, indices::Base.OneTo, offset) = values
 _subtractindexoffset(values, indices, offset) = _subtractoffset(values, offset)
 function IdOffsetRange(; values::AbstractUnitRange{<:Integer}, indices::AbstractUnitRange{<:Integer})
     length(values) == length(indices) || throw(ArgumentError("values and indices must have the same length"))
+    values_nooffset = no_offset_view(values)
     offset = first(indices) - 1
-    return IdOffsetRange(_subtractindexoffset(values, indices, offset), offset)
+    values_minus_offset = _subtractindexoffset(values_nooffset, indices, offset)
+    return IdOffsetRange(values_minus_offset, offset)
 end
 
 # Conversions to an AbstractUnitRange{Int} (and to an OrdinalRange{Int,Int} on Julia v"1.6") are necessary
