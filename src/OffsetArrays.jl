@@ -705,6 +705,13 @@ _no_offset_view(::Any, A::AbstractUnitRange) = UnitRange(A)
 # These two helpers are deliberately not exported; their meaning can be very different in
 # other scenarios and will be very likely to cause name conflicts if exported.
 #####
+
+if VERSION < v"1.4"
+   _halfroundInt(v, r::RoundingMode) = round(Int, v/2, r)
+else
+   _halfroundInt(v, r::RoundingMode) = div(v, 2, r)
+end
+
 """
     center(A, [r::RoundingMode=RoundDown])::Dims
 
@@ -743,7 +750,7 @@ can use [`centered`](@ref OffsetArrays.centered).
 """
 function center(A::AbstractArray, r::RoundingMode=RoundDown)
     map(axes(A)) do inds
-        round(Int, (length(inds)-1)/2, r) + first(inds)
+        _halfroundInt(length(inds)-1, r) + first(inds)
     end
 end
 
