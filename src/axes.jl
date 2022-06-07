@@ -22,7 +22,7 @@ julia> ro[-1]
 -1
 
 julia> ro[3]
-ERROR: BoundsError: attempt to access 3-element IdOffsetRange{$Int, UnitRange{$Int}} with indices -1:1 at index [3]
+ERROR: BoundsError: attempt to access 3-element $(IdOffsetRange{Int, UnitRange{Int}}) with indices -1:1 at index [3]
 ```
 
 If the range doesn't start at 1, the values may be different from the indices:
@@ -37,7 +37,7 @@ julia> ro[-1]
 9
 
 julia> ro[3]
-ERROR: BoundsError: attempt to access 3-element IdOffsetRange{$Int, UnitRange{$Int}} with indices -1:1 at index [3]
+ERROR: BoundsError: attempt to access 3-element $(IdOffsetRange{Int, UnitRange{Int}}) with indices -1:1 at index [3]
 ```
 
 # Extended help
@@ -128,10 +128,15 @@ end
 IdOffsetRange(r::IdOffsetRange) = r
 
 # Constructor to make `show` round-trippable
+# try to preserve typeof(values) if the indices are known to be 1-based
+_subtractindexoffset(values, indices::Union{Base.OneTo, IdentityUnitRange{<:Base.OneTo}}, offset) = values
+_subtractindexoffset(values, indices, offset) = _subtractoffset(values, offset)
 function IdOffsetRange(; values::AbstractUnitRange{<:Integer}, indices::AbstractUnitRange{<:Integer})
     length(values) == length(indices) || throw(ArgumentError("values and indices must have the same length"))
+    values_nooffset = no_offset_view(values)
     offset = first(indices) - 1
-    return IdOffsetRange(values .- offset, offset)
+    values_minus_offset = _subtractindexoffset(values_nooffset, indices, offset)
+    return IdOffsetRange(values_minus_offset, offset)
 end
 
 # Conversions to an AbstractUnitRange{Int} (and to an OrdinalRange{Int,Int} on Julia v"1.6") are necessary
@@ -256,12 +261,14 @@ for R in [:IIUR, :IdOffsetRange]
 end
 
 # offset-preserve broadcasting
-Broadcast.broadcasted(::Base.Broadcast.DefaultArrayStyle{1}, ::typeof(-), r::IdOffsetRange{T}, x::Integer) where T =
-    IdOffsetRange{T}(r.parent .- x, r.offset)
-Broadcast.broadcasted(::Base.Broadcast.DefaultArrayStyle{1}, ::typeof(+), r::IdOffsetRange{T}, x::Integer) where T =
-    IdOffsetRange{T}(r.parent .+ x, r.offset)
-Broadcast.broadcasted(::Base.Broadcast.DefaultArrayStyle{1}, ::typeof(+), x::Integer, r::IdOffsetRange{T}) where T =
-    IdOffsetRange{T}(x .+ r.parent, r.offset)
+Broadcast.broadcasted(::Base.Broadcast.DefaultArrayStyle{1}, ::typeof(-), r::IdOffsetRange, x::Integer) =
+    IdOffsetRange(r.parent .- x, r.offset)
+Broadcast.broadcasted(::Base.Broadcast.DefaultArrayStyle{1}, ::typeof(+), r::IdOffsetRange, x::Integer) =
+    IdOffsetRange(r.parent .+ x, r.offset)
+Broadcast.broadcasted(::Base.Broadcast.DefaultArrayStyle{1}, ::typeof(+), x::Integer, r::IdOffsetRange) =
+    IdOffsetRange(x .+ r.parent, r.offset)
+Broadcast.broadcasted(::Base.Broadcast.DefaultArrayStyle{1}, ::typeof(big), r::IdOffsetRange) =
+    IdOffsetRange(big.(r.parent), r.offset)
 
 Base.show(io::IO, r::IdOffsetRange) = print(io, IdOffsetRange, "(values=",first(r), ':', last(r),", indices=",first(eachindex(r)),':',last(eachindex(r)), ")")
 

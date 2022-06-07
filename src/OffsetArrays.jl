@@ -296,7 +296,7 @@ Base.parent(A::OffsetArray) = A.parent
 # See https://github.com/JuliaLang/julia/issues/37274 for the issue reported in Base
 # The fix https://github.com/JuliaLang/julia/pull/39404 should be available on v1.6
 # The following method is added on older Julia versions to ensure correct behavior for OffsetVectors
-if VERSION < v"1.6"
+if VERSION < v"1.6"
     @inline function Base.compute_linindex(A::OffsetVector, I::NTuple{N,Any}) where N
         IP = Base.fill_to_length(axes(A), Base.OneTo(1), Val(N))
         Base.compute_linindex(first(LinearIndices(A)), 1, IP, I)
@@ -705,6 +705,13 @@ _no_offset_view(::Any, A::AbstractUnitRange) = UnitRange(A)
 # These two helpers are deliberately not exported; their meaning can be very different in
 # other scenarios and will be very likely to cause name conflicts if exported.
 #####
+
+if VERSION < v"1.4"
+   _halfroundInt(v, r::RoundingMode) = round(Int, v/2, r)
+else
+   _halfroundInt(v, r::RoundingMode) = div(v, 2, r)
+end
+
 """
     center(A, [r::RoundingMode=RoundDown])::Dims
 
@@ -743,7 +750,7 @@ can use [`centered`](@ref OffsetArrays.centered).
 """
 function center(A::AbstractArray, r::RoundingMode=RoundDown)
     map(axes(A)) do inds
-        round(Int, (length(inds)-1)/2, r) + first(inds)
+        _halfroundInt(length(inds)-1, r) + first(inds)
     end
 end
 
