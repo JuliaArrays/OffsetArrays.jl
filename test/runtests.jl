@@ -138,6 +138,20 @@ end
     @test_throws MethodError IdOffsetRange(7:9, indices=-1:1)
     @test_throws MethodError IdOffsetRange(-1:1, values=7:9)
 
+    p = IdOffsetRange(1:3, 2)
+    q = IdOffsetRange(values = p .- 2, indices = p)
+    @test same_value(q, 1:3)
+    check_indexed_by(q, p)
+
+    @testset for indices in Any[Base.OneTo(3), IdentityUnitRange(Base.OneTo(3))]
+        p = IdOffsetRange(values = IdOffsetRange(1:3, 2), indices = indices)
+        @test same_value(p, 3:5)
+        check_indexed_by(p, 1:3)
+        q = IdOffsetRange(values = Base.OneTo(3), indices = indices)
+        @test same_value(q, 1:3)
+        @test q isa IdOffsetRange{Int, Base.OneTo{Int}}
+    end
+
     # conversion preserves both the values and the axes, throwing an error if this is not possible
     @test @inferred(oftype(ro, ro)) === ro
     @test @inferred(convert(OffsetArrays.IdOffsetRange{Int}, ro)) === ro
