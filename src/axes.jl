@@ -175,6 +175,16 @@ offset_coerce(::Type{I}, r::AbstractUnitRange) where I<:AbstractUnitRange =
 @inline Base.unsafe_indices(r::IdOffsetRange) = (Base.axes1(r),)
 @inline Base.length(r::IdOffsetRange) = length(r.parent)
 @inline Base.isempty(r::IdOffsetRange) = isempty(r.parent)
+#= We specialize on reduced_indices to work around cases where the parent axis type doesn't
+support reduced_index, but the axes do support reduced_indices
+The difference is that reduced_index expects the axis type to remain unchanged,
+which may not always be possible, eg. for statically sized axes
+See https://github.com/JuliaArrays/OffsetArrays.jl/issues/204
+=#
+function Base.reduced_indices(inds::Tuple{IdOffsetRange, Vararg{IdOffsetRange}}, d::Int)
+    parents_reduced = Base.reduced_indices(map(parent, inds), d)
+    ntuple(i -> IdOffsetRange(parents_reduced[i], inds[i].offset), Val(length(inds)))
+end
 Base.reduced_index(i::IdOffsetRange) = typeof(i)(first(i):first(i))
 # Workaround for #92 on Julia < 1.4
 Base.reduced_index(i::IdentityUnitRange{<:IdOffsetRange}) = typeof(i)(first(i):first(i))

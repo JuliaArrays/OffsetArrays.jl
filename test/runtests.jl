@@ -234,6 +234,17 @@ end
     @test length(rred) == 1
     @test first(rred) == first(r)
 
+    @testset "reduced_indices" begin
+        a = reshape(1:24, 2, 3, 4)
+        sa = OffsetArray(a, (2, 3, 4));
+        @testset for dim in 1:ndims(sa)
+            sasum = sum(sa, dims = dim)
+            @test parent(sasum) == sum(a, dims = dim)
+            find = firstindex(sa, dim)
+            @test axes(sasum, dim) == find:find
+        end
+    end
+
     @testset "conversion to AbstractUnitRange" begin
         r = IdOffsetRange(1:2)
         @test AbstractUnitRange{Int}(r) === r
