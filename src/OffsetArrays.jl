@@ -287,6 +287,9 @@ Base.parent(A::OffsetArray) = A.parent
 # Base.Broadcast.BroadcastStyle(::Type{<:OffsetArray{<:Any, <:Any, AA}}) where AA = Base.Broadcast.BroadcastStyle(AA)
 
 @inline Base.size(A::OffsetArray) = size(parent(A))
+# specializing length isn't necessary, as length(A) = prod(size(A)),
+# but specializing length enables constant-propagation for statically sized arrays
+# see https://github.com/JuliaArrays/OffsetArrays.jl/pull/304
 @inline Base.length(A::OffsetArray) = length(parent(A))
 
 @inline Base.axes(A::OffsetArray) = map(IdOffsetRange, axes(parent(A)), A.offsets)
