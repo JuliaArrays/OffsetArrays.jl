@@ -907,6 +907,18 @@ Base.Int(a::WeirdInteger) = a
             @test axes(y) == (r, )
         end
     end
+
+    @testset "size/length" begin
+        for p in Any[SA[1,2,3,4], 1:4, [1:4;]]
+            for A in Any[OffsetArray(p, 4),
+                    OffsetArray(reshape(p, 2, 2), 3, 4),
+                    OffsetArray(reshape(p, 2, 1, 2), 3, 0, 4),
+                    OffsetArray(reshape(p, Val(1)), 2)]
+                @test size(A) == size(parent(A))
+                @test length(A) == length(parent(A))
+            end
+        end
+    end
 end
 
 @testset "Axes supplied to constructor correspond to final result" begin
