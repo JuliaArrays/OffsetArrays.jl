@@ -605,7 +605,8 @@ Base.append!(A::OffsetVector, items) = (append!(A.parent, items); A)
 Base.empty!(A::OffsetVector) = (empty!(A.parent); A)
 
 # These functions keep the summary compact
-function Base.inds2string(inds::Tuple{Vararg{Union{IdOffsetRange, IdentityUnitRange{<:IdOffsetRange}}}})
+const OffsetIndices = Union{IdOffsetRange, IdentityUnitRange{<:IdOffsetRange}}
+function Base.inds2string(inds::Tuple{OffsetIndices, Vararg{OffsetIndices}})
     Base.inds2string(map(UnitRange, inds))
 end
 Base.showindices(io::IO, ind1::IdOffsetRange, inds::IdOffsetRange...) = Base.showindices(io, map(UnitRange, (ind1, inds...))...)
