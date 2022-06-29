@@ -1593,6 +1593,10 @@ end
     @test pairs(rrtable) == pairs(rrted)
 
     @test Base.inds2string(axes(a)) == Base.inds2string(map(UnitRange, axes(a)))
+    @test Base.inds2string((IdOffsetRange(3:4),)) == "3:4"
+    @test Base.inds2string((IdentityUnitRange(IdOffsetRange(3:4)),)) == "3:4"
+    # check that the following doesn't throw
+    @test Base.inds2string(()) isa Any
 
     show(io, OffsetArray(3:5, 0:2))
     @test String(take!(io)) == "3:5 with indices 0:2"
