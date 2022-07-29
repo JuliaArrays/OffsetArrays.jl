@@ -1,16 +1,17 @@
-using OffsetArrays
-using OffsetArrays: IdentityUnitRange, no_offset_view, IIUR, Origin
-using Base: Slice
-using OffsetArrays: IdOffsetRange
-using Test, Aqua, Documenter
-using LinearAlgebra
-using DelimitedFiles
-using CatIndices: BidirectionalVector
-using EllipsisNotation
 using Adapt
-using StaticArrays
-using FillArrays
+using Aqua
+using Base: Slice
+using CatIndices: BidirectionalVector
+using DelimitedFiles
 using DistributedArrays
+using Documenter
+using EllipsisNotation
+using FillArrays
+using LinearAlgebra
+using OffsetArrays
+using OffsetArrays: IdentityUnitRange, no_offset_view, IIUR, Origin, IdOffsetRange
+using StaticArrays
+using Test
 
 const SliceIntUR = Slice{<:AbstractUnitRange{<:Integer}}
 
