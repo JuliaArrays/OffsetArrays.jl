@@ -1,9 +1,9 @@
 # OffsetArrays.jl
 
-| Documentation |  Build Status | Code coverage |
-| :-: | :-: | :-: |
-| [![][docs-stable-img]][docs-stable-url] |  [![][action-img]][action-url] | [![][codecov-img]][codecov-url] |
-| [![][docs-dev-img]][docs-dev-url]  |  [![][pkgeval-img]][pkgeval-url] | |
+| Documentation |  Build Status | Code coverage | Version |
+| :-: | :-: | :-: | :-: |
+| [![][docs-stable-img]][docs-stable-url] |  [![][action-img]][action-url] | [![][codecov-img]][codecov-url] | [![][ver-img]][ver-url]  |
+| [![][docs-dev-img]][docs-dev-url]  |  [![][pkgeval-img]][pkgeval-url] | | [![][deps-img]][deps-url] |
 
 ## Introduction
 
@@ -191,6 +191,11 @@ into a no-op and uncover potential out-of-bound errors.
 [docs-dev-img]: https://img.shields.io/badge/docs-dev-blue.svg
 [docs-dev-url]: https://juliaarrays.github.io/OffsetArrays.jl/dev/
 
+[ver-img]: https://juliahub.com/docs/OffsetArrays/version.svg
+[ver-url]: https://juliahub.com/ui/Packages/OffsetArrays/UDEDl
+
+[deps-img]: https://juliahub.com/docs/OffsetArrays/deps.svg
+[deps-url]: https://juliahub.com/ui/Packages/OffsetArrays/UDEDl
 
 [doc_LinearIndices]: https://docs.julialang.org/en/v1/base/arrays/#Base.LinearIndices
 [doc_CartesianIndices]: https://docs.julialang.org/en/v1/base/arrays/#Base.IteratorsMD.CartesianIndices
