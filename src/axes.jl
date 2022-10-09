@@ -188,8 +188,10 @@ end
 Base.reduced_index(i::IdOffsetRange) = typeof(i)(first(i):first(i))
 # Workaround for #92 on Julia < 1.4
 Base.reduced_index(i::IdentityUnitRange{<:IdOffsetRange}) = typeof(i)(first(i):first(i))
-for f in [:firstindex, :lastindex]
-    @eval @inline Base.$f(r::IdOffsetRange) = $f(r.parent) + r.offset
+if VERSION < v"1.8.2"
+    for f in [:firstindex, :lastindex]
+        @eval @inline Base.$f(r::IdOffsetRange) = $f(r.parent) + r.offset
+    end
 end
 for f in [:first, :last]
     # coerce the type to deal with values that get promoted on addition (eg. Bool)
