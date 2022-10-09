@@ -170,9 +170,12 @@ offset_coerce(::Type{I}, r::AbstractUnitRange) where I<:AbstractUnitRange =
     convert(I, r)::I, 0
 
 @inline Base.parent(r::IdOffsetRange) = r.parent
-@inline Base.axes(r::IdOffsetRange) = (Base.axes1(r),)
-@inline Base.axes1(r::IdOffsetRange) = IdOffsetRange(Base.axes1(r.parent), r.offset)
-@inline Base.unsafe_indices(r::IdOffsetRange) = (Base.axes1(r),)
+@inline Base.axes(r::IdOffsetRange) = (axes1(r),)
+@inline axes1(r::IdOffsetRange) = IdOffsetRange(Base.axes1(r.parent), r.offset)
+if VERSION < v"1.8.2"
+    Base.axes1(r::IdOffsetRange) = axes1(r)
+end
+@inline Base.unsafe_indices(r::IdOffsetRange) = (axes1(r),)
 @inline Base.length(r::IdOffsetRange) = length(r.parent)
 @inline Base.isempty(r::IdOffsetRange) = isempty(r.parent)
 #= We specialize on reduced_indices to work around cases where the parent axis type doesn't
