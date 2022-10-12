@@ -170,9 +170,12 @@ offset_coerce(::Type{I}, r::AbstractUnitRange) where I<:AbstractUnitRange =
     convert(I, r)::I, 0
 
 @inline Base.parent(r::IdOffsetRange) = r.parent
-@inline Base.axes(r::IdOffsetRange) = (Base.axes1(r),)
-@inline Base.axes1(r::IdOffsetRange) = IdOffsetRange(Base.axes1(r.parent), r.offset)
-@inline Base.unsafe_indices(r::IdOffsetRange) = (Base.axes1(r),)
+@inline Base.axes(r::IdOffsetRange) = (axes1(r),)
+@inline axes1(r::IdOffsetRange) = IdOffsetRange(Base.axes1(r.parent), r.offset)
+if VERSION < v"1.8.2"
+    Base.axes1(r::IdOffsetRange) = axes1(r)
+end
+@inline Base.unsafe_indices(r::IdOffsetRange) = (axes1(r),)
 @inline Base.length(r::IdOffsetRange) = length(r.parent)
 @inline Base.isempty(r::IdOffsetRange) = isempty(r.parent)
 #= We specialize on reduced_indices to work around cases where the parent axis type doesn't
@@ -188,8 +191,10 @@ end
 Base.reduced_index(i::IdOffsetRange) = typeof(i)(first(i):first(i))
 # Workaround for #92 on Julia < 1.4
 Base.reduced_index(i::IdentityUnitRange{<:IdOffsetRange}) = typeof(i)(first(i):first(i))
-for f in [:firstindex, :lastindex]
-    @eval @inline Base.$f(r::IdOffsetRange) = $f(r.parent) + r.offset
+if VERSION < v"1.8.2"
+    for f in [:firstindex, :lastindex]
+        @eval @inline Base.$f(r::IdOffsetRange) = $f(r.parent) + r.offset
+    end
 end
 for f in [:first, :last]
     # coerce the type to deal with values that get promoted on addition (eg. Bool)
