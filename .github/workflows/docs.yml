@@ -18,16 +18,16 @@ jobs:
         julia-version: [1]
         os: [ubuntu-latest]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: julia-actions/setup-julia@latest
         with:
           version: ${{ matrix.julia-version }}
       - name: Cache artifacts
-        uses: actions/cache@v1
+        uses: actions/cache@v3
         env:
           cache-name: cache-artifacts
         with:
-          path: ~/.julia/artifacts 
+          path: ~/.julia/artifacts
           key: ${{ runner.os }}-test-${{ env.cache-name }}-${{ hashFiles('**/Project.toml') }}
           restore-keys: |
             ${{ runner.os }}-test-${{ env.cache-name }}-
