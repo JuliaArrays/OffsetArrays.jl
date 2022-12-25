@@ -40,6 +40,21 @@ julia> ro[3]
 ERROR: BoundsError: attempt to access 3-element $(IdOffsetRange{Int, UnitRange{Int}}) with indices -1:1 at index [3]
 ```
 
+The `values` and `indices` keywords can be extracted via `Base.values` or `Base.eachindex` and converted to a `UnitRange`.
+```jldoctest ior
+julia> values(ro)
+IdOffsetRange(values=9:11, indices=-1:1)
+
+julia> eachindex(ro)
+IdOffsetRange(values=-1:1, indices=-1:1)
+
+julia> UnitRange(values(ro))
+9:11
+
+julia> convert(UnitRange, eachindex(ro))
+-1:1
+```
+
 # Extended help
 
 Construction/coercion preserves the (shifted) values of the input range, but may modify
