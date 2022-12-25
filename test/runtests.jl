@@ -203,6 +203,7 @@ end
             for i in eachindex(s)
                 @test r[s[i]] == r[s][i]
             end
+            @test eachindex(s) === s.indices
 
             # Indexing with UnitRange
             s = 0:2
@@ -400,6 +401,20 @@ end
         @test C[ind] == C[4]
         ind, st = iterate(ax, st)
         @test C[ind] == C[5]
+    end
+
+    @testset "virtual properties" begin
+        _values = 5:8
+        _indices = 6:9
+        id = IdOffsetRange(values=_values, indices=_indices)
+        @test id.values === values(id)
+        @test id.values == _values
+        @test id.indices === eachindex(id)
+        @test id.indices == _indices
+        id2 = IdOffsetRange(; id.values, id.indices)
+        @test id == id2
+        id3 = IdOffsetRange(; id.indices, id.values)
+        @test id == id3
     end
 end
 
