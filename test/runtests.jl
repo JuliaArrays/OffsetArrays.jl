@@ -401,6 +401,17 @@ end
         ind, st = iterate(ax, st)
         @test C[ind] == C[5]
     end
+
+    @testset "Iterator" begin
+        x = 1:4
+        y = IdOffsetRange(x)
+        @test y[2] == x[2]
+        @test collect(Iterators.take(x,2)) == collect(Iterators.take(y,2))
+        @test Base.IteratorSize(y) == Base.IteratorSize(x)
+        s = Iterators.Stateful(y)
+        @test collect(Iterators.take(s, 2)) == x[1:2]
+        @test collect(Iterators.take(s, 2)) == x[3:4]
+    end
 end
 
 # used in testing the constructor

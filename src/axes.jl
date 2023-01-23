@@ -177,6 +177,9 @@ if VERSION < v"1.8.2"
 end
 @inline Base.unsafe_indices(r::IdOffsetRange) = (axes1(r),)
 @inline Base.length(r::IdOffsetRange) = length(r.parent)
+if VERSION >= v"1.7"
+    @inline Base.checked_length(x::IdOffsetRange) = Base.checked_length(x.parent)
+end
 @inline Base.isempty(r::IdOffsetRange) = isempty(r.parent)
 #= We specialize on reduced_indices to work around cases where the parent axis type doesn't
 support reduced_index, but the axes do support reduced_indices
@@ -275,7 +278,11 @@ Broadcast.broadcasted(::Base.Broadcast.DefaultArrayStyle{1}, ::typeof(+), x::Int
 Broadcast.broadcasted(::Base.Broadcast.DefaultArrayStyle{1}, ::typeof(big), r::IdOffsetRange) =
     IdOffsetRange(big.(r.parent), r.offset)
 
-Base.show(io::IO, r::IdOffsetRange) = print(io, IdOffsetRange, "(values=",first(r), ':', last(r),", indices=",first(eachindex(r)),':',last(eachindex(r)), ")")
+function Base.show(io::IO, r::IdOffsetRange)
+    values_offset = r.parent .+ r.offset
+    indices_offset = axes(r.parent,1) .+ r.offset
+    print(io, IdOffsetRange, "(values=",values_offset,", indices=",indices_offset,")")
+end
 
 # Optimizations
 @inline Base.checkindex(::Type{Bool}, inds::IdOffsetRange, i::Real) = Base.checkindex(Bool, inds.parent, i - inds.offset)
@@ -286,6 +293,8 @@ if VERSION < v"1.5.2"
     @inline Base.compute_offset1(parent, stride1::Integer, dims::Tuple{Int}, inds::Tuple{IdOffsetRange}, I::Tuple) =
         Base.compute_linindex(parent, I) - stride1*first(Base.axes1(inds[1]))
 end
+
+Base.IteratorSize(::Type{<:IdOffsetRange{<:Any,I}}) where {I} = Base.IteratorSize(I)
 
 # This was deemed "too private" to extend: see issue #184
 # # Fixes an inference failure in Base.mapfirst!
