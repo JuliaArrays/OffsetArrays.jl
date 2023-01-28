@@ -657,7 +657,7 @@ end
     _unsafe_wrap(pointer, inds; kw...)
 end
 # Avoid ambiguity
-@inline function Base.unsafe_wrap(::OffsetArrayUnion{T,N}, pointer::Ptr{T}, inds::Vararg{<:Integer,N}; kw...) where {T,N}
+@inline function Base.unsafe_wrap(::OffsetArrayUnion{T,N}, pointer::Ptr{T}, inds::Vararg{Integer,N}; kw...) where {T,N}
     _unsafe_wrap(pointer, inds; kw...)
 end
 
