@@ -165,7 +165,7 @@ julia> axes(axes(z, 1), 1)
 Base.OneTo(4)
 ```
 
-This will lead to complications in certain functions --- for example `LinearIndices` --- that tend to implictly assume idempotent indexing. In this case the `LinearIndices` of `z` will not match its axis.
+This will lead to complications in certain functions --- for example `LinearIndices` --- that tends to implicitly assume idempotent indexing. In this case the `LinearIndices` of `z` will not match its axis.
 
 ```jldoctest zerobasedrange
 julia> LinearIndices(z)
