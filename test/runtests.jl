@@ -276,7 +276,7 @@ end
             @test_throws ArgumentError r[true]
             @test_throws ArgumentError r[false]
         end
-        @testset "indexing wtih a Bool UnitRange" begin
+        @testset "indexing with a Bool UnitRange" begin
             r = IdOffsetRange(1:0)
 
             @test r[true:false] == 1:0
@@ -330,7 +330,7 @@ end
             r2 = IdOffsetRange(false:true)
             testlogicalindexing(r, r2)
         end
-        @testset "indexing wtih a Bool StepRange" begin
+        @testset "indexing with a Bool StepRange" begin
             r = IdOffsetRange(1:0)
 
             @test r[true:true:false] == 1:1:0
@@ -551,7 +551,7 @@ Base.Int(a::WeirdInteger) = a
         ao2 = OffsetArray(ao, (-1,))
         @test axes(ao2, 1) == typemin(Int) .+ (0:length(v)-1)
         @test_throws OverflowError OffsetArray{Float64, 1, typeof(ao)}(ao, (-2, )) # inner Constructor
-        @test_throws OverflowError OffsetArray(ao, (-2, )) # convinient constructor accumulate offsets
+        @test_throws OverflowError OffsetArray(ao, (-2, )) # convenient constructor accumulate offsets
         @test_throws OverflowError OffsetVector(1:0, typemax(Int))
         @test_throws OverflowError OffsetVector(OffsetVector(1:0, 0), typemax(Int))
         @test_throws OverflowError OffsetArray(zeros(Int, typemax(Int):typemax(Int)), 2)
