@@ -607,9 +607,9 @@ Base.empty!(A::OffsetVector) = (empty!(A.parent); A)
 # These functions keep the summary compact
 const OffsetIndices = Union{IdOffsetRange, IdentityUnitRange{<:IdOffsetRange}}
 function Base.inds2string(inds::Tuple{OffsetIndices, Vararg{OffsetIndices}})
-    Base.inds2string(map(UnitRange, inds))
+    Base.inds2string(map(no_offset_view, inds))
 end
-Base.showindices(io::IO, ind1::IdOffsetRange, inds::IdOffsetRange...) = Base.showindices(io, map(UnitRange, (ind1, inds...))...)
+Base.showindices(io::IO, ind1::IdOffsetRange, inds::IdOffsetRange...) = Base.showindices(io, map(no_offset_view, (ind1, inds...))...)
 
 function Base.showarg(io::IO, @nospecialize(a::OffsetArray), toplevel)
     print(io, "OffsetArray(")
