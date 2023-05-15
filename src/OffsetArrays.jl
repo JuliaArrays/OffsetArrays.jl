@@ -852,11 +852,9 @@ if VERSION <= v"1.7.0-DEV.400"
     Base._to_linear_index(A::OffsetArray) = first(LinearIndices(A))
 end
 
-##
-# Adapt allows for automatic conversion of CPU OffsetArrays to GPU OffsetArrays
-##
-import Adapt
-Adapt.adapt_structure(to, O::OffsetArray) = parent_call(x -> Adapt.adapt(to, x), O)
+if !isdefined(Base, :get_extension)
+  include("../ext/AdaptExt.jl")
+end
 
 if Base.VERSION >= v"1.4.2"
     include("precompile.jl")
