@@ -1,4 +1,4 @@
-module AdaptExt
+module OffsetArraysAdaptExt
 
 using OffsetArrays, Adapt
 

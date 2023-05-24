@@ -853,7 +853,7 @@ if VERSION <= v"1.7.0-DEV.400"
 end
 
 if !isdefined(Base, :get_extension)
-  include("../ext/AdaptExt.jl")
+  include("../ext/OffsetArraysAdaptExt.jl")
 end
 
 if Base.VERSION >= v"1.4.2"

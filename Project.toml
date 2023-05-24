@@ -9,7 +9,7 @@ Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
 Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
 
 [extensions]
-AdaptExt = "Adapt"
+OffsetArraysAdaptExt = "Adapt"
 
 [compat]
 Adapt = "2, 3, 4"
@@ -39,4 +39,4 @@ StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Aqua", "CatIndices", "DistributedArrays", "DelimitedFiles", "Documenter", "Test", "LinearAlgebra", "EllipsisNotation", "StaticArrays", "FillArrays", "Adapt"]
+test = ["Adapt", "Aqua", "CatIndices", "DistributedArrays", "DelimitedFiles", "Documenter", "EllipsisNotation", "FillArrays", "LinearAlgebra", "StaticArrays", "Test"]
