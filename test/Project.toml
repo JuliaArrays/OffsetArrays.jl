@@ -13,7 +13,7 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [compat]
 Adapt = "2, 3"
-Aqua = "0.5"
+Aqua = "0.6"
 CatIndices = "0.2"
 DistributedArrays = "0.6"
 Documenter = "0.27"

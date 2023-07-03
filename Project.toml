@@ -7,7 +7,7 @@ Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
 
 [compat]
 Adapt = "2, 3"
-Aqua = "0.5"
+Aqua = "0.6"
 CatIndices = "0.2"
 DistributedArrays = "0.6"
 Documenter = "0.27"
