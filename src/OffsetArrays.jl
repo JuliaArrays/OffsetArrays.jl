@@ -317,15 +317,35 @@ end
 
 Base.similar(A::OffsetArray, ::Type{T}, dims::Dims) where T =
     similar(parent(A), T, dims)
+
+"""
+    isonebased(ax::AbstractUnitRange{<:Integer})
+
+Return whether `firstindex(ax)` is statically known to be `1`. Custom axis types may extend this method
+to ensure that the axis offset is ignored, for example in `similar`.
+"""
+isonebased(_) = false
+isonebased(::Integer) = true
+isonebased(::Base.OneTo) = true
+isonebased(::IIUR{<:Base.OneTo}) = true
+
+to_length(i::Integer) = i
+to_length(i::AbstractUnitRange) = length(i)
+
+# Since the following is committing type-piracy, we provide an opt-out mechanism to the users
 function Base.similar(A::AbstractArray, ::Type{T}, shape::Tuple{OffsetAxisKnownLength,Vararg{OffsetAxisKnownLength}}) where T
-    # strip IdOffsetRanges to extract the parent range and use it to generate the array
-    new_shape = map(_strip_IdOffsetRange, shape)
-    # route through _similar_axes_or_length to avoid a stack overflow if map(_strip_IdOffsetRange, shape) === shape
-    # This tries to use new_shape directly in similar if similar(A, T, ::typeof(new_shape)) is defined
-    # If this fails, it calls similar(A, T, map(_indexlength, new_shape)) to use the size along each axis
-    # to generate the new array
-    P = _similar_axes_or_length(A, T, new_shape, shape)
-    return OffsetArray(P, map(_offset, axes(P), shape))
+    if all(isonebased, shape)
+        return similar(A, T, map(to_length, shape))
+    else
+        # strip IdOffsetRanges to extract the parent range and use it to generate the array
+        new_shape = map(_strip_IdOffsetRange, shape)
+        # route through _similar_axes_or_length to avoid a stack overflow if map(_strip_IdOffsetRange, shape) === shape
+        # This tries to use new_shape directly in similar if similar(A, T, ::typeof(new_shape)) is defined
+        # If this fails, it calls similar(A, T, map(_indexlength, new_shape)) to use the size along each axis
+        # to generate the new array
+        P = _similar_axes_or_length(A, T, new_shape, shape)
+        return OffsetArray(P, map(_offset, axes(P), shape))
+    end
 end
 Base.similar(::Type{A}, sz::Tuple{Vararg{Int}}) where {A<:OffsetArray} = similar(Array{eltype(A)}, sz)
 function Base.similar(::Type{T}, shape::Tuple{OffsetAxisKnownLength,Vararg{OffsetAxisKnownLength}}) where {T<:AbstractArray}
@@ -699,11 +719,11 @@ no_offset_view(a::Array) = a
 no_offset_view(i::Number) = i
 no_offset_view(A::AbstractArray) = _no_offset_view(axes(A), A)
 _no_offset_view(::Tuple{}, A::AbstractArray{T,0}) where T = A
-_no_offset_view(::Tuple{Base.OneTo, Vararg{Base.OneTo}}, A::AbstractArray) = A
-# the following method is needed for ambiguity resolution
-_no_offset_view(::Tuple{Base.OneTo, Vararg{Base.OneTo}}, A::AbstractUnitRange) = A
-_no_offset_view(::Any, A::AbstractArray) = OffsetArray(A, Origin(1))
-_no_offset_view(::Any, A::AbstractUnitRange) = UnitRange(A)
+function _no_offset_view(ax::Tuple, A::AbstractArray)
+    all(isonebased, ax) ? A : __no_offset_view(A)
+end
+__no_offset_view(A::AbstractArray) = OffsetArray(A, Origin(1))
+__no_offset_view(A::AbstractUnitRange) = UnitRange(A)
 
 #####
 # center/centered
