@@ -1893,6 +1893,10 @@ end
     A = OffsetArray(rand(4, 4), -1, -1)
     @test reshape(A, (:, )) == vec(A)
     @test reshape(A, :) == vec(A)
+
+    # ensure that there's no ambiguity using AbstractArray and Tuple{Vararg{OffsetAxis}}
+    @test reshape(Fill(0), ()) === Fill(0)
+    @test reshape(Fill(2,6), big(2), :) == Fill(2, 2, 3)
 end
 
 @testset "permutedims" begin
