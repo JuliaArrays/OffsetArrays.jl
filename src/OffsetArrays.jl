@@ -319,15 +319,23 @@ Base.similar(A::OffsetArray, ::Type{T}, dims::Dims) where T =
     similar(parent(A), T, dims)
 
 """
-    isonebased(ax::AbstractUnitRange{<:Integer})
+    isonebased(::Type{T}) where {T<:AbstractUnitRange{<:Integer}}
 
-Return whether `firstindex(ax)` is statically known to be `1`. Custom axis types may extend this method
-to ensure that the axis offset is ignored, for example in `similar`.
+Return whether `first(ax::T)` is statically known to be `1` for any `ax` of type `T`
+(`false` by default).
+Custom axis types may extend this method to ensure that the axis offset is ignored,
+for example in `similar`. This may strip `OffsetArray` wrappers on occasion, or dispatch
+to `Base` methods for 1-based axes.
+
+For axes that are essentially wrappers around another `AbstractUnitRange`,
+and share their indexing with their parents, one may forward the type of the
+parent range to `isonebased`.
 """
-isonebased(_) = false
-isonebased(::Integer) = true
-isonebased(::Base.OneTo) = true
-isonebased(r::IIUR) = isonebased(r.indices)
+isonebased(x) = isonebased(typeof(x))
+isonebased(::Type) = false
+isonebased(::Type{<:Integer}) = true
+isonebased(::Type{<:Base.OneTo}) = true
+isonebased(::Type{IdentityUnitRange{T}}) where {T} = isonebased(T)
 
 # Since the following is committing type-piracy, we provide an opt-out mechanism to the users
 function Base.similar(A::AbstractArray, ::Type{T}, shape::Tuple{OffsetAxisKnownLength,Vararg{OffsetAxisKnownLength}}) where T

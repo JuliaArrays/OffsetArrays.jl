@@ -9,7 +9,7 @@ using EllipsisNotation
 using FillArrays
 using LinearAlgebra
 using OffsetArrays
-using OffsetArrays: IdentityUnitRange, no_offset_view, IIUR, Origin, IdOffsetRange
+using OffsetArrays: IdentityUnitRange, no_offset_view, IIUR, Origin, IdOffsetRange, isonebased
 using StaticArrays
 using Test
 
@@ -2261,6 +2261,14 @@ Base.parent(x::PointlessWrapper) = x.parent
 Base.size(x::PointlessWrapper) = size(parent(x))
 Base.axes(x::PointlessWrapper) = axes(parent(x))
 Base.getindex(x::PointlessWrapper, i...) = x.parent[i...]
+
+@testset "isonebased" begin
+    @test isonebased(Base.OneTo(2))
+    @test !isonebased(1:2)
+    @test isonebased(IdentityUnitRange(Base.OneTo(2)))
+    @test !isonebased(IdentityUnitRange(1:2))
+    @test similar(zeros(1), Int, IdentityUnitRange(Base.OneTo(2))) isa Vector{Int}
+end
 
 @testset "no offset view" begin
     # OffsetArray fallback
