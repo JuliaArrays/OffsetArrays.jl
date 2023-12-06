@@ -850,7 +850,7 @@ if VERSION <= v"1.7.0-DEV.400"
     Base._to_linear_index(A::OffsetArray) = first(LinearIndices(A))
 end
 
-Base.has_offset_axes(A::OffsetArray) = any(!=(0), A.offsets) | A.default_offset != 0
+Base.has_offset_axes(A::OffsetArray) = any(!=(0), A.offsets) || A.default_offset != 0
 
 ##
 # Adapt allows for automatic conversion of CPU OffsetArrays to GPU OffsetArrays
