@@ -293,3 +293,5 @@ end
 # if isdefined(Base, :_firstslice)
 #     Base._firstslice(i::IdOffsetRange) = IdOffsetRange(Base._firstslice(i.parent), i.offset)
 # end
+
+Base.has_offset_axes(A::OffsetArray) = any(!=(0), A.offsets) | A.default_offset != 0
