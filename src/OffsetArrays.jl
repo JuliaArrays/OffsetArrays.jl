@@ -113,7 +113,7 @@ struct OffsetArray{T,N,AA<:AbstractArray{T,N}} <: AbstractArray{T,N}
     parent::AA
     offsets::NTuple{N,Int}
     default_offset::Int
-    @inline function OffsetArray{T, N, AA}(parent::AA, offsets::NTuple{N, Int}, default_offset::Int = 1; checkoverflow = true) where {T, N, AA<:AbstractArray{T,N}}
+    @inline function OffsetArray{T, N, AA}(parent::AA, offsets::NTuple{N, Int}, default_offset::Int = 0; checkoverflow = true) where {T, N, AA<:AbstractArray{T,N}}
         # allocation of `map` on tuple is optimized away
         checkoverflow && map(overflow_check, (axes(parent)..., axes(parent, N + 1)), (offsets..., default_offset))
         new{T, N, AA}(parent, offsets, default_offset)
@@ -155,7 +155,7 @@ end
 
 # Tuples of integers are treated as offsets
 # Empty Tuples are handled here
-@inline function OffsetArray(A::AbstractArray, offsets::Tuple{Vararg{Integer}}, default_offset::Int = 1; kw...)
+@inline function OffsetArray(A::AbstractArray, offsets::Tuple{Vararg{Integer}}, default_offset::Int = 0; kw...)
     _checkindices(A, offsets, "offsets")
     OffsetArray{eltype(A), ndims(A), typeof(A)}(A, offsets, default_offset; kw...)
 end
@@ -163,12 +163,12 @@ end
 # These methods are necessary to disallow incompatible dimensions for
 # the OffsetVector and the OffsetMatrix constructors
 for (FT, ND) in ((:OffsetVector, :1), (:OffsetMatrix, :2))
-    @eval @inline function $FT(A::AbstractArray{<:Any,$ND}, offsets::Tuple{Vararg{Integer}}, default_offset::Int = 1; kw...)
+    @eval @inline function $FT(A::AbstractArray{<:Any,$ND}, offsets::Tuple{Vararg{Integer}}, default_offset::Int = 0; kw...)
         _checkindices(A, offsets, "offsets")
         OffsetArray{eltype(A), $ND, typeof(A)}(A, offsets, default_offset; kw...)
     end
     FTstr = string(FT)
-    @eval @inline function $FT(A::AbstractArray, offsets::Tuple{Vararg{Integer}}, default_offset::Int = 1; kw...)
+    @eval @inline function $FT(A::AbstractArray, offsets::Tuple{Vararg{Integer}}, default_offset::Int = 0; kw...)
         throw(ArgumentError($FTstr*" requires a "*string($ND)*"D array"))
     end
 end
@@ -177,14 +177,14 @@ end
 for FT in (:OffsetArray, :OffsetVector, :OffsetMatrix)
     # Nested OffsetArrays may strip off the wrapper and collate the offsets
     # empty tuples are handled here
-    @eval @inline function $FT(A::OffsetArray, offsets::Tuple{Vararg{Int}}, default_offset::Int = 1; checkoverflow = true)
+    @eval @inline function $FT(A::OffsetArray, offsets::Tuple{Vararg{Int}}, default_offset::Int = 0; checkoverflow = true)
         _checkindices(A, offsets, "offsets")
         # ensure that the offsets may be added together without an overflow
         checkoverflow && map(overflow_check, axes(A), (offsets..., default_offset))
         I = map(+, _offsets(A, parent(A)), offsets)
         $FT(parent(A), I, default_offset, checkoverflow = false)
     end
-    @eval @inline function $FT(A::OffsetArray, offsets::Tuple{Integer,Vararg{Integer}}, default_offset::Int = 1; kw...)
+    @eval @inline function $FT(A::OffsetArray, offsets::Tuple{Integer,Vararg{Integer}}, default_offset::Int = 0; kw...)
         $FT(A, map(Int, offsets), default_offset; kw...)
     end
 
