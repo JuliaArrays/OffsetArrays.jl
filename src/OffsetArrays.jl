@@ -205,7 +205,7 @@ for FT in (:OffsetArray, :OffsetVector, :OffsetMatrix)
         $FT(A, map(_offset, axes(A), inds); kw...)
     end
 
-    @eval @inline $FT(A::AbstractArray, inds...; kw...) = $FT(A, inds...; kw...)
+    @eval @inline $FT(A::AbstractArray, inds...; kw...) = $FT(A, inds; kw...)
     @eval @inline $FT(A::AbstractArray; checkoverflow = false) = $FT(A, ntuple(zero, Val(ndims(A))), checkoverflow = checkoverflow)
 
     @eval @inline $FT(A::AbstractArray, origin::Origin; checkoverflow = true) = $FT(A, origin.index .- first.(axes(A)); checkoverflow = checkoverflow)
@@ -226,7 +226,7 @@ end
 
 @inline OffsetArray{T,N,A}(M::AbstractArray{<:Any,N}, I...; kw...) where {T,N,A<:AbstractArray{T,N}} = OffsetArray{T,N,A}(M, I; kw...)
 @inline function OffsetArray{T,N,A}(M::AbstractArray{<:Any,N}, I::NTuple{N,Int}; checkoverflow = true) where {T,N,A<:AbstractArray{T,N}}
-    checkoverflow && map(overflow_check, axes(M), I...)
+    checkoverflow && map(overflow_check, axes(M), I)
     Mv = no_offset_view(M)
     MvA = convert(A, Mv)::A
     Iof = map(+, _offsets(M), I)
