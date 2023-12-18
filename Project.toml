@@ -7,13 +7,16 @@ Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
 
 [compat]
 Adapt = "2, 3"
-Aqua = "0.6"
+Aqua = "0.8"
 CatIndices = "0.2"
+DelimitedFiles = "<0.0.1, 1"
 DistributedArrays = "0.6"
-Documenter = "0.27"
+Documenter = "1"
 EllipsisNotation = "1"
 FillArrays = "0.11, 0.13, 1"
+LinearAlgebra = "<0.0.1, 1"
 StaticArrays = "1"
+Test = "<0.0.1, 1"
 julia = "0.7, 1"
 
 [extras]

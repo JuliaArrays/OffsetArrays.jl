@@ -41,7 +41,7 @@ function same_value(r1, r2)
 end
 
 @testset "Project meta quality checks" begin
-    Aqua.test_all(OffsetArrays, piracy=false)
+    Aqua.test_all(OffsetArrays, piracies=false)
     if VERSION >= v"1.2"
         doctest(OffsetArrays, manual = false)
     end
