@@ -18,6 +18,10 @@ on:
   schedule:
     - cron: '20 00 1 * *'
 
+concurrency:
+  group: build-${{ github.event.pull_request.number || github.ref }}-${{ github.workflow }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ${{ matrix.os }}
