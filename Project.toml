@@ -1,9 +1,15 @@
 name = "OffsetArrays"
 uuid = "6fe1bfb0-de20-5000-8ca7-80f57d26f881"
-version = "1.12.10"
+version = "1.13.0"
 
 [deps]
 Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
+
+[weakdeps]
+Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
+
+[extensions]
+OffsetArraysAdaptExt = "Adapt"
 
 [compat]
 Adapt = "2, 3, 4"
@@ -20,6 +26,7 @@ Test = "<0.0.1, 1"
 julia = "0.7, 1"
 
 [extras]
+Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
 CatIndices = "aafaddc9-749c-510e-ac4f-586e18779b91"
 DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
@@ -32,4 +39,4 @@ StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Aqua", "CatIndices", "DistributedArrays", "DelimitedFiles", "Documenter", "Test", "LinearAlgebra", "EllipsisNotation", "StaticArrays", "FillArrays"]
+test = ["Adapt", "Aqua", "CatIndices", "DistributedArrays", "DelimitedFiles", "Documenter", "EllipsisNotation", "FillArrays", "LinearAlgebra", "StaticArrays", "Test"]
