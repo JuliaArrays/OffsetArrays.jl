@@ -2481,6 +2481,8 @@ end
         @test pointer(a', 5) === pointer(parent(a), 5)
         @test pointer(A', 15) === pointer(parent(A)', 15)
     end
+
+    @test Base.cconvert(Ptr{eltype(A)}, A) == Base.cconvert(Ptr{eltype(A)}, parent(A))
 end
 
 # issue 171
