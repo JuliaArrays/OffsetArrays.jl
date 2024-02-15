@@ -919,6 +919,12 @@ Base.Int(a::WeirdInteger) = a
             end
         end
     end
+
+    @testset "convert" begin
+        m = zeros(1,1)
+        mo = @inferred (x -> convert(OffsetArray{Float64,2,Matrix{Float64}}, x[1]))(Any[m])
+        @test mo == m
+    end
 end
 
 @testset "Axes supplied to constructor correspond to final result" begin
