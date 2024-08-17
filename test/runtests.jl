@@ -17,9 +17,8 @@ const SliceIntUR = Slice{<:AbstractUnitRange{<:Integer}}
 
 DocMeta.setdocmeta!(OffsetArrays, :DocTestSetup, :(using OffsetArrays); recursive=true)
 
-values1(r::AbstractUnitRange) = first(r):last(r)   # return 1-based range
-axes_values(x, d) = values1(axes(x, d))
-axes_values(x) = map(values1, axes(x))
+no_offset_axes(x, d) = no_offset_view(axes(x, d))
+no_offset_axes(x) = map(no_offset_view, axes(x))
 
 # https://github.com/JuliaLang/julia/pull/29440
 if VERSION < v"1.1.0-DEV.389"
@@ -245,7 +244,7 @@ end
             sasum = sum(sa, dims = dim)
             @test parent(sasum) == sum(a, dims = dim)
             find = firstindex(sa, dim)
-            @test axes_values(sasum, dim) == find:find
+            @test no_offset_axes(sasum, dim) == find:find
         end
     end
 
@@ -422,7 +421,7 @@ Base.Int(a::WeirdInteger) = a
                     fill!(OffsetArray{Float64,n}(undef, ntuple(x->x:x, n)), 1),
                     fill!(OffsetArray{Float64,n}(undef, ntuple(x->x:x, n)...), 1))
                 @test length(LinearIndices(z)) == 1
-                @test axes_values(z) == ntuple(x->x:x, n)
+                @test no_offset_axes(z) == ntuple(x->x:x, n)
                 @test z[1] == 1
             end
         end
@@ -550,9 +549,9 @@ Base.Int(a::WeirdInteger) = a
         @test_throws OverflowError OffsetVector(v, typemax(Int)-length(v)+1)
         ao = OffsetArray(v, typemin(Int))
         ao2 = OffsetArray{Float64, 1, typeof(ao)}(ao, (-1, ))
-        @test axes_values(ao2, 1) == typemin(Int) .+ (0:length(v)-1)
+        @test no_offset_axes(ao2, 1) == typemin(Int) .+ (0:length(v)-1)
         ao2 = OffsetArray(ao, (-1,))
-        @test axes_values(ao2, 1) == typemin(Int) .+ (0:length(v)-1)
+        @test no_offset_axes(ao2, 1) == typemin(Int) .+ (0:length(v)-1)
         @test_throws OverflowError OffsetArray{Float64, 1, typeof(ao)}(ao, (-2, )) # inner Constructor
         @test_throws OverflowError OffsetArray(ao, (-2, )) # convenient constructor accumulate offsets
         @test_throws OverflowError OffsetVector(1:0, typemax(Int))
@@ -561,7 +560,7 @@ Base.Int(a::WeirdInteger) = a
         @test_throws OverflowError OffsetArray(v, OffsetArrays.Origin(typemax(Int)))
 
         b = OffsetArray(OffsetArray(big(1):2, 1), typemax(Int)-1)
-        @test axes_values(b, 1) == big(typemax(Int)) .+ (1:2)
+        @test no_offset_axes(b, 1) == big(typemax(Int)) .+ (1:2)
 
         @testset "OffsetRange" begin
             for r in Any[1:100, big(1):big(2)]
@@ -573,7 +572,7 @@ Base.Int(a::WeirdInteger) = a
             @testset "BigInt axes" begin
                 r = OffsetArray(1:big(2)^65, 4000)
                 @test eltype(r) === BigInt
-                @test axes_values(r, 1) == (big(1):big(2)^65) .+ 4000
+                @test no_offset_axes(r, 1) == (big(1):big(2)^65) .+ 4000
             end
         end
 
@@ -757,13 +756,13 @@ Base.Int(a::WeirdInteger) = a
         a = rand(2, 2, 2)
         oa = OffsetArray(a, 0:1, 3:4, 2:3)
         @test OffsetArray(a, CartesianIndices(axes(oa))) == oa
-        @test axes_values(OffsetArray(a, :, CartesianIndices((3:4, 2:3)))) == (1:2, 3:4, 2:3)
-        @test axes_values(OffsetArray(a, 10:11, CartesianIndices((3:4, 2:3)) )) == (10:11, 3:4, 2:3)
-        @test axes_values(OffsetArray(a, CartesianIndices((3:4, 2:3)), :)) == (3:4, 2:3, 1:2)
-        @test axes_values(OffsetArray(a, CartesianIndices((3:4, 2:3)), 10:11)) == (3:4, 2:3, 10:11)
-        @test axes_values(OffsetArray(a, :, :, CartesianIndices((3:4,)) )) == (1:2, 1:2, 3:4)
-        @test axes_values(OffsetArray(a, 10:11, :, CartesianIndices((3:4,)) )) == (10:11, 1:2, 3:4)
-        @test axes_values(OffsetArray(a, 10:11, 2:3, CartesianIndices((3:4,)) )) == (10:11, 2:3, 3:4)
+        @test no_offset_axes(OffsetArray(a, :, CartesianIndices((3:4, 2:3)))) == (1:2, 3:4, 2:3)
+        @test no_offset_axes(OffsetArray(a, 10:11, CartesianIndices((3:4, 2:3)) )) == (10:11, 3:4, 2:3)
+        @test no_offset_axes(OffsetArray(a, CartesianIndices((3:4, 2:3)), :)) == (3:4, 2:3, 1:2)
+        @test no_offset_axes(OffsetArray(a, CartesianIndices((3:4, 2:3)), 10:11)) == (3:4, 2:3, 10:11)
+        @test no_offset_axes(OffsetArray(a, :, :, CartesianIndices((3:4,)) )) == (1:2, 1:2, 3:4)
+        @test no_offset_axes(OffsetArray(a, 10:11, :, CartesianIndices((3:4,)) )) == (10:11, 1:2, 3:4)
+        @test no_offset_axes(OffsetArray(a, 10:11, 2:3, CartesianIndices((3:4,)) )) == (10:11, 2:3, 3:4)
 
         # ignore empty CartesianIndices
         @test OffsetArray(a, CartesianIndices(()), 0:1, :, 2:3) == OffsetArray(a, 0:1, :, 2:3)
@@ -784,7 +783,7 @@ Base.Int(a::WeirdInteger) = a
         y = OffsetArray{Float64}(undef, indices...);
         @test axes(y) === axes(OffsetArray{Float64}(undef, indices))
         @test axes(y) === axes(OffsetArray{Float64, length(indices)}(undef, indices...))
-        @test axes_values(y) == (-1:1, -7:7, -1:2, -5:5, -1:1, -3:3, -2:2, -1:1)
+        @test no_offset_axes(y) == (-1:1, -7:7, -1:2, -5:5, -1:1, -3:3, -2:2, -1:1)
         @test eltype(y) === Float64
 
         @test_throws ArgumentError OffsetArray{Float64, 2}(undef, indices)
@@ -798,13 +797,13 @@ Base.Int(a::WeirdInteger) = a
 
             for f in (zeros, ones)
                 a = f(Float64, ax)
-                @test axes_values(a) == ax
+                @test no_offset_axes(a) == ax
                 @test eltype(a) == Float64
             end
 
             for f in (trues, falses)
                 a = f(ax)
-                @test axes_values(a) == ax
+                @test no_offset_axes(a) == ax
                 @test eltype(a) == Bool
             end
         end
@@ -827,9 +826,9 @@ Base.Int(a::WeirdInteger) = a
                 @test axes(OffsetVector(v, ..)) == axes(v)
                 @test OffsetVector(v, ..) == OffsetVector(v, :)
 
-                @test axes_values(OffsetArray(v, .., 2:6)) == (2:6, )
+                @test no_offset_axes(OffsetArray(v, .., 2:6)) == (2:6, )
                 @test OffsetArray(v, .., 2:6) == OffsetArray(v, 2:6)
-                @test axes_values(OffsetVector(v, .., 2:6)) == (2:6, )
+                @test no_offset_axes(OffsetVector(v, .., 2:6)) == (2:6, )
                 @test OffsetVector(v, .., 2:6) == OffsetVector(v, 2:6)
             end
             @testset "Matrix" begin
@@ -839,14 +838,14 @@ Base.Int(a::WeirdInteger) = a
                 @test axes(OffsetMatrix(m, ..)) == axes(m)
                 @test OffsetMatrix(m, ..) == OffsetMatrix(m, :, :)
 
-                @test axes_values(OffsetArray(m, .., 2:3)) == (axes(m, 1), 2:3)
+                @test no_offset_axes(OffsetArray(m, .., 2:3)) == (axes(m, 1), 2:3)
                 @test OffsetArray(m, .., 2:3) == OffsetArray(m, :, 2:3)
-                @test axes_values(OffsetMatrix(m, .., 2:3)) == (axes(m, 1), 2:3)
+                @test no_offset_axes(OffsetMatrix(m, .., 2:3)) == (axes(m, 1), 2:3)
                 @test OffsetMatrix(m, .., 2:3) == OffsetMatrix(m, :, 2:3)
 
-                @test axes_values(OffsetArray(m, .., 2:3, 3:4)) == (2:3, 3:4)
+                @test no_offset_axes(OffsetArray(m, .., 2:3, 3:4)) == (2:3, 3:4)
                 @test OffsetArray(m, .., 2:3, 3:4) == OffsetArray(m, 2:3, 3:4)
-                @test axes_values(OffsetMatrix(m, .., 2:3, 3:4)) == (2:3, 3:4)
+                @test no_offset_axes(OffsetMatrix(m, .., 2:3, 3:4)) == (2:3, 3:4)
                 @test OffsetMatrix(m, .., 2:3, 3:4) == OffsetMatrix(m, 2:3, 3:4)
             end
             @testset "3D Array" begin
@@ -854,16 +853,16 @@ Base.Int(a::WeirdInteger) = a
                 @test axes(OffsetArray(a, ..)) == axes(a)
                 @test OffsetArray(a, ..) == OffsetArray(a, :, :, :)
 
-                @test axes_values(OffsetArray(a, .., 2:3)) == (axes(a)[1:2]..., 2:3)
+                @test no_offset_axes(OffsetArray(a, .., 2:3)) == (axes(a)[1:2]..., 2:3)
                 @test OffsetArray(a, .., 2:3) == OffsetArray(a, :, :, 2:3)
 
-                @test axes_values(OffsetArray(a, .., 2:3, 3:4)) == (axes(a, 1), 2:3, 3:4)
+                @test no_offset_axes(OffsetArray(a, .., 2:3, 3:4)) == (axes(a, 1), 2:3, 3:4)
                 @test OffsetArray(a, .., 2:3, 3:4) == OffsetArray(a, :, 2:3, 3:4)
 
-                @test axes_values(OffsetArray(a, 2:3, .., 3:4)) == (2:3, axes(a, 2), 3:4)
+                @test no_offset_axes(OffsetArray(a, 2:3, .., 3:4)) == (2:3, axes(a, 2), 3:4)
                 @test OffsetArray(a, 2:3, .., 3:4) == OffsetArray(a, 2:3, :, 3:4)
 
-                @test axes_values(OffsetArray(a, .., 4:5, 2:3, 3:4)) == (4:5, 2:3, 3:4)
+                @test no_offset_axes(OffsetArray(a, .., 4:5, 2:3, 3:4)) == (4:5, 2:3, 3:4)
                 @test OffsetArray(a, .., 4:5, 2:3, 3:4) == OffsetArray(a, 4:5, 2:3, 3:4)
             end
         end
@@ -872,7 +871,7 @@ Base.Int(a::WeirdInteger) = a
 
             a = zeros(3,3)
             oa = OffsetArray(a, ZeroBasedIndexing())
-            @test axes_values(oa) == (0:2, 0:2)
+            @test no_offset_axes(oa) == (0:2, 0:2)
         end
         @testset "TupleOfRanges" begin
             Base.to_indices(A, inds, t::Tuple{TupleOfRanges{N}}) where {N} = t
@@ -884,7 +883,7 @@ Base.Int(a::WeirdInteger) = a
             a = zeros(3,3)
             inds = TupleOfRanges((3:5, 2:4))
             oa = OffsetArray(a, inds)
-            @test axes_values(oa) == inds.x
+            @test no_offset_axes(oa) == inds.x
         end
         @testset "NewColon" begin
             Base.to_indices(A, inds, t::Tuple{NewColon,Vararg{Any}}) =
@@ -895,7 +894,7 @@ Base.Int(a::WeirdInteger) = a
 
             a = zeros(3, 3)
             oa = OffsetArray(a, (NewColon(), 2:4))
-            @test axes_values(oa) == (axes(a,1), 2:4)
+            @test no_offset_axes(oa) == (axes(a,1), 2:4)
         end
     end
 
@@ -903,12 +902,12 @@ Base.Int(a::WeirdInteger) = a
         r = -2:5
         for AT in Any[OffsetArray, OffsetVector]
             y = AT(r, r)
-            @test axes_values(y) == (r,)
+            @test no_offset_axes(y) == (r,)
             @test step(y) == step(r)
             y = AT(r, (r,))
-            @test axes_values(y) == (r,)
+            @test no_offset_axes(y) == (r,)
             y = AT(r, CartesianIndices((r, )))
-            @test axes_values(y) == (r, )
+            @test no_offset_axes(y) == (r, )
         end
     end
 
@@ -929,7 +928,7 @@ end
     # Ref https://github.com/JuliaArrays/OffsetArrays.jl/pull/65#issuecomment-457181268
     B = BidirectionalVector([1, 2, 3], -2)
     A = OffsetArray(B, -1:1)
-    @test axes_values(A) == (-1:1,)
+    @test no_offset_axes(A) == (-1:1,)
 end
 
 @testset "unwrap" begin
@@ -944,7 +943,7 @@ end
     A = OffsetArray(A0, (-1,2))                   # IndexLinear
     S = OffsetArray(view(A0, 1:2, 1:2), (-1,2))   # IndexCartesian
     @test axes(A) === axes(S)
-    @test axes_values(A) == axes_values(S) == (0:1, 3:4)
+    @test no_offset_axes(A) == no_offset_axes(S) == (0:1, 3:4)
     @test axes(A, 1) === OffsetArrays.IdOffsetRange(Base.OneTo(2), -1)
     @test size(A) == size(A0)
     @test size(A, 1) == size(A0, 1)
@@ -1231,10 +1230,10 @@ end
     r1 = r[0:1]
     @test r1 === 9:10
     r1 = (8:10)[OffsetArray(1:2, -5:-4)]
-    @test axes_values(r1) == (-5:-4,)
+    @test no_offset_axes(r1) == (-5:-4,)
     @test no_offset_view(r1) == 8:9
     r1 = OffsetArray(8:10, -1:1)[OffsetArray(0:1, -5:-4)]
-    @test axes_values(r1) == (-5:-4,)
+    @test no_offset_axes(r1) == (-5:-4,)
     @test no_offset_view(r1) == 9:10
 
     a = OffsetVector(3:4, 10:11)
@@ -1379,7 +1378,7 @@ end
     s = -2:2:4
     r = 5:8
     y = OffsetArray(s, r)
-    @test axes_values(y) == (r,)
+    @test no_offset_axes(y) == (r,)
     @test step(y) == step(s)
 
     a = OffsetVector(3:4, 10:11)
@@ -1438,21 +1437,21 @@ end
     @test S[0,4] == S[3] == 3
     @test S[1,4] == S[4] == 4
     @test_throws BoundsError S[1,1]
-    @test axes_values(S) == (0:1, 3:4)
+    @test no_offset_axes(S) == (0:1, 3:4)
     # issue 100
     S = view(A, axes(A, 1), 3)
     @test S == A[:, 3]
     @test S[0] == 1
     @test S[1] == 2
     @test_throws BoundsError S[length(S)]
-    @test axes_values(S) == (0:1, )
+    @test no_offset_axes(S) == (0:1, )
     # issue 100
     S = view(A, 1, axes(A, 2))
     @test S == A[1, :]
     @test S[3] == 2
     @test S[4] == 4
     @test_throws BoundsError S[1]
-    @test axes_values(S) == (3:4, )
+    @test no_offset_axes(S) == (3:4, )
 
     # issue 133
     r = OffsetArrays.IdOffsetRange(1:2, -1)
@@ -1490,7 +1489,7 @@ end
     @test S[0, 1, 2] == A[0, 3, 2]
     @test S[0, 2, 2] == A[0, 4, 2]
     @test S[1, 1, 2] == A[1, 3, 2]
-    @test axes_values(S) == (0:1, Base.OneTo(2), 2:5)
+    @test no_offset_axes(S) == (0:1, Base.OneTo(2), 2:5)
 
     # issue #186
     a = reshape(1:12, 3, 4)
@@ -1516,7 +1515,7 @@ end
     bov = OffsetArray(view(b, 3:4), 3:4)
     c = @view b[bov]
     @test same_value(c, 3:4)
-    @test axes_values(c,1) == 3:4
+    @test no_offset_axes(c,1) == 3:4
     d = OffsetArray(c, 1:2)
     @test same_value(d, c)
     @test axes(d,1) == 1:2
@@ -1670,7 +1669,7 @@ end
     @test similar(Array{Int}, (Base.OneTo(1), Base.OneTo(1))) isa Matrix{Int}
     B = similar(Array{Int}, (0:0, 3))
     @test isa(B, OffsetArray{Int, 2})
-    @test axes_values(B) == (0:0, 1:3)
+    @test no_offset_axes(B) == (0:0, 1:3)
 
     s = @SVector[i for i in 1:10]
     so = OffsetArray(s, 4);
@@ -1692,22 +1691,22 @@ end
     # check with an unseen axis type
     A = similar(ones(1), Int, ZeroBasedUnitRange(3:4), 4:5)
     @test eltype(A) === Int
-    @test axes_values(A) == (3:4, 4:5)
+    @test no_offset_axes(A) == (3:4, 4:5)
     A = similar(ones(1), Int, IdOffsetRange(ZeroBasedUnitRange(3:4), 2), 4:5)
     @test eltype(A) === Int
-    @test axes_values(A) == (5:6, 4:5)
+    @test no_offset_axes(A) == (5:6, 4:5)
     A = similar(ones(1), Int, IdOffsetRange(ZeroBasedUnitRange(3:4), 2), 4)
     @test eltype(A) === Int
-    @test axes_values(A) == (5:6, 1:4)
+    @test no_offset_axes(A) == (5:6, 1:4)
 
     # test for similar(::Type, ax)
     indsoffset = (IdOffsetRange(SOneTo(2), 2),)
     A = similar(Array{Int}, indsoffset)
     @test parent(A) isa StaticArray
-    @test axes_values(A) == (3:4,)
+    @test no_offset_axes(A) == (3:4,)
     A = similar(Array{Int}, (indsoffset..., SOneTo(3)))
     @test parent(A) isa StaticArray
-    @test axes_values(A) == (3:4, 1:3)
+    @test no_offset_axes(A) == (3:4, 1:3)
 
     s = SArray{Tuple{2,2},Int,2,4}((1,2,3,4));
     so = OffsetArray(s, 2, 2);
@@ -1788,21 +1787,21 @@ end
     B = reshape(A0, -10:-9, :)
     @test B isa OffsetArray{Int,2}
     @test parent(B) === A0
-    @test axes_values(B, 1) == -10:-9
+    @test no_offset_axes(B, 1) == -10:-9
     @test axes(B, 2) == axes(A0, 2)
 
     B = reshape(A0, -10:-9, 3:3, :)
     @test B isa OffsetArray{Int,3}
     @test same_value(A0, B)
-    @test axes_values(B, 1) == -10:-9
-    @test axes_values(B, 2) == 3:3
+    @test no_offset_axes(B, 1) == -10:-9
+    @test no_offset_axes(B, 2) == 3:3
     @test axes(B, 3) == 1:2
 
     B = reshape(A0, -10:-9, 3:4, :)
     @test B isa OffsetArray{Int,3}
     @test same_value(A0, B)
-    @test axes_values(B, 1) == -10:-9
-    @test axes_values(B, 2) == 3:4
+    @test no_offset_axes(B, 1) == -10:-9
+    @test no_offset_axes(B, 2) == 3:4
     @test axes(B, 3) == 1:1
 
     # pop the parent
@@ -1889,7 +1888,7 @@ end
     @test_throws Exception reshape(r, length(r) + 1)
     @test_throws Exception reshape(r, 1:length(r) + 1)
     rp = parent(r)
-    @test axes_values(reshape(rp, 4:6), 1) == 4:6
+    @test no_offset_axes(reshape(rp, 4:6), 1) == 4:6
     @test axes(reshape(r, (3,1))) == (1:3, 1:1)
 
     # reshape with one single colon becomes a `vec`
@@ -2117,7 +2116,7 @@ end
             b = mapreduce(identity, +, a, dims = 1)
             br = mapreduce(identity, +, r, dims = 1)
             @test no_offset_view(b) == no_offset_view(br)
-            @test axes_values(b, 1) == first(axes(a,1)):first(axes(a,1))
+            @test no_offset_axes(b, 1) == first(axes(a,1)):first(axes(a,1))
 
             @test mapreduce(identity, +, a, init = 3) == mapreduce(identity, +, r, init = 3)
             if VERSION >= v"1.2"
@@ -2131,7 +2130,7 @@ end
                 b = f(a, dims = 1);
                 br = f(r, dims = 1)
                 @test no_offset_view(b) == no_offset_view(br)
-                @test axes_values(b, 1) == first(axes(a,1)):first(axes(a,1))
+                @test no_offset_axes(b, 1) == first(axes(a,1)):first(axes(a,1))
 
                 b = f(a, dims = 2);
                 br = f(r, dims = 2)
@@ -2180,15 +2179,15 @@ end
 
 @testset "fill" begin
     B = fill(5, 1:3, -1:1)
-    @test axes_values(B) == (1:3,-1:1)
+    @test no_offset_axes(B) == (1:3,-1:1)
     @test all(B.==5)
 
     B = fill(5, (1:3, -1:1))
-    @test axes_values(B) == (1:3,-1:1)
+    @test no_offset_axes(B) == (1:3,-1:1)
     @test all(B.==5)
 
     B = fill(5, 3, -1:1)
-    @test axes_values(B) == (1:3,-1:1)
+    @test no_offset_axes(B) == (1:3,-1:1)
     @test all(B.==5)
 
     @testset "fill!" begin
@@ -2302,7 +2301,7 @@ Base.getindex(x::PointlessWrapper, i...) = x.parent[i...]
     B = BidirectionalVector([1, 2, 3])
     pushfirst!(B, 0)
     OB = OffsetArrays.no_offset_view(B)
-    @test axes_values(OB, 1) == 1:4
+    @test no_offset_axes(OB, 1) == 1:4
     @test collect(OB) == 0:3
 
     # issue #198
@@ -2352,25 +2351,25 @@ end
     # push!
     o = OffsetVector(Int[], -1)
     @test push!(o) === o
-    @test axes_values(o, 1) == 0:-1
+    @test no_offset_axes(o, 1) == 0:-1
     @test push!(o, 1) === o
-    @test axes_values(o, 1) == 0:0
+    @test no_offset_axes(o, 1) == 0:0
     @test o[end] == 1
     @test push!(o, 2, 3) === o
-    @test axes_values(o, 1) == 0:2
+    @test no_offset_axes(o, 1) == 0:2
     @test o[end-1:end] == [2, 3]
     # pop!
     o = OffsetVector([1, 2, 3], -1)
     @test pop!(o) == 3
-    @test axes_values(o, 1) == 0:1
+    @test no_offset_axes(o, 1) == 0:1
     # append!
     o = OffsetVector([1, 2, 3], -1)
     append!(o, [4, 5])
-    @test axes_values(o, 1) == 0:4
+    @test no_offset_axes(o, 1) == 0:4
     # empty!
     o = OffsetVector([1, 2, 3], -1)
     @test empty!(o) === o
-    @test axes_values(o, 1) == 0:-1
+    @test no_offset_axes(o, 1) == 0:-1
 end
 
 @testset "searchsorted (#85)" begin
@@ -2558,7 +2557,7 @@ end
             @test b == a2
 
             b = T(a2, 1, 1)
-            @test axes_values(b) == map((x,y) -> x .+ y, axes(a2), (1,1))
+            @test no_offset_axes(b) == map((x,y) -> x .+ y, axes(a2), (1,1))
 
             b = T(a2)
             @test b isa T
@@ -2575,7 +2574,7 @@ end
             @test b == a3
 
             b = T(a3, 1, 1, 1)
-            @test axes_values(b) == map((x,y) -> x .+ y, axes(a3), (1,1,1))
+            @test no_offset_axes(b) == map((x,y) -> x .+ y, axes(a3), (1,1,1))
 
             b = T(a3)
             @test b isa T
@@ -2613,7 +2612,7 @@ end
 
         b = T(a, 2:4)
         @test b isa T
-        @test axes_values(b, 1) == 2:4
+        @test no_offset_axes(b, 1) == 2:4
         @test OffsetArrays.no_offset_view(b) == OffsetArrays.no_offset_view(a)
 
         b = T(a, 1)
@@ -2633,7 +2632,7 @@ end
 
         b = T(a, ZeroBasedIndexing())
         @test b isa T
-        @test axes_values(b) == (0:1, 0:1)
+        @test no_offset_axes(b) == (0:1, 0:1)
     end
 
     # changing the number of dimensions is not permitted
