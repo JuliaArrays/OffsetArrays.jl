@@ -2053,7 +2053,7 @@ end
 end
 
 @testset "reductions" begin
-    A = OffsetArray(rand(4,4), (-3,5))
+    A = OffsetArray(rand(Int,4,4), (-3,5))
     @test maximum(A) == maximum(parent(A))
     @test minimum(A) == minimum(parent(A))
     @test extrema(A) == extrema(parent(A))
