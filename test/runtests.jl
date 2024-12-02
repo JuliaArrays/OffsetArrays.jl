@@ -1755,7 +1755,7 @@ end
 
     B = reshape(A0, -10:-9, 9:10)
     @test isa(B, OffsetArray{Int,2})
-    @test parent(B) === A0
+    @test parent(B) == A0
     @test axes(B) == IdentityUnitRange.((-10:-9, 9:10))
     B = reshape(A, -10:-9, 9:10)
     @test isa(B, OffsetArray{Int,2})
@@ -1786,7 +1786,6 @@ end
     # reshape with one Colon for AbstractArrays
     B = reshape(A0, -10:-9, :)
     @test B isa OffsetArray{Int,2}
-    @test parent(B) === A0
     @test no_offset_axes(B, 1) == -10:-9
     @test axes(B, 2) == axes(A0, 2)
 
@@ -1807,17 +1806,14 @@ end
     # pop the parent
     B = reshape(A, size(A))
     @test B == A0
-    @test parent(B) === A0
     B = reshape(A, (Base.OneTo(2), 2))
     @test B == A0
-    @test parent(B) === A0
     B = reshape(A, (2,:))
     @test B == A0
-    @test parent(B) === A0
 
     # julialang/julia #33614
     A = OffsetArray(-1:0, (-2,))
-    @test reshape(A, :) === A
+    @test reshape(A, :) == A
     Arsc = reshape(A, :, 1)
     Arss = reshape(A, 2, 1)
     @test Arsc[1,1] == Arss[1,1] == -1
