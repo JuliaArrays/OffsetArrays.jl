@@ -1786,6 +1786,7 @@ end
     # reshape with one Colon for AbstractArrays
     B = reshape(A0, -10:-9, :)
     @test B isa OffsetArray{Int,2}
+    @test parent(B) == A0
     @test no_offset_axes(B, 1) == -10:-9
     @test axes(B, 2) == axes(A0, 2)
 
