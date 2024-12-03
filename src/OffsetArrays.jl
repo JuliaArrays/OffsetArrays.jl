@@ -825,6 +825,9 @@ centered(A::AbstractArray, cp::Dims=center(A)) = OffsetArray(A, .-cp)
 centered(A::AbstractArray, i::CartesianIndex) = centered(A, Tuple(i))
 
 if VERSION < v"1.12.0-DEV.1713"
+    # The Base implementations are fixed in https://github.com/JuliaLang/julia/pull/56464 and https://github.com/JuliaLang/julia/pull/56474
+    # we therefore limit these specializations to older versions of julia
+
     # we may pass the searchsorted* functions to the parent, and wrap the offset
     for f in [:searchsortedfirst, :searchsortedlast, :searchsorted]
         _safe_f = Symbol("_safe_" * String(f))
