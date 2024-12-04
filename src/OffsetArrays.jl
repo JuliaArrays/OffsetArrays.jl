@@ -824,23 +824,28 @@ centered(A::AbstractArray, cp::Dims=center(A)) = OffsetArray(A, .-cp)
 
 centered(A::AbstractArray, i::CartesianIndex) = centered(A, Tuple(i))
 
-# we may pass the searchsorted* functions to the parent, and wrap the offset
-for f in [:searchsortedfirst, :searchsortedlast, :searchsorted]
-    _safe_f = Symbol("_safe_" * String(f))
-    @eval function $_safe_f(v::OffsetVector, x, ilo, ihi, o::Base.Ordering)
-        offset = v.offsets[1]
-        $f(parent(v), x, ilo - offset, ihi - offset, o) .+ offset
-    end
-    @eval Base.$f(v::OffsetVector, x, ilo::T, ihi::T, o::Base.Ordering) where T<:Integer =
-        $_safe_f(v, x, ilo, ihi, o)
-end
+if VERSION < v"1.12.0-DEV.1713"
+    # The Base implementations are fixed in https://github.com/JuliaLang/julia/pull/56464 and https://github.com/JuliaLang/julia/pull/56474
+    # we therefore limit these specializations to older versions of julia
 
-if VERSION <= v"1.2"
-    # ambiguity warnings in earlier versions
+    # we may pass the searchsorted* functions to the parent, and wrap the offset
     for f in [:searchsortedfirst, :searchsortedlast, :searchsorted]
         _safe_f = Symbol("_safe_" * String(f))
-        @eval Base.$f(v::OffsetVector, x, ilo::Int, ihi::Int, o::Base.Ordering) =
+        @eval function $_safe_f(v::OffsetVector, x, ilo, ihi, o::Base.Ordering)
+            offset = v.offsets[1]
+            $f(parent(v), x, ilo - offset, ihi - offset, o) .+ offset
+        end
+        @eval Base.$f(v::OffsetVector, x, ilo::T, ihi::T, o::Base.Ordering) where T<:Integer =
             $_safe_f(v, x, ilo, ihi, o)
+    end
+
+    if VERSION <= v"1.2"
+        # ambiguity warnings in earlier versions
+        for f in [:searchsortedfirst, :searchsortedlast, :searchsorted]
+            _safe_f = Symbol("_safe_" * String(f))
+            @eval Base.$f(v::OffsetVector, x, ilo::Int, ihi::Int, o::Base.Ordering) =
+                $_safe_f(v, x, ilo, ihi, o)
+        end
     end
 end
 
