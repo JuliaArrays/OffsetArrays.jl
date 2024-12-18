@@ -1749,6 +1749,24 @@ end
     end
 end
 
+# custom FillArray with BigInt axes, used to test `reshape`
+struct MyBigFill{T,N} <: AbstractArray{T,N}
+    val :: T
+    axes :: NTuple{N,Base.OneTo{BigInt}}
+end
+MyBigFill(val, sz::NTuple{N,BigInt}) where {N} = MyBigFill(val, map(Base.OneTo, sz))
+MyBigFill(val, sz::Tuple{Vararg{Integer}}) = MyBigFill(val, map(BigInt, sz))
+Base.size(M::MyBigFill) = map(length, M.axes)
+Base.axes(M::MyBigFill) = M.axes
+function Base.getindex(M::MyBigFill{<:Any,N}, ind::Vararg{Int,N}) where {N}
+    checkbounds(M, ind...)
+    M.val
+end
+function Base.reshape(M::MyBigFill, ind::NTuple{N,BigInt}) where {N}
+    length(M) == prod(ind) || throw(ArgumentError("length mismatch in reshape"))
+    MyBigFill(M.val, ind)
+end
+
 @testset "reshape" begin
     A0 = [1 3; 2 4]
     A = OffsetArray(A0, (-1,2))
@@ -1903,25 +1921,9 @@ end
         e isa TypeError || rethrow()
     end
     @testset "Tuple{Vararg{Integer}}" begin
-        struct MyFill{T,N} <: AbstractArray{T,N}
-            val :: T
-            axes :: NTuple{N,Base.OneTo{BigInt}}
-        end
-        MyFill(val, sz::NTuple{N,BigInt}) where {N} = MyFill(val, map(Base.OneTo, sz))
-        MyFill(val, sz::Tuple{Vararg{Integer}}) = MyFill(val, map(BigInt, sz))
-        Base.size(M::MyFill) = map(length, M.axes)
-        Base.axes(M::MyFill) = M.axes
-        function Base.getindex(M::MyFill{<:Any,N}, ind::Vararg{Int,N}) where {N}
-            checkbounds(M, ind...)
-            M.val
-        end
-        function Base.reshape(M::MyFill, ind::NTuple{N,BigInt}) where {N}
-            length(M) == prod(ind) || throw(ArgumentError("length mismatch in reshape"))
-            MyFill(M.val, ind)
-        end
-        M = MyFill(4, (2, 3))
+        M = MyBigFill(4, (2, 3))
         O = OffsetArray(M)
-        @test vec(O) isa MyFill
+        @test vec(O) isa MyBigFill
     end
 end
 
