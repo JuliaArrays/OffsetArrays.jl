@@ -1846,10 +1846,11 @@ end
     @test axes(R) == (1:2, 1:3)
 
     r = OffsetArray(ZeroBasedRange(3:4), 1);
-    @test reshape(r, 2) == 3:4
-    @test reshape(r, (2,)) == 3:4
+    @test reshape(r, 2) == reshape(r, big(2)) == 3:4
+    @test reshape(r, (2,)) == reshape(r, (big(2),)) == 3:4
     @test reshape(r, :) == 3:4
     @test reshape(r, (:,)) == 3:4
+    @test reshape(r, big(2), 1) == reshape(3:4, 2, 1)
 
     # getindex for a reshaped array that wraps an offset array is broken on 1.0
     if VERSION >= v"1.1"
