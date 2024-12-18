@@ -1758,9 +1758,13 @@ MyBigFill(val, sz::NTuple{N,BigInt}) where {N} = MyBigFill(val, map(Base.OneTo, 
 MyBigFill(val, sz::Tuple{Vararg{Integer}}) = MyBigFill(val, map(BigInt, sz))
 Base.size(M::MyBigFill) = map(length, M.axes)
 Base.axes(M::MyBigFill) = M.axes
-function Base.getindex(M::MyBigFill{<:Any,N}, ind::Vararg{Int,N}) where {N}
+function Base.getindex(M::MyBigFill{<:Any,N}, ind::Vararg{Integer,N}) where {N}
     checkbounds(M, ind...)
     M.val
+end
+function Base.isassigned(M::MyBigFill{<:Any,N}, ind::Vararg{BigInt,N}) where {N}
+    checkbounds(M, ind...)
+    true
 end
 function Base.reshape(M::MyBigFill, ind::NTuple{N,BigInt}) where {N}
     length(M) == prod(ind) || throw(ArgumentError("length mismatch in reshape"))
