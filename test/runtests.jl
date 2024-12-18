@@ -1902,6 +1902,27 @@ end
     catch e
         e isa TypeError || rethrow()
     end
+    @testset "Tuple{Vararg{Integer}}" begin
+        struct MyFill{T,N} <: AbstractArray{T,N}
+            val :: T
+            axes :: NTuple{N,Base.OneTo{BigInt}}
+        end
+        MyFill(val, sz::NTuple{N,BigInt}) where {N} = MyFill(val, map(Base.OneTo, sz))
+        MyFill(val, sz::Tuple{Vararg{Integer}}) = MyFill(val, map(BigInt, sz))
+        Base.size(M::MyFill) = map(length, M.axes)
+        Base.axes(M::MyFill) = M.axes
+        function Base.getindex(M::MyFill{<:Any,N}, ind::Vararg{Int,N}) where {N}
+            checkbounds(M, ind...)
+            M.val
+        end
+        function Base.reshape(M::MyFill, ind::NTuple{N,BigInt}) where {N}
+            length(M) == prod(ind) || throw(ArgumentError("length mismatch in reshape"))
+            MyFill(M.val, ind)
+        end
+        M = MyFill(4, (2, 3))
+        O = OffsetArray(M)
+        @test vec(O) isa MyFill
+    end
 end
 
 @testset "permutedims" begin
