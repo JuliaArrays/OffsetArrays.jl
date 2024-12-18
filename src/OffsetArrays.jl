@@ -376,9 +376,13 @@ _reshape2(A::OffsetArray, inds) = reshape(parent(A), inds)
 _reshape_nov(A, inds) = _reshape(no_offset_view(A), inds)
 
 # And for non-offset axes, we can just return a reshape of the parent directly
+Base.reshape(A::OffsetArray, inds::Tuple{Vararg{Integer}}) = _reshape_nov(A, inds)
 Base.reshape(A::OffsetArray, inds::Dims) = _reshape_nov(A, inds)
-Base.reshape(A::OffsetVector, ::Tuple{Colon}) = A
-Base.reshape(A::OffsetArray, inds::Tuple{Vararg{Union{Int,Colon}}}) = _reshape_nov(A, inds)
+if VERSION < v"1.10.7"
+    # the specialized reshape(parent::AbstractVector, ::Tuple{Colon}) is available in Base at least on this version
+    Base.reshape(A::OffsetVector, ::Tuple{Colon}) = A
+    Base.reshape(A::OffsetArray, inds::Tuple{Vararg{Union{Int,Colon}}}) = _reshape_nov(A, inds)
+end
 
 # permutedims in Base does not preserve axes, and can not be fixed in a non-breaking way
 # This is a stopgap solution
