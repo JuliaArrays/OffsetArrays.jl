@@ -1930,10 +1930,12 @@ Base.reshape(M::MyBigFill, ind::Tuple{}) = MyBigFill(M.val, ind)
         M = MyBigFill(4, (2, 3))
         O = OffsetArray(M)
         @test vec(O) isa MyBigFill
+        @test vec(O) == vec(M)
 
         M = MyBigFill(4, (1,1))
         O = OffsetArray(M)
         @test reshape(O) == reshape(M)
+        @test reshape(O) isa MyBigFill
     end
 end
 
