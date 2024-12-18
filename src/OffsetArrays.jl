@@ -317,6 +317,27 @@ end
 
 Base.similar(A::OffsetArray, ::Type{T}, dims::Dims) where T =
     similar(parent(A), T, dims)
+
+"""
+    isonebased(::Type{T}) where {T<:AbstractUnitRange{<:Integer}}
+
+Return whether `first(ax::T)` is statically known to be `1` for any `ax` of type `T`
+(`false` by default).
+Custom axis types may extend this method to ensure that the axis offset is ignored,
+for example in `similar`. This may strip `OffsetArray` wrappers on occasion, or dispatch
+to `Base` methods for 1-based axes.
+
+For axes that are essentially wrappers around another `AbstractUnitRange`,
+and share their indexing with their parents, one may forward the type of the
+parent range to `isonebased`.
+"""
+isonebased(x) = isonebased(typeof(x))
+isonebased(::Type) = false
+isonebased(::Type{<:Integer}) = true
+isonebased(::Type{<:Base.OneTo}) = true
+isonebased(::Type{IdentityUnitRange{T}}) where {T} = isonebased(T)
+
+# Since the following is committing type-piracy, we provide an opt-out mechanism to the users
 function Base.similar(A::AbstractArray, ::Type{T}, shape::Tuple{OffsetAxisKnownLength,Vararg{OffsetAxisKnownLength}}) where T
     # strip IdOffsetRanges to extract the parent range and use it to generate the array
     new_shape = map(_strip_IdOffsetRange, shape)
@@ -325,12 +346,14 @@ function Base.similar(A::AbstractArray, ::Type{T}, shape::Tuple{OffsetAxisKnownL
     # If this fails, it calls similar(A, T, map(_indexlength, new_shape)) to use the size along each axis
     # to generate the new array
     P = _similar_axes_or_length(A, T, new_shape, shape)
+    all(isonebased, shape) && return P
     return OffsetArray(P, map(_offset, axes(P), shape))
 end
 Base.similar(::Type{A}, sz::Tuple{Vararg{Int}}) where {A<:OffsetArray} = similar(Array{eltype(A)}, sz)
 function Base.similar(::Type{T}, shape::Tuple{OffsetAxisKnownLength,Vararg{OffsetAxisKnownLength}}) where {T<:AbstractArray}
     new_shape = map(_strip_IdOffsetRange, shape)
     P = _similar_axes_or_length(T, new_shape, shape)
+    all(isonebased, shape) && return P
     OffsetArray(P, map(_offset, axes(P), shape))
 end
 # Try to use the axes to generate the parent array type
@@ -701,11 +724,11 @@ no_offset_view(a::Array) = a
 no_offset_view(i::Number) = i
 no_offset_view(A::AbstractArray) = _no_offset_view(axes(A), A)
 _no_offset_view(::Tuple{}, A::AbstractArray{T,0}) where T = A
-_no_offset_view(::Tuple{Base.OneTo, Vararg{Base.OneTo}}, A::AbstractArray) = A
-# the following method is needed for ambiguity resolution
-_no_offset_view(::Tuple{Base.OneTo, Vararg{Base.OneTo}}, A::AbstractUnitRange) = A
-_no_offset_view(::Any, A::AbstractArray) = OffsetArray(A, Origin(1))
-_no_offset_view(::Any, A::AbstractUnitRange) = UnitRange(A)
+function _no_offset_view(ax::Tuple, A::AbstractArray)
+    all(isonebased, ax) ? A : __no_offset_view(A)
+end
+__no_offset_view(A::AbstractArray) = OffsetArray(A, Origin(1))
+__no_offset_view(A::AbstractUnitRange) = UnitRange(A)
 
 #####
 # center/centered
