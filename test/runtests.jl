@@ -1754,6 +1754,7 @@ struct MyBigFill{T,N} <: AbstractArray{T,N}
     val :: T
     axes :: NTuple{N,Base.OneTo{BigInt}}
 end
+MyBigFill(val, sz::Tuple{}) = MyBigFill{typeof(val),0}(val, sz)
 MyBigFill(val, sz::NTuple{N,BigInt}) where {N} = MyBigFill(val, map(Base.OneTo, sz))
 MyBigFill(val, sz::Tuple{Vararg{Integer}}) = MyBigFill(val, map(BigInt, sz))
 Base.size(M::MyBigFill) = map(length, M.axes)
@@ -1770,6 +1771,7 @@ function Base.reshape(M::MyBigFill, ind::NTuple{N,BigInt}) where {N}
     length(M) == prod(ind) || throw(ArgumentError("length mismatch in reshape"))
     MyBigFill(M.val, ind)
 end
+Base.reshape(M::MyBigFill, ind::Tuple{}) = MyBigFill(M.val, ind)
 
 @testset "reshape" begin
     A0 = [1 3; 2 4]
@@ -1928,6 +1930,12 @@ end
         M = MyBigFill(4, (2, 3))
         O = OffsetArray(M)
         @test vec(O) isa MyBigFill
+        @test vec(O) == vec(M)
+
+        M = MyBigFill(4, (1,1))
+        O = OffsetArray(M)
+        @test reshape(O) == reshape(M)
+        @test reshape(O) isa MyBigFill
     end
 end
 
