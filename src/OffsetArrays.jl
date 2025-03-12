@@ -274,6 +274,7 @@ end
 
 Base.IndexStyle(::Type{OA}) where {OA<:OffsetArray} = IndexStyle(parenttype(OA))
 parenttype(::Type{OffsetArray{T,N,AA,I}}) where {T,N,AA,I} = AA
+parenttype(::Type{OffsetArray{T,N,AA}}) where {T,N,AA} = AA
 parenttype(A::OffsetArray) = parenttype(typeof(A))
 
 Base.parent(A::OffsetArray) = A.parent
@@ -325,6 +326,7 @@ function Base.similar(A::AbstractArray, ::Type{T}, shape::Tuple{OffsetAxisKnownL
     P = _similar_axes_or_length(A, T, new_shape, shape)
     return OffsetArray(P, map(_offset, axes(P), shape))
 end
+Base.similar(::Type{A}, sz::Tuple{Vararg{Int}}) where {A<:OffsetArray} = similar(Array{eltype(A)}, sz)
 function Base.similar(::Type{T}, shape::Tuple{OffsetAxisKnownLength,Vararg{OffsetAxisKnownLength}}) where {T<:AbstractArray}
     new_shape = map(_strip_IdOffsetRange, shape)
     P = _similar_axes_or_length(T, new_shape, shape)
@@ -457,6 +459,7 @@ Base.in(x, A::OffsetArray) = in(x, parent(A))
 Base.copy(A::OffsetArray) = parent_call(copy, A)
 
 Base.strides(A::OffsetArray) = strides(parent(A))
+Base.elsize(::Type{OffsetArray{T,N,A,I}}) where {T,N,A,I} = Base.elsize(A)
 Base.elsize(::Type{OffsetArray{T,N,A}}) where {T,N,A} = Base.elsize(A)
 Base.cconvert(P::Type{Ptr{T}}, A::OffsetArray{T}) where {T} = Base.cconvert(P, parent(A))
 if VERSION < v"1.11-"
@@ -504,13 +507,13 @@ if VERSION <= v"1.7.0-DEV.1039"
 end
 
 # Linear Indexing of OffsetArrays with AbstractUnitRanges may use the faster contiguous indexing methods
-@inline function Base.getindex(A::OffsetArray, r::AbstractUnitRange{Integer})
+@inline function Base.getindex(A::OffsetArray, r::AbstractUnitRange{Int})
     @boundscheck checkbounds(A, r)
     # nD OffsetArrays do not have their linear indices shifted, so we may forward the indices provided to the parent
     @inbounds B = parent(A)[_contiguousindexingtype(r)]
     _indexedby(B, axes(r))
 end
-@inline function Base.getindex(A::OffsetVector, r::AbstractUnitRange{Integer})
+@inline function Base.getindex(A::OffsetVector, r::AbstractUnitRange{Int})
     @boundscheck checkbounds(A, r)
     # OffsetVectors may have their linear indices shifted, so we subtract the offset from the indices provided
     @inbounds B = parent(A)[_subtractoffset(r, A.offsets[1])]
@@ -518,7 +521,7 @@ end
 end
 
 # This method added mainly to index an OffsetRange with another range
-@inline function Base.getindex(A::OffsetVector, r::AbstractRange{Integer})
+@inline function Base.getindex(A::OffsetVector, r::AbstractRange{Int})
     @boundscheck checkbounds(A, r)
     @inbounds B = parent(A)[_subtractoffset(r, A.offsets[1])]
     _indexedby(B, axes(r))
