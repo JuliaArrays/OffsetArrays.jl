@@ -183,9 +183,6 @@ for FT in (:OffsetArray, :OffsetVector, :OffsetMatrix)
         I = map(+, _offsets(A, parent(A)), offsets)
         $FT(parent(A), I, checkoverflow = false)
     end
-    @eval @inline function $FT(A::OffsetArray, offsets::Tuple{Integer,Vararg{Integer}}; kw...)
-        $FT(A, map(Int, offsets); kw...)
-    end
 
     # In general, indices get converted to AbstractUnitRanges.
     # CartesianIndices{N} get converted to N ranges
@@ -230,9 +227,6 @@ end
     MvA = convert(A, Mv)::A
     Iof = map(+, _offsets(M), I)
     OffsetArray{T,N,A}(MvA, Iof, checkoverflow = false)
-end
-@inline function OffsetArray{T, N, AA}(parent::AbstractArray{<:Any,N}, offsets::NTuple{N,Integer}; kw...) where {T, N, AA<:AbstractArray{T,N}}
-    OffsetArray{T, N, AA}(parent, offsets; kw...)
 end
 @inline function OffsetArray{T,N,A}(M::AbstractArray{<:Any,N}, I::Tuple{AbstractUnitRange,Vararg{AbstractUnitRange}}; kw...) where {T,N,A<:AbstractArray{T,N}}
     _checkindices(M, I, "indices")
@@ -327,13 +321,11 @@ function Base.similar(A::AbstractArray, ::Type{T}, shape::Tuple{OffsetAxisKnownL
     P = _similar_axes_or_length(A, T, new_shape, shape)
     return OffsetArray(P, map(_offset, axes(P), shape))
 end
-Base.similar(::Type{A}, sz::Tuple{Vararg{Integer}}) where {A<:OffsetArray} = similar(Array{eltype(A)}, sz)
 function Base.similar(::Type{T}, shape::Tuple{OffsetAxisKnownLength,Vararg{OffsetAxisKnownLength}}) where {T<:AbstractArray}
     new_shape = map(_strip_IdOffsetRange, shape)
     P = _similar_axes_or_length(T, new_shape, shape)
     OffsetArray(P, map(_offset, axes(P), shape))
 end
-similar(::Type{A}, sz::Tuple{Integer,Vararg{Integer}}) where {A<:OffsetArray} = similar(Array{eltype(A)}, sz)
 
 # Try to use the axes to generate the parent array type
 # This is useful if the axes have special meanings, such as with static arrays

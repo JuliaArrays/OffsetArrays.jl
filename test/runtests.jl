@@ -46,7 +46,7 @@ end
 @testset "Project meta quality checks" begin
     Aqua.test_all(OffsetArrays, piracies=false)
     if VERSION >= v"1.2"
-        doctest(OffsetArrays, manual = false)
+        doctest(OffsetArrays, manual=false)
     end
 end
 
