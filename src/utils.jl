@@ -3,7 +3,7 @@
 _indexoffset(r::AbstractRange) = first(r) - 1
 _indexoffset(i::Integer) = 0
 _indexlength(r::AbstractRange) = length(r)
-_indexlength(i::Integer) = Int(i)
+_indexlength(i::Integer) = i
 _indexlength(i::Colon) = Colon()
 
 # utility methods used in reshape
