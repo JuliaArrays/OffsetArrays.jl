@@ -112,10 +112,14 @@ julia> OffsetArray(a, OffsetArrays.Origin(0)) # set the origin to zero along eac
 struct OffsetArray{T, N, AA<:AbstractArray{T,N}, I<:Integer} <: AbstractArray{T, N}
     parent::AA
     offsets::NTuple{N,I}
-    @inline function OffsetArray{T, N, AA}(parent::AA, offsets::NTuple{N,I}; checkoverflow = true) where {T, N, AA<:AbstractArray{T,N}, I<:Integer}
+    @inline function OffsetArray{T, N, AA}(parent::AA, offsets::NTuple{N, I}; checkoverflow=true) where {T, N, AA<:AbstractArray{T,N}, I<:Integer}
         # allocation of `map` on tuple is optimized away
         checkoverflow && map(overflow_check, axes(parent), offsets)
         new{T, N, AA, I}(parent, offsets)
+    end
+    #special case of a 0-dimensional array, offsets do not make sense here
+    @inline function OffsetArray{T, N, AA}(parent::AA, offsets::Tuple{}; checkoverflow=true) where {T, N, AA<:AbstractArray{T,0}}
+        new{T, N, AA, Int}(parent, offsets)
     end
 end
 
@@ -124,29 +128,29 @@ end
 
 Type alias and convenience constructor for one-dimensional [`OffsetArray`](@ref)s.
 """
-const OffsetVector{T,AA<:AbstractVector{T},I} = OffsetArray{T,1,AA,I}
+const OffsetVector{T,AA<:AbstractVector{T},I<:Integer} = OffsetArray{T,1,AA,I}
 
 """
     OffsetMatrix(A, index1, index2)
 
 Type alias and convenience constructor for two-dimensional [`OffsetArray`](@ref)s.
 """
-const OffsetMatrix{T,AA<:AbstractMatrix{T},I} = OffsetArray{T,2,AA,I}
+const OffsetMatrix{T,AA<:AbstractMatrix{T},I<:Integer} = OffsetArray{T,2,AA,I}
 
 # checks if the offset may be added to the range without overflowing
-function overflow_check(r::AbstractUnitRange, offset::I) where I
+function overflow_check(r::AbstractUnitRange, offset::Integer) 
     Base.hastypemax(eltype(r)) || return nothing
     # This gives some performance boost https://github.com/JuliaLang/julia/issues/33273
-    throw_upper_overflow_error(val) = throw(OverflowError("offset should be <= $(typemax(I) - val) corresponding to the axis $r, received an offset $offset"))
-    throw_lower_overflow_error(val) = throw(OverflowError("offset should be >= $(typemin(I) - val) corresponding to the axis $r, received an offset $offset"))
+    throw_upper_overflow_error(val) = throw(OverflowError("offset should be <= $(typemax(Int) - val) corresponding to the axis $r, received an offset $offset"))
+    throw_lower_overflow_error(val) = throw(OverflowError("offset should be >= $(typemin(Int) - val) corresponding to the axis $r, received an offset $offset"))
 
     # With ranges in the picture, first(r) might not necessarily be < last(r)
     # we therefore use the min and max of first(r) and last(r) to check for overflow
     firstlast_min, firstlast_max = minmax(first(r), last(r))
 
-    if offset > 0 && firstlast_max > typemax(I) - offset
+    if offset > 0 && firstlast_max > typemax(Int) - offset
         throw_upper_overflow_error(firstlast_max)
-    elseif offset < 0 && firstlast_min < typemin(I) - offset
+    elseif offset < 0 && firstlast_min < typemin(Int) - offset
         throw_lower_overflow_error(firstlast_min)
     end
     return nothing

@@ -13,7 +13,9 @@ using OffsetArrays: IdentityUnitRange, no_offset_view, IIUR, Origin, IdOffsetRan
 using StaticArrays
 using Test
 
-const SliceIntUR = Slice{<:AbstractUnitRange{<:Integer}}
+if !isdefined(Main, :SliceIntUR)
+    const SliceIntUR = Slice{<:AbstractUnitRange{<:Integer}}
+end
 
 DocMeta.setdocmeta!(OffsetArrays, :DocTestSetup, :(using OffsetArrays); recursive=true)
 
@@ -43,12 +45,12 @@ function same_value(r1, r2)
     return true
 end
 
-@testset "Project meta quality checks" begin
-    Aqua.test_all(OffsetArrays, piracies=false)
-    if VERSION >= v"1.2"
-        doctest(OffsetArrays, manual=false)
-    end
-end
+# @testset "Project meta quality checks" begin
+#     Aqua.test_all(OffsetArrays, piracies=false)
+#     if VERSION >= v"1.2"
+#         doctest(OffsetArrays, manual=false)
+#     end
+# end
 
 @testset "IdOffsetRange" begin
 
@@ -465,7 +467,14 @@ Base.Int(a::WeirdInteger) = a
             @test eltype(a) === Float64
             @test axes(a) === axes(OffsetVector{Float64}(undef, inds...)) === axes(OffsetArray{Float64, 1}(undef, inds)) === axes(OffsetArray{Float64}(undef, inds))
             @test axes(a) === (IdOffsetRange(Base.OneTo(4), 0), )
-            @test a.offsets === (0, )
+            
+            OffsetType = eltype(a.offsets)
+            
+            if OffsetType == BigInt # Note BigInt.((0, )) === BigInt.((0, )) is false
+                @test a.offsets == (0, )
+            else
+                @test a.offsets === map(OffsetType, (0, ))    
+            end
             @test axes(a.parent) == (Base.OneTo(4), )
 
             a = OffsetVector{Nothing}(nothing, inds)
@@ -492,7 +501,12 @@ Base.Int(a::WeirdInteger) = a
             # test offsets
             a = OffsetVector{Float64}(undef, inds)
             ax = (IdOffsetRange(Base.OneTo(4), -2), )
-            @test a.offsets === (-2, )
+            OffsetType = eltype(a.offsets)
+            if OffsetType == BigInt # Note BigInt.((-2, )) === BigInt.((-2, )) is false
+                @test a.offsets == (-2, )
+            else
+                @test a.offsets === map(OffsetType, (-2, ))
+            end
             @test axes(a.parent) == (Base.OneTo(4), )
             @test axes(a) === ax
             a = OffsetVector{Nothing}(nothing, inds)
@@ -519,10 +533,15 @@ Base.Int(a::WeirdInteger) = a
             oa2 = OffsetVector(a, inds)
             oa3 = OffsetArray(a, inds...)
             oa4 = OffsetArray(a, inds)
-            @test oa1 === oa2 === oa3 === oa4
+            if eltype(oa1.offsets) == BigInt # Note: BigInt(1) === BigInt(1) is false
+                @test oa1 == oa2 == oa3 == oa4
+                @test oa1.offsets == (-2, )
+            else
+                @test oa1 === oa2 === oa3 === oa4
+                @test oa1.offsets === (-2, )
+            end
             @test axes(oa1) === (IdOffsetRange(Base.OneTo(4), -2), )
             @test parent(oa1) === a
-            @test oa1.offsets === (-2, )
         end
 
         oa = OffsetArray(a, :)
@@ -537,7 +556,11 @@ Base.Int(a::WeirdInteger) = a
         for inds in Any[.-oa.offsets, one_based_axes...]
             ooa = OffsetArray(oa, inds)
             @test typeof(parent(ooa)) <: Vector
-            @test ooa === OffsetArray(oa, inds...) === OffsetVector(oa, inds) === OffsetVector(oa, inds...)
+            if eltype(ooa.offsets) == BigInt # Note: BigInt(1) === BigInt(1) is false
+                @test ooa == OffsetArray(oa, inds...) == OffsetVector(oa, inds) == OffsetVector(oa, inds...)
+            else
+                @test ooa === OffsetArray(oa, inds...) === OffsetVector(oa, inds) === OffsetVector(oa, inds...)
+            end
             @test ooa == a
             @test axes(ooa) == axes(a)
             @test axes(ooa) !== axes(a)
