@@ -104,20 +104,20 @@ end
 _bool_check(::Type, r, offset) = nothing
 
 # Construction/coercion from arbitrary AbstractUnitRanges
-function IdOffsetRange{T,I}(r::AbstractUnitRange, offset::Integer = Int8(0)) where {T<:Integer,I<:AbstractUnitRange{T}}
+function IdOffsetRange{T,I}(r::AbstractUnitRange, offset::Integer=Int8(0)) where {T<:Integer,I<:AbstractUnitRange{T}}
     rc, o = offset_coerce(I, r)
     return IdOffsetRange{T,I}(rc, convert(T, o+offset)::T)
 end
-function IdOffsetRange{T}(r::AbstractUnitRange, offset::Integer = Int8(0)) where T<:Integer
+function IdOffsetRange{T}(r::AbstractUnitRange, offset::Integer=Int8(0)) where T<:Integer
     rc = convert(AbstractUnitRange{T}, r)::AbstractUnitRange{T}
     return IdOffsetRange{T,typeof(rc)}(rc, convert(T, offset)::T)
 end
-IdOffsetRange(r::AbstractUnitRange{T}, offset::Integer = Int8(0)) where T<:Integer =
+IdOffsetRange(r::AbstractUnitRange{T}, offset::Integer=Int8(0)) where T<:Integer =
     IdOffsetRange{T,typeof(r)}(r, convert(T, offset)::T)
 
 # Coercion from other IdOffsetRanges
 IdOffsetRange{T,I}(r::IdOffsetRange{T,I}) where {T<:Integer,I<:AbstractUnitRange{T}} = r
-function IdOffsetRange{T,I}(r::IdOffsetRange, offset::Integer = Int8(0)) where {T<:Integer,I<:AbstractUnitRange{T}}
+function IdOffsetRange{T,I}(r::IdOffsetRange, offset::Integer=Int8(0)) where {T<:Integer,I<:AbstractUnitRange{T}}
     rc, offset_rc = offset_coerce(I, r.parent)
     return IdOffsetRange{T,I}(rc, convert(T, r.offset + offset + offset_rc)::T)
 end
