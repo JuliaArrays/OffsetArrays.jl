@@ -45,12 +45,12 @@ function same_value(r1, r2)
     return true
 end
 
-# @testset "Project meta quality checks" begin
-#     Aqua.test_all(OffsetArrays, piracies=false)
-#     if VERSION >= v"1.2"
-#         doctest(OffsetArrays, manual=false)
-#     end
-# end
+@testset "Project meta quality checks" begin
+    Aqua.test_all(OffsetArrays, piracies=false)
+    if VERSION >= v"1.2"
+        doctest(OffsetArrays, manual=false)
+    end
+end
 
 @testset "IdOffsetRange" begin
 
@@ -1895,12 +1895,12 @@ Base.reshape(M::MyBigFill, ind::Tuple{}) = MyBigFill(M.val, ind)
     Arsc[1,1] = 5
     @test first(A) == 5
 
-    # @testset "issue #235" begin
-    #     Vec64  = zeros(6)
-    #     ind_a_64 = 3
-    #     ind_a_32 =Int32.(ind_a_64)
-    #     @test reshape(Vec64, ind_a_32, :) == reshape(Vec64, ind_a_64, :)
-    # end
+    @testset "issue #235" begin
+        Vec64  = zeros(6)
+        ind_a_64 = 3
+        ind_a_32 =Int32.(ind_a_64)
+        @test reshape(Vec64, ind_a_32, :) == reshape(Vec64, ind_a_64, :)
+    end
 
     R = reshape(zeros(6), 2, :)
     @test R isa Matrix

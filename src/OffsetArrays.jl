@@ -436,19 +436,19 @@ end
 end
 @propagate_inbounds Base.getindex(A::OffsetArray, i::Int)  = parent(A)[i]
 
-@inline function Base.setindex!(A::OffsetArray{T,N,AA,<:Any}, val, I::Vararg{Integer,N}) where {T,N,AA}
+@inline function Base.setindex!(A::OffsetArray{T,N,AA,<:Any}, val, I::Vararg{Int,N}) where {T,N,AA}
     @boundscheck checkbounds(A, I...)
     J = map(parentindex, axes(A), I)
     @inbounds parent(A)[J...] = val
     A
 end
 
-@inline function Base.setindex!(A::OffsetVector, val, i::Integer)
+@inline function Base.setindex!(A::OffsetVector, val, i::Int)
     @boundscheck checkbounds(A, i)
     @inbounds parent(A)[parentindex(Base.axes1(A), i)] = val
     A
 end
-@propagate_inbounds function Base.setindex!(A::OffsetArray, val, i::Integer)
+@propagate_inbounds function Base.setindex!(A::OffsetArray, val, i::Int)
     parent(A)[i] = val
     A
 end
