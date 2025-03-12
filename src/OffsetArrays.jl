@@ -415,7 +415,7 @@ parentindex(r::IdOffsetRange, i) = i - r.offset
 
 @propagate_inbounds Base.getindex(A::OffsetArray{<:Any,0})  = A.parent[]
 
-@inline function Base.getindex(A::OffsetArray{<:Any,N}, I::Vararg{Integer,N}) where N
+@inline function Base.getindex(A::OffsetArray{<:Any,N}, I::Vararg{Int,N}) where N
     @boundscheck checkbounds(A, I...)
     J = map(parentindex, axes(A), I)
     @inbounds parent(A)[J...]

@@ -859,7 +859,7 @@ Base.Int(a::WeirdInteger) = a
 
         # should throw a TypeError if the offsets can not be converted to Ints
         # this test does not work anymore?
-        # @test_throws TypeError OffsetVector{Int,Vector{Int}}(zeros(Int,2), (WeirdInteger(1),))
+        @test_throws TypeError OffsetVector{Int,Vector{Int}}(zeros(Int,2), (WeirdInteger(1),))
     end
 
     @testset "custom range types" begin
