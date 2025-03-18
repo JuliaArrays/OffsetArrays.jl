@@ -2500,6 +2500,8 @@ end
     s_arr = adapt(SMatrix{3,3}, arr)
     @test parent(s_arr) isa SArray
     @test arr == adapt(Array, s_arr)
+
+    @test Adapt.parent_type(typeof(arr)) == typeof(arr.parent)
 end
 
 @testset "Pointer" begin
