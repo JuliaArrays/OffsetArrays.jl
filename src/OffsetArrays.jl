@@ -693,7 +693,49 @@ julia> A
 no_offset_view(A::OffsetArray) = no_offset_view(parent(A))
 if isdefined(Base, :IdentityUnitRange)
     # valid only if Slice is distinguished from IdentityUnitRange
-    no_offset_view(S::SubArray) = view(parent(S), map(no_offset_view, parentindices(S))...)
+    _onebasedslice(S::Base.Slice) = Base.Slice(Base.OneTo(length(S)))
+    _onebasedslice(S::Base.Slice{<:Base.OneTo}) = S
+    _onebasedslice(S) = S
+    _isoffsetslice(::Any) = false
+    _isoffsetslice(::Base.Slice) = true
+    _isoffsetslice(::Base.Slice{<:Base.OneTo}) = false
+    function no_offset_view(S::SubArray)
+        #= If a view contains an offset Slice axis,
+        i.e. it is a view of an offset array along the offset axis,
+        we shift the axis to a 1-based one.
+        E.g. Slice(2:3) -> Slice(Base.OneTo(2))
+        We transform the `parent` as well as the `parentindices`,
+        so that the view still points to the same elements, even though the indices have changed.
+        This way, we retain the axis of the view as a `Slice`
+        =#
+        P = parent(S)
+        pinds = parentindices(S)
+        #=
+        Check if all the axes are `Slice`s and the parent has `OneTo` axes,
+        in which case we may unwrap the `OffsetArray` and forward the view to the parent.
+        =#
+        may_pop_parent = all(_isoffsetslice, pinds) && P isa OffsetArray && all(x -> x isa Base.OneTo, axes(parent(P)))
+        if may_pop_parent
+            return no_offset_view(P)
+        end
+        #=
+        we convert offset `Slice`s to 1-based ones using `_onebasedslice`.
+        `no_offset_view` on a `Slice{<:OneTo}` is a no-op,
+        while it converts the offset axes to 1-based ones.
+        The difference between `_onebasedslice` and `no_offset_view` is that
+        the latter does not change the value of the range, while the former does.
+        =#
+        newviewinds = map(no_offset_view ∘ _onebasedslice, pinds)
+        needs_shifting = any(_isoffsetslice, pinds)
+        P_maybeshiftedinds = if needs_shifting
+            t = Origin(parent(S)).index
+            neworigin = ntuple(i -> _isoffsetslice(pinds[i]) ? 1 : t[i], length(t))
+            Origin(neworigin)(P)
+        else
+            P
+        end
+        view(P_maybeshiftedinds, newviewinds...)
+    end
 end
 no_offset_view(a::Array) = a
 no_offset_view(i::Number) = i

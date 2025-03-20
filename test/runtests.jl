@@ -2365,8 +2365,8 @@ Base.getindex(x::PointlessWrapper, i...) = x.parent[i...]
     V = view(O, r1, r2)
     @test V != collect(V)
     @test OffsetArrays.no_offset_view(V) == collect(V)
-    # V = @view O[:,:]
-    # @test IndexStyle(A) == IndexStyle(O) == IndexStyle(V) == IndexStyle(OffsetArrays.no_offset_view(V)) == IndexLinear()
+    V = @view O[:,:]
+    @test IndexStyle(A) == IndexStyle(O) == IndexStyle(V) == IndexStyle(OffsetArrays.no_offset_view(V)) == IndexLinear()
 
     @testset "issue #375" begin
         arr = OffsetArray(reshape(1:15, 3, 5), 2, 3)
