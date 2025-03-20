@@ -693,7 +693,6 @@ julia> A
 no_offset_view(A::OffsetArray) = no_offset_view(parent(A))
 if isdefined(Base, :IdentityUnitRange)
     # valid only if Slice is distinguished from IdentityUnitRange
-    no_offset_view(a::Base.Slice{<:Base.OneTo}) = a
     no_offset_view(S::SubArray) = view(parent(S), map(no_offset_view, parentindices(S))...)
 end
 no_offset_view(a::Array) = a
