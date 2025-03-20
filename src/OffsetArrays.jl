@@ -720,8 +720,10 @@ if isdefined(Base, :IdentityUnitRange)
         end
         #=
         we convert offset `Slice`s to 1-based ones using `_onebasedslice`.
-        `no_offset_view` on a `Slice{<:OneTo}` is a no-op,
+        The next call, `no_offset_view`, is a no-op on a `Slice{<:OneTo}`,
         while it converts the offset axes to 1-based ones.
+        Eventually, we end up with a `Tuple` comprising `Slice{<:OneTo}`s and other 1-based axes.
+
         The difference between `_onebasedslice` and `no_offset_view` is that
         the latter does not change the value of the range, while the former does.
         =#
@@ -742,10 +744,9 @@ no_offset_view(i::Number) = i
 no_offset_view(A::AbstractArray) = _no_offset_view(axes(A), A)
 _no_offset_view(::Tuple{}, A::AbstractArray{T,0}) where T = A
 _no_offset_view(::Tuple{Base.OneTo, Vararg{Base.OneTo}}, A::AbstractArray) = A
-# the following method is needed for ambiguity resolution
-_no_offset_view(::Tuple{Base.OneTo, Vararg{Base.OneTo}}, A::AbstractUnitRange) = A
-_no_offset_view(::Any, A::AbstractArray) = OffsetArray(A, Origin(1))
-_no_offset_view(::Any, A::AbstractUnitRange) = UnitRange(A)
+_no_offset_view(::Any, A::AbstractArray) = _no_offset_view(A)
+_no_offset_view(A::AbstractArray) = OffsetArray(A, Origin(1))
+_no_offset_view(A::AbstractUnitRange) = UnitRange(A)
 
 #####
 # center/centered
