@@ -2367,6 +2367,12 @@ Base.getindex(x::PointlessWrapper, i...) = x.parent[i...]
     @test OffsetArrays.no_offset_view(V) == collect(V)
     V = @view O[:,:]
     @test IndexStyle(A) == IndexStyle(O) == IndexStyle(V) == IndexStyle(OffsetArrays.no_offset_view(V)) == IndexLinear()
+
+    @testset "issue #375" begin
+        arr = OffsetArray(reshape(1:15, 3, 5), 2, 3)
+        arr_no_offset = OffsetArrays.no_offset_view(@view arr[:, 4])
+        @test all(!Base.has_offset_axes, axes(arr_no_offset))
+    end
 end
 
 @testset "no nesting" begin
