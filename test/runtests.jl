@@ -2507,8 +2507,12 @@ end
     @test parent(s_arr) isa SArray
     @test arr == adapt(Array, s_arr)
 
+    arr2 = OffsetArray(view(rand(5, 5), 2:4, 2:4), -1:1, -1:1)
+
     if isdefined(Adapt, :parent_type)
         @test Adapt.parent_type(typeof(arr)) == typeof(arr.parent)
+        @test Adapt.unwrap_type(typeof(arr)) == typeof(arr.parent)
+        @test Adapt.unwrap_type(typeof(arr2)) == typeof(arr.parent)
     end
 end
 
