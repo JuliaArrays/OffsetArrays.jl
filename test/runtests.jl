@@ -2512,7 +2512,7 @@ end
     if isdefined(Adapt, :parent_type)
         @test Adapt.parent_type(typeof(arr)) == typeof(arr.parent)
         @test Adapt.unwrap_type(typeof(arr)) == typeof(arr.parent)
-        @test Adapt.unwrap_type(arr2) == typeof(arr.parent)
+        @test Adapt.unwrap_type(typeof(arr2)) == typeof(arr.parent)
     end
 end
 
