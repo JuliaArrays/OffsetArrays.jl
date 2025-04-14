@@ -13,7 +13,7 @@ Adapt.adapt_structure(to, O::OffsetArray) = OffsetArrays.parent_call(x -> Adapt.
     Adapt.parent_type(::Type{OffsetArray{T,N,AA}}) where {T,N,AA} = AA
     Adapt.unwrap_type(W::Type{<:OffsetArray}) = unwrap_type(parent_type(W))
 
-    Base.Broadcast.BroadcastStyle(W::Type{<:OffsetArray}) = BroadcastStyle(unwrap_type(W))
+    Base.Broadcast.BroadcastStyle(W::Type{<:OffsetArray}) = Base.Broadcast.BroadcastStyle(unwrap_type(W))
 end
 
 end
