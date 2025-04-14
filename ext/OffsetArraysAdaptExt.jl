@@ -12,6 +12,8 @@ Adapt.adapt_structure(to, O::OffsetArray) = OffsetArrays.parent_call(x -> Adapt.
     # To support Adapt 3.0 which doesn't have parent_type defined
     Adapt.parent_type(::Type{OffsetArray{T,N,AA}}) where {T,N,AA} = AA
     Adapt.unwrap_type(W::Type{<:OffsetArray}) = unwrap_type(parent_type(W))
+
+    Base.Broadcast.BroadcastStyle(W::Type{<:OffsetArray}) = Base.Broadcast.BroadcastStyle(unwrap_type(W))
 end
 
 end
