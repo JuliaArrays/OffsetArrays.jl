@@ -3,7 +3,7 @@
 _indexoffset(r::AbstractRange) = first(r) - 1
 _indexoffset(i::Integer) = 0
 _indexlength(r::AbstractRange) = length(r)
-_indexlength(i::Integer) = Int(i)
+_indexlength(i::Integer) = i
 _indexlength(i::Colon) = Colon()
 
 # utility methods used in reshape
@@ -17,7 +17,10 @@ _toaxis(i) = i
 _strip_IdOffsetRange(r::IdOffsetRange) = parent(r)
 _strip_IdOffsetRange(r) = r
 
-_offset(axparent::AbstractUnitRange, ax::AbstractUnitRange) = first(ax) - first(axparent)
+_offset(axparent::AbstractUnitRange, ax::AbstractUnitRange{Int}) = first(ax) - first(axparent)
+
+# Keep the provided integer if possible
+_offset(axparent::AbstractUnitRange, ax::AbstractUnitRange{I}) where {I<:Integer} = first(ax) - convert(I, first(axparent))
 _offset(axparent::AbstractUnitRange, ::Union{Integer, Colon}) = 1 - first(axparent)
 
 _offsets(A::AbstractArray) = map(ax -> first(ax) - 1, axes(A))
