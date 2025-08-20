@@ -40,6 +40,27 @@ julia> ro[3]
 ERROR: BoundsError: attempt to access 3-element $(IdOffsetRange{Int, UnitRange{Int}}) with indices -1:1 at index [3]
 ```
 
+The `values` and `indices` keywords can be extracted as properties or via the `values` and `eachindex` methods.
+```jldoctest ior
+julia> values(ro)
+IdOffsetRange(values=9:11, indices=-1:1)
+
+julia> ro.values
+IdOffsetRange(values=9:11, indices=-1:1)
+
+julia> UnitRange(ro.values)
+9:11
+
+julia> eachindex(ro)
+IdOffsetRange(values=-1:1, indices=-1:1)
+
+julia> ro.indices
+IdOffsetRange(values=-1:1, indices=-1:1)
+
+julia> ro.indices |> UnitRange
+-1:1
+```
+
 # Extended help
 
 Construction/coercion preserves the (shifted) values of the input range, but may modify
@@ -276,6 +297,17 @@ Broadcast.broadcasted(::Base.Broadcast.DefaultArrayStyle{1}, ::typeof(big), r::I
     IdOffsetRange(big.(r.parent), r.offset)
 
 Base.show(io::IO, r::IdOffsetRange) = print(io, IdOffsetRange, "(values=",first(r), ':', last(r),", indices=",first(eachindex(r)),':',last(eachindex(r)), ")")
+
+
+# Based on the constructor display above, allow for the keywords to be extracted as
+# properties. The properties will be `IdOffsetRange` rather than `UnitRange`
+@inline Base.getproperty(r::IdOffsetRange, s::Symbol) =
+    s == :values ? values(r) :
+    s == :indices ? eachindex(r) :
+    getfield(r, s)
+
+@inline Base.propertynames(r::IdOffsetRange) =
+    (fieldnames(typeof(r))..., :values, :indices)
 
 # Optimizations
 @inline Base.checkindex(::Type{Bool}, inds::IdOffsetRange, i::Real) = Base.checkindex(Bool, inds.parent, i - inds.offset)
