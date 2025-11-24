@@ -5,6 +5,7 @@ using CatIndices: BidirectionalVector
 using DelimitedFiles
 using DistributedArrays
 using Documenter
+using Documenter: Docmeta
 using EllipsisNotation
 using FillArrays
 using LinearAlgebra
