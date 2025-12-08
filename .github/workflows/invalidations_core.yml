@@ -2,7 +2,7 @@ name: Invalidations
 on:
   pull_request:
     paths:
-      - 'src/**'
+      - 'OffsetArraysCore/src/**'
 
 jobs:
   evaluate:
@@ -15,6 +15,8 @@ jobs:
     - uses: julia-actions/julia-buildpkg@latest
     - uses: julia-actions/julia-invalidations@v1
       id: invs_pr
+      with:
+        test_script: 'import Pkg; Pkg.activate("OffsetArraysCore"); using OffsetArraysCore'
 
     - uses: actions/checkout@v6
       with:
@@ -22,6 +24,8 @@ jobs:
     - uses: julia-actions/julia-buildpkg@latest
     - uses: julia-actions/julia-invalidations@v1
       id: invs_master
+      with:
+        test_script: 'import Pkg; Pkg.activate("OffsetArraysCore"); using OffsetArraysCore'
 
     - name: Report invalidation counts
       run: |

@@ -10,12 +10,14 @@ on:
       - 'LICENSE.md'
       - 'README.md'
       - '.github/workflows/TagBot.yml'
+      - '.github/workflows/UnitTest_core.yml'
       - 'OffsetArraysCore/**'
   pull_request:
     paths-ignore:
       - 'LICENSE.md'
       - 'README.md'
       - '.github/workflows/TagBot.yml'
+      - '.github/workflows/UnitTest_core.yml'
       - 'OffsetArraysCore/**'
   schedule:
     - cron: '20 00 1 * *'
