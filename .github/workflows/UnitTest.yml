@@ -1,4 +1,4 @@
-name: Unit test
+name: OffsetArrays Unit Tests
 
 on:
   push:
