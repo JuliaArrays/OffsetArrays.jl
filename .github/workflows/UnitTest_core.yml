@@ -1,4 +1,4 @@
-name: OffsetArrays Unit Tests
+name: OffsetArraysCore Unit Tests
 
 on:
   push:
@@ -6,21 +6,13 @@ on:
       - 'v*'
     branches:
       - master
-    paths-ignore:
-      - 'LICENSE.md'
-      - 'README.md'
-      - '.github/workflows/TagBot.yml'
-      - '.github/workflows/UnitTest_core.yml'
+    paths:
       - 'OffsetArraysCore/**'
+      - '.github/workflows/UnitTest_core.yml'
   pull_request:
-    paths-ignore:
-      - 'LICENSE.md'
-      - 'README.md'
-      - '.github/workflows/TagBot.yml'
-      - '.github/workflows/UnitTest_core.yml'
+    paths:
       - 'OffsetArraysCore/**'
-  schedule:
-    - cron: '20 00 1 * *'
+      - '.github/workflows/UnitTest_core.yml'
 
 concurrency:
   group: build-${{ github.event.pull_request.number || github.ref }}-${{ github.workflow }}
@@ -34,9 +26,8 @@ jobs:
       # https://github.com/actions/toolkit/issues/399
       fail-fast: false
       matrix:
-        julia-version: ['1.0', 'lts', '1', 'pre']
+        julia-version: ['min', 'lts', '1', 'pre']
         os: [ubuntu-latest, windows-latest, macOS-latest]
-        julia-arch: [x64]
         # only test one 32-bit job
         include:
           - os: ubuntu-latest
@@ -46,12 +37,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: julia-actions/setup-julia@v2
-        with:
-          version: ${{ matrix.julia-version }}
-          arch: ${{ matrix.julia-arch }}
       - uses: julia-actions/cache@v2
-      - name: "Unit Test"
-        uses: julia-actions/julia-runtest@v1
+      - name: Test OffsetArraysCore subpackage
+        run: julia --project=OffsetArraysCore -e 'using Pkg; Pkg.test(coverage=true)'
       - uses: julia-actions/julia-processcoverage@v1
       - uses: codecov/codecov-action@v5
         with:
