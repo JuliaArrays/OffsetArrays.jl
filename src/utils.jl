@@ -86,9 +86,9 @@ function _checkindices(N::Integer, indices, label)
 end
 
 @inline _indexedby(r::AbstractVector, ax::Tuple{Any}) = _indexedby(r, ax[1])
-@inline _indexedby(r::AbstractUnitRange{<:Integer}, ::Base.OneTo) = no_offset_view(r)
-@inline _indexedby(r::AbstractUnitRange{Bool}, ::Base.OneTo) = no_offset_view(r)
-@inline _indexedby(r::AbstractVector, ::Base.OneTo) = no_offset_view(r)
+@inline _indexedby(r::AbstractUnitRange{<:Integer}, ::OneTo) = no_offset_view(r)
+@inline _indexedby(r::AbstractUnitRange{Bool}, ::OneTo) = no_offset_view(r)
+@inline _indexedby(r::AbstractVector, ::OneTo) = no_offset_view(r)
 @inline function _indexedby(r::AbstractUnitRange{<:Integer}, ax::AbstractUnitRange)
 	of = convert(eltype(r), first(ax) - 1)
 	IdOffsetRange(_subtractoffset(r, of), of)
@@ -120,5 +120,5 @@ _of_eltype(T, M::AbstractArray) = map(T, M)
 _filterreshapeinds(t::Tuple{AbstractUnitRange, Vararg{Any}}) = t
 _filterreshapeinds(t::Tuple) = _filterreshapeinds(tail(t))
 _filterreshapeinds(t::Tuple{}) = t
-_popreshape(A::AbstractArray, ax::Tuple{Vararg{Base.OneTo}}, inds::Tuple{}) = no_offset_view(A)
+_popreshape(A::AbstractArray, ax::Tuple{Vararg{OneTo}}, inds::Tuple{}) = no_offset_view(A)
 _popreshape(A::AbstractArray, ax, inds) = A
