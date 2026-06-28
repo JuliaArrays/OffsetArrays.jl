@@ -153,7 +153,7 @@ Type alias and convenience constructor for two-dimensional [`OffsetArray`](@ref)
 const OffsetMatrix{T,AA<:AbstractMatrix{T},I<:Integer} = OffsetArray{T,2,AA,I}
 
 # checks if the offset may be added to the range without overflowing
-function overflow_check(r::AbstractUnitRange, offset::Integer) 
+function overflow_check(r::AbstractUnitRange, offset::Integer)
     Base.hastypemax(eltype(r)) || return nothing
     # This gives some performance boost https://github.com/JuliaLang/julia/issues/33273
     throw_upper_overflow_error(val) = throw(OverflowError("offset should be <= $(typemax(Int) - val) corresponding to the axis $r, received an offset $offset"))
@@ -347,7 +347,6 @@ function Base.similar(::Type{T}, shape::Tuple{OffsetAxisKnownLength,Vararg{Offse
     P = _similar_axes_or_length(T, new_shape, shape)
     OffsetArray(P, map(_offset, axes(P), shape))
 end
-
 # Try to use the axes to generate the parent array type
 # This is useful if the axes have special meanings, such as with static arrays
 # This method is hit if at least one axis provided to similar(A, T, axes) is an IdOffsetRange
@@ -507,7 +506,7 @@ end
 end
 
 # An OffsetUnitRange might use the rapid getindex(::Array, ::AbstractUnitRange{Int}) for contiguous indexing
-@propagate_inbounds function Base.getindex(A::Array, r::OffsetUnitRange{Integer})
+@propagate_inbounds function Base.getindex(A::Array, r::OffsetUnitRange{<:Integer})
     B = A[_contiguousindexingtype(parent(r))]
     OffsetArray(B, axes(r), checkoverflow = false)
 end
