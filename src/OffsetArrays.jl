@@ -289,6 +289,7 @@ end
 
 Base.IndexStyle(::Type{OA}) where {OA<:OffsetArray} = IndexStyle(parenttype(OA))
 parenttype(::Type{OffsetArray{T,N,AA,I}}) where {T,N,AA,I} = AA
+parenttype(::Type{OffsetArray{T,N,AA}}) where {T,N,AA} = AA
 parenttype(A::OffsetArray) = parenttype(typeof(A))
 
 Base.parent(A::OffsetArray) = A.parent
