@@ -1,0 +1,939 @@
+module OffsetArraysCore
+
+export OffsetArray, OffsetMatrix, OffsetVector
+
+using Base: tail, @propagate_inbounds
+@static if !isdefined(Base, :IdentityUnitRange)
+    const IdentityUnitRange = Base.Slice
+else
+    using Base: IdentityUnitRange
+end
+
+const IIUR = IdentityUnitRange{<:AbstractUnitRange{<:Integer}}
+
+const ArrayInitializer = Union{UndefInitializer, Missing, Nothing}
+
+include("axes.jl")
+include("utils.jl")
+include("origin.jl")
+
+
+## OffsetArray
+"""
+    OffsetArray(A, indices...)
+
+Return an `AbstractArray` that shares element type and size with the first argument but
+uses the supplied `indices` to infer its axes. If all the indices are `AbstractUnitRange`s then
+these are directly used as the axis span along each dimension. Refer to the examples below for other
+permissible types.
+
+Alternatively it's possible to specify the coordinates of one corner of the array
+and have the axes be computed automatically from the size of `A`.
+This constructor makes it convenient to shift to
+an arbitrary starting index along each axis, for example to a zero-based indexing scheme followed by
+arrays in languages such as C and Python.
+See [`Origin`](@ref) and the examples below for this usage.
+
+# Example: offsets
+
+There are two types of `indices`: integers and ranges-like types.
+
+Integers are recognized as offsets, where `0` means no offsets are applied:
+
+```jldoctest; setup=:(using OffsetArraysCore)
+julia> A = OffsetArray(reshape(1:6, 2, 3), -1, -2)
+2×3 OffsetArray(reshape(::UnitRange{$Int}, 2, 3), 0:1, -1:1) with eltype $Int with indices 0:1×-1:1:
+ 1  3  5
+ 2  4  6
+
+julia> A[0, 1]
+5
+```
+
+Examples of range-like types are: `UnitRange` (e.g, `-1:2`), `CartesianIndices`,
+and `Colon()` (or concisely `:`). A `UnitRange` specifies the axis span along one particular dimension,
+`CartesianIndices` specify the axis spans along multiple dimensions, and a `Colon` is a placeholder
+that specifies that the `OffsetArray` shares its axis with its parent along that dimension.
+
+```jldoctest; setup=:(using OffsetArraysCore)
+julia> OffsetArray(reshape(1:6, 2, 3), 0:1, -1:1)
+2×3 OffsetArray(reshape(::UnitRange{$Int}, 2, 3), 0:1, -1:1) with eltype $Int with indices 0:1×-1:1:
+ 1  3  5
+ 2  4  6
+
+julia> OffsetArray(reshape(1:6, 2, 3), :, -1:1) # : as a placeholder to indicate that no offset is to be applied to the first dimension
+2×3 OffsetArray(reshape(::UnitRange{$Int}, 2, 3), 1:2, -1:1) with eltype $Int with indices 1:2×-1:1:
+ 1  3  5
+ 2  4  6
+```
+
+Use `CartesianIndices` to specify the coordinates of two diagonally opposite corners:
+
+```jldoctest; setup=:(using OffsetArraysCore)
+julia> OffsetArray(reshape(1:6, 2, 3), CartesianIndex(0, -1):CartesianIndex(1, 1))
+2×3 OffsetArray(reshape(::UnitRange{$Int}, 2, 3), 0:1, -1:1) with eltype $Int with indices 0:1×-1:1:
+ 1  3  5
+ 2  4  6
+```
+
+Integers and range-like types may not be combined in the same call:
+
+```julia
+julia> OffsetArray(reshape(1:6, 2, 3), 0, -1:1)
+ERROR: [...]
+```
+
+# Example: origin
+
+[`OffsetArraysCore.Origin`](@ref) may be used to specify the origin of the OffsetArray. The term origin here
+refers to the corner with the lowest values of coordinates, such as the left edge for an `AbstractVector`,
+the bottom left corner for an `AbstractMatrix` and so on. The coordinates of the origin sets the starting
+index of the array along each dimension.
+
+```jldoctest; setup=:(using OffsetArraysCore)
+julia> a = [1 2; 3 4];
+
+julia> OffsetArray(a, OffsetArraysCore.Origin(0, 1))
+2×2 OffsetArray(::$(Array{Int,2}), 0:1, 1:2) with eltype $Int with indices 0:1×1:2:
+ 1  2
+ 3  4
+
+julia> OffsetArray(a, OffsetArraysCore.Origin(0)) # set the origin to zero along each dimension
+2×2 OffsetArray(::$(Array{Int, 2}), 0:1, 0:1) with eltype $Int with indices 0:1×0:1:
+ 1  2
+ 3  4
+```
+
+
+"""
+struct OffsetArray{T,N,AA<:AbstractArray{T,N}} <: AbstractArray{T,N}
+    parent::AA
+    offsets::NTuple{N,Int}
+    @inline function OffsetArray{T, N, AA}(parent::AA, offsets::NTuple{N, Int}; checkoverflow = true) where {T, N, AA<:AbstractArray{T,N}}
+        # allocation of `map` on tuple is optimized away
+        checkoverflow && map(overflow_check, axes(parent), offsets)
+        new{T, N, AA}(parent, offsets)
+    end
+end
+
+"""
+    OffsetVector(v, index)
+
+Type alias and convenience constructor for one-dimensional [`OffsetArray`](@ref)s.
+"""
+const OffsetVector{T,AA<:AbstractVector{T}} = OffsetArray{T,1,AA}
+
+"""
+    OffsetMatrix(A, index1, index2)
+
+Type alias and convenience constructor for two-dimensional [`OffsetArray`](@ref)s.
+"""
+const OffsetMatrix{T,AA<:AbstractMatrix{T}} = OffsetArray{T,2,AA}
+
+# checks if the offset may be added to the range without overflowing
+function overflow_check(r::AbstractUnitRange, offset::Integer)
+    Base.hastypemax(eltype(r)) || return nothing
+    # This gives some performance boost https://github.com/JuliaLang/julia/issues/33273
+    throw_upper_overflow_error(val) = throw(OverflowError("offset should be <= $(typemax(Int) - val) corresponding to the axis $r, received an offset $offset"))
+    throw_lower_overflow_error(val) = throw(OverflowError("offset should be >= $(typemin(Int) - val) corresponding to the axis $r, received an offset $offset"))
+
+    # With ranges in the picture, first(r) might not necessarily be < last(r)
+    # we therefore use the min and max of first(r) and last(r) to check for overflow
+    firstlast_min, firstlast_max = minmax(first(r), last(r))
+
+    if offset > 0 && firstlast_max > typemax(Int) - offset
+        throw_upper_overflow_error(firstlast_max)
+    elseif offset < 0 && firstlast_min < typemin(Int) - offset
+        throw_lower_overflow_error(firstlast_min)
+    end
+    return nothing
+end
+
+# Tuples of integers are treated as offsets
+# Empty Tuples are handled here
+@inline function OffsetArray(A::AbstractArray, offsets::Tuple{Vararg{Integer}}; kw...)
+    _checkindices(A, offsets, "offsets")
+    OffsetArray{eltype(A), ndims(A), typeof(A)}(A, offsets; kw...)
+end
+
+# These methods are necessary to disallow incompatible dimensions for
+# the OffsetVector and the OffsetMatrix constructors
+for (FT, ND) in ((:OffsetVector, :1), (:OffsetMatrix, :2))
+    @eval @inline function $FT(A::AbstractArray{<:Any,$ND}, offsets::Tuple{Vararg{Integer}}; kw...)
+        _checkindices(A, offsets, "offsets")
+        OffsetArray{eltype(A), $ND, typeof(A)}(A, offsets; kw...)
+    end
+    FTstr = string(FT)
+    @eval @inline function $FT(A::AbstractArray, offsets::Tuple{Vararg{Integer}}; kw...)
+        throw(ArgumentError($FTstr*" requires a "*string($ND)*"D array"))
+    end
+end
+
+## OffsetArray constructors
+for FT in (:OffsetArray, :OffsetVector, :OffsetMatrix)
+    # Nested OffsetArraysCore may strip off the wrapper and collate the offsets
+    # empty tuples are handled here
+    @eval @inline function $FT(A::OffsetArray, offsets::Tuple{Vararg{Int}}; checkoverflow = true)
+        _checkindices(A, offsets, "offsets")
+        # ensure that the offsets may be added together without an overflow
+        checkoverflow && map(overflow_check, axes(A), offsets)
+        I = map(+, _offsets(A, parent(A)), offsets)
+        $FT(parent(A), I, checkoverflow = false)
+    end
+    @eval @inline function $FT(A::OffsetArray, offsets::Tuple{Integer,Vararg{Integer}}; kw...)
+        $FT(A, map(Int, offsets); kw...)
+    end
+
+    # In general, indices get converted to AbstractUnitRanges.
+    # CartesianIndices{N} get converted to N ranges
+    @eval @inline function $FT(A::AbstractArray, inds::Tuple{Any,Vararg{Any}}; kw...)
+        $FT(A, _toAbstractUnitRanges(to_indices(A, axes(A), inds)); kw...)
+    end
+
+    # convert ranges to offsets
+    @eval @inline function $FT(A::AbstractArray, inds::Tuple{AbstractUnitRange,Vararg{AbstractUnitRange}}; kw...)
+        _checkindices(A, inds, "indices")
+        # Performance gain by wrapping the error in a function: see https://github.com/JuliaLang/julia/issues/37558
+        throw_dimerr(lA, lI) = throw(DimensionMismatch("supplied axes do not agree with the size of the array (got size $lA for the array and $lI for the indices"))
+        lA = size(A)
+        lI = map(length, inds)
+        lA == lI || throw_dimerr(lA, lI)
+        $FT(A, map(_offset, axes(A), inds); kw...)
+    end
+
+    @eval @inline $FT(A::AbstractArray, inds...; kw...) = $FT(A, inds; kw...)
+    @eval @inline $FT(A::AbstractArray; checkoverflow = false) = $FT(A, ntuple(zero, Val(ndims(A))), checkoverflow = checkoverflow)
+
+    @eval @inline $FT(A::AbstractArray, origin::Origin; checkoverflow = true) = $FT(A, origin.index .- first.(axes(A)); checkoverflow = checkoverflow)
+end
+
+(o::Origin)(A::AbstractArray) = OffsetArray(no_offset_view(A), o)
+Origin(A::AbstractArray) = Origin(first.(axes(A)))
+
+# conversion-related methods
+@inline OffsetArray{T}(M::AbstractArray, I...; kw...) where {T} = OffsetArray{T,ndims(M)}(M, I...; kw...)
+
+@inline function OffsetArray{T,N}(M::AbstractArray{<:Any,N}, I...; kw...) where {T,N}
+    M2 = _of_eltype(T, M)
+    OffsetArray{T,N}(M2, I...; kw...)
+end
+@inline OffsetArray{T,N}(M::OffsetArray{T,N}, I...; kw...) where {T,N} = OffsetArray(M, I...; kw...)
+@inline OffsetArray{T,N}(M::AbstractArray{T,N}, I...; kw...) where {T,N} = OffsetArray{T,N,typeof(M)}(M, I...; kw...)
+
+@inline OffsetArray{T,N,A}(M::AbstractArray{<:Any,N}, I...; kw...) where {T,N,A<:AbstractArray{T,N}} = OffsetArray{T,N,A}(M, I; kw...)
+@inline function OffsetArray{T,N,A}(M::AbstractArray{<:Any,N}, I::NTuple{N,Int}; checkoverflow = true) where {T,N,A<:AbstractArray{T,N}}
+    checkoverflow && map(overflow_check, axes(M), I)
+    Mv = no_offset_view(M)
+    MvA = convert(A, Mv)::A
+    Iof = map(+, _offsets(M), I)
+    OffsetArray{T,N,A}(MvA, Iof, checkoverflow = false)
+end
+@inline function OffsetArray{T, N, AA}(parent::AbstractArray{<:Any,N}, offsets::NTuple{N, Integer}; kw...) where {T, N, AA<:AbstractArray{T,N}}
+    OffsetArray{T, N, AA}(parent, map(Int, offsets)::NTuple{N,Int}; kw...)
+end
+@inline function OffsetArray{T,N,A}(M::AbstractArray{<:Any,N}, I::Tuple{AbstractUnitRange,Vararg{AbstractUnitRange}}; kw...) where {T,N,A<:AbstractArray{T,N}}
+    _checkindices(M, I, "indices")
+    # Performance gain by wrapping the error in a function: see https://github.com/JuliaLang/julia/issues/37558
+    throw_dimerr(lA, lI) = throw(DimensionMismatch("supplied axes do not agree with the size of the array (got size $lA for the array and $lI for the indices"))
+    lM = size(M)
+    lI = map(length, I)
+    lM == lI || throw_dimerr(lM, lI)
+    OffsetArray{T,N,A}(M, map(_offset, axes(M), I); kw...)
+end
+@inline function OffsetArray{T,N,A}(M::AbstractArray{<:Any,N}, I::Tuple; kw...) where {T,N,A<:AbstractArray{T,N}}
+    OffsetArray{T,N,A}(M, _toAbstractUnitRanges(to_indices(M, axes(M), I)); kw...)
+end
+@inline function OffsetArray{T,N,A}(M::AbstractArray{<:Any,N}; kw...) where {T,N,A<:AbstractArray{T,N}}
+    Mv = no_offset_view(M)
+    MvA = convert(A, Mv)::A
+    OffsetArray{T,N,A}(MvA, _offsets(M); kw...)
+end
+@inline OffsetArray{T,N,A}(M::A; checkoverflow = false) where {T,N,A<:AbstractArray{T,N}} = OffsetArray{T,N,A}(M, ntuple(zero, Val(N)); checkoverflow = checkoverflow)
+
+Base.convert(::Type{T}, M::AbstractArray) where {T<:OffsetArray} = M isa T ? M : T(M)
+
+@inline AbstractArray{T,N}(M::OffsetArray{S,N}) where {T,S,N} = OffsetArray{T}(M)
+
+# array initialization
+@inline function OffsetArray{T,N}(init::ArrayInitializer, inds::Tuple{Vararg{IntegerOrAbsUnitRange}}; kw...) where {T,N}
+    _checkindices(N, inds, "indices")
+    AA = Array{T,N}(init, map(_indexlength, inds))
+    OffsetArray{T, N, typeof(AA)}(AA, map(_indexoffset, inds); kw...)
+end
+@inline function OffsetArray{T, N}(init::ArrayInitializer, inds::Tuple; kw...) where {T, N}
+    OffsetArray{T, N}(init, _toAbstractUnitRanges(inds); kw...)
+end
+@inline OffsetArray{T,N}(init::ArrayInitializer, inds...; kw...) where {T,N} = OffsetArray{T,N}(init, inds; kw...)
+
+@inline OffsetArray{T}(init::ArrayInitializer, inds::NTuple{N, IntegerOrAbsUnitRange}; kw...) where {T,N} = OffsetArray{T,N}(init, inds; kw...)
+@inline function OffsetArray{T}(init::ArrayInitializer, inds::Tuple; kw...) where {T}
+    OffsetArray{T}(init, _toAbstractUnitRanges(inds); kw...)
+end
+@inline OffsetArray{T}(init::ArrayInitializer, inds...; kw...) where {T} = OffsetArray{T}(init, inds; kw...)
+
+Base.IndexStyle(::Type{OA}) where {OA<:OffsetArray} = IndexStyle(parenttype(OA))
+parenttype(::Type{OffsetArray{T,N,AA}}) where {T,N,AA} = AA
+parenttype(A::OffsetArray) = parenttype(typeof(A))
+
+Base.parent(A::OffsetArray) = A.parent
+
+# TODO: Ideally we would delegate to the parent's broadcasting implementation, but that
+#       is currently broken in sufficiently many implementation, namely RecursiveArrayTools, DistributedArrays
+#       and StaticArrays, that it will take concentrated effort to get this working across the ecosystem.
+#       The goal would be to have `OffsetArray(CuArray) .+ 1 == OffsetArray{CuArray}`.
+# Base.Broadcast.BroadcastStyle(::Type{<:OffsetArray{<:Any, <:Any, AA}}) where AA = Base.Broadcast.BroadcastStyle(AA)
+
+@inline Base.size(A::OffsetArray) = size(parent(A))
+# specializing length isn't necessary, as length(A) = prod(size(A)),
+# but specializing length enables constant-propagation for statically sized arrays
+# see https://github.com/JuliaArrays/OffsetArraysCore.jl/pull/304
+@inline Base.length(A::OffsetArray) = length(parent(A))
+
+@inline Base.axes(A::OffsetArray) = map(IdOffsetRange, axes(parent(A)), A.offsets)
+@inline Base.axes(A::OffsetArray, d) = d <= ndims(A) ? IdOffsetRange(axes(parent(A), d), A.offsets[d]) : IdOffsetRange(axes(parent(A), d))
+@inline Base.axes1(A::OffsetArray{T,0}) where {T} = IdOffsetRange(axes(parent(A), 1))  # we only need to specialize this one
+
+# Issue 128
+# See https://github.com/JuliaLang/julia/issues/37274 for the issue reported in Base
+# The fix https://github.com/JuliaLang/julia/pull/39404 should be available on v1.6
+# The following method is added on older Julia versions to ensure correct behavior for OffsetVectors
+if VERSION < v"1.6"
+    @inline function Base.compute_linindex(A::OffsetVector, I::NTuple{N,Any}) where N
+        IP = Base.fill_to_length(axes(A), Base.OneTo(1), Val(N))
+        Base.compute_linindex(first(LinearIndices(A)), 1, IP, I)
+    end
+end
+
+# Utils to translate a function to the parent while preserving offsets
+unwrap(x) = x, identity
+unwrap(x::OffsetArray) = parent(x), data -> OffsetArray(data, x.offsets, checkoverflow = false)
+function parent_call(f, x)
+    parent, wrap_offset = unwrap(x)
+    wrap_offset(f(parent))
+end
+
+Base.similar(A::OffsetArray, ::Type{T}, dims::Dims) where T =
+    similar(parent(A), T, dims)
+
+Base.similar(::Type{A}, sz::Tuple{Vararg{Int}}) where {A<:OffsetArray} = similar(Array{eltype(A)}, sz)
+
+for AX in (:IntegerOrAbsUnitRange, :IntegerOrOneTo, :IntegerOrOneToOrOffsetAxis)
+    @eval begin
+        function Base.similar(A::OffsetArray, ::Type{T}, shape::Tuple{$AX,Vararg{$AX}}) where T
+            return _similar(parent(A), T, shape)
+        end
+        # ambiguity resolution with AbstractArray
+        function Base.similar(::Type{T}, shape::Tuple{$AX,Vararg{$AX}}) where {T<:OffsetArray}
+            return _similar(T, shape)
+        end
+    end
+end
+
+function Base.similar(A::AbstractArray, ::Type{T}, shape::Tuple{IntegerOrOneToOrOffsetAxis,Vararg{IntegerOrOneToOrOffsetAxis}}) where T
+    return _similar(A, T, shape)
+end
+
+function Base.similar(::Type{T}, shape::Tuple{IntegerOrOneToOrOffsetAxis,Vararg{IntegerOrOneToOrOffsetAxis}}) where {T<:AbstractArray}
+    return _similar(T, shape)
+end
+
+function _similar(A::AbstractArray, ::Type{T}, shape) where {T}
+    # strip IdOffsetRanges to extract the parent range and use it to generate the array
+    new_shape = map(_strip_IdOffsetRange, shape)
+    P = _similar_axes_or_length(A, T, new_shape, shape)
+    return _indexedby(P, shape)
+end
+
+function _similar(::Type{T}, shape) where {T<:AbstractArray}
+    # strip IdOffsetRanges to extract the parent range and use it to generate the array
+    new_shape = map(_strip_IdOffsetRange, shape)
+    P = _similar_axes_or_length(T, new_shape, shape)
+    return _indexedby(P, shape)
+end
+
+# Try to use the axes to generate the parent array type
+# This is useful if the axes have special meanings, such as with static arrays
+# This method is hit if at least one axis provided to similar(A, T, axes) is an IdOffsetRange
+# For example this is hit when similar(A::OffsetArray) is called,
+# which expands to similar(A, eltype(A), axes(A))
+_similar_axes_or_length(A, T, ax, ::Any) = similar(A, T, to_shape(ax))
+_similar_axes_or_length(AT, ax, ::Any) = similar(AT, to_shape(ax))
+# Handle the general case by resorting to lengths along each axis
+# This is hit if none of the axes provided to similar(A, T, axes) are IdOffsetRanges,
+# and if similar(A, T, axes::AX) is not defined for the type AX.
+# In this case the best that we can do is to create a mutable array of the correct size
+_similar_axes_or_length(A, T, ax::I, ::I) where {I} = similar(A, T, map(_indexlength, ax))
+_similar_axes_or_length(AT, ax::I, ::I) where {I} = similar(AT, map(_indexlength, ax))
+
+# reshape accepts a single colon
+Base.reshape(A::AbstractArray, inds::IntegerOrOneToOrOffsetAxisOrColon...) = reshape(A, inds)
+function Base.reshape(A::AbstractArray, inds::Tuple{Vararg{IntegerOrOneToOrOffsetAxisOrColon}})
+    AR = reshape(no_offset_view(A), to_shape(inds))
+    O = _indexedby(AR, inds)
+    return _popreshape(O, axes(AR), _filterreshapeinds(inds))
+end
+
+# Reshaping OffsetArraysCore can "pop" the original OffsetArray wrapper and return
+# an OffsetArray(reshape(...)) instead of an OffsetArray(reshape(OffsetArray(...)))
+# Short-circuit for AbstractVectors if the axes are compatible to get around the Base restriction
+# to 1-based vectors``
+function _reshape(A::AbstractVector, inds::Tuple{IntegerOrOneToOrOffsetAxisOrColon})
+    @noinline throw_dimerr(ind::Integer) = throw(
+        DimensionMismatch("parent has $(size(A,1)) elements, which is incompatible with length $ind"))
+    @noinline throw_dimerr(ind) = throw(
+        DimensionMismatch("parent has $(size(A,1)) elements, which is incompatible with indices $ind"))
+    _checksize(first(inds), size(A,1)) || throw_dimerr(first(inds))
+    A
+end
+_reshape(A, inds) = _reshape2(A, inds)
+_reshape2(A, inds) = reshape(A, inds)
+# avoid a stackoverflow by relegating to the parent if no_offset_view returns an offsetarray
+_reshape2(A::OffsetArray, inds) = reshape(parent(A), inds)
+_reshape_nov(A, inds) = _reshape(no_offset_view(A), inds)
+
+# And for non-offset axes, we can just return a reshape of the parent directly
+Base.reshape(A::OffsetArray, inds::Tuple{Integer,Vararg{Integer}}) = _reshape_nov(A, inds)
+Base.reshape(A::OffsetArray, inds::Dims) = _reshape_nov(A, inds)
+if VERSION < v"1.10.7"
+    # the specialized reshape(parent::AbstractVector, ::Tuple{Colon}) is available in Base at least on this version
+    Base.reshape(A::OffsetVector, ::Tuple{Colon}) = A
+    Base.reshape(A::OffsetArray, inds::Tuple{Vararg{Union{Int,Colon}}}) = _reshape_nov(A, inds)
+end
+
+# permutedims in Base does not preserve axes, and can not be fixed in a non-breaking way
+# This is a stopgap solution
+Base.permutedims(v::OffsetVector) = reshape(v, (1, axes(v, 1)))
+
+Base.zero(A::OffsetArray) = parent_call(zero, A)
+Base.fill!(A::OffsetArray, x) = parent_call(Ap -> fill!(Ap, x), A)
+
+
+## Indexing
+
+# Note this gets the index of the parent *array*, not the index of the parent *range*
+# Here's how one can think about this:
+#   Δi = i - first(r)
+#   i′ = first(r.parent) + Δi
+# and one obtains the result below.
+parentindex(r::IdOffsetRange, i) = i - r.offset
+
+@propagate_inbounds Base.getindex(A::OffsetArray{<:Any,0})  = A.parent[]
+
+@inline function Base.getindex(A::OffsetArray{<:Any,N}, I::Vararg{Int,N}) where N
+    @boundscheck checkbounds(A, I...)
+    J = map(parentindex, axes(A), I)
+    @inbounds parent(A)[J...]
+end
+
+@propagate_inbounds Base.getindex(A::OffsetArray{<:Any,N}, c::Vararg{Colon,N}) where N =
+    parent_call(x -> getindex(x, c...), A)
+
+# With one Colon we use linear indexing.
+# In this case we may forward the index to the parent, as the information about the axes is lost
+# The exception to this is with OffsetVectors where the axis information is preserved,
+# but that case is handled by getindex(::OffsetArray{<:Any,N}, ::Vararg{Colon,N})
+@propagate_inbounds Base.getindex(A::OffsetArray, c::Colon) = A.parent[:]
+
+@inline function Base.getindex(A::OffsetVector, i::Int)
+    @boundscheck checkbounds(A, i)
+    @inbounds parent(A)[parentindex(Base.axes1(A), i)]
+end
+@propagate_inbounds Base.getindex(A::OffsetArray, i::Int)  = parent(A)[i]
+
+@inline function Base.setindex!(A::OffsetArray{T,N}, val, I::Vararg{Int,N}) where {T,N}
+    @boundscheck checkbounds(A, I...)
+    J = map(parentindex, axes(A), I)
+    @inbounds parent(A)[J...] = val
+    A
+end
+
+@inline function Base.setindex!(A::OffsetVector, val, i::Int)
+    @boundscheck checkbounds(A, i)
+    @inbounds parent(A)[parentindex(Base.axes1(A), i)] = val
+    A
+end
+@propagate_inbounds function Base.setindex!(A::OffsetArray, val, i::Int)
+    parent(A)[i] = val
+    A
+end
+
+@inline Base.iterate(a::OffsetArray, i...) = iterate(parent(a), i...)
+
+Base.in(x, A::OffsetArray) = in(x, parent(A))
+Base.copy(A::OffsetArray) = parent_call(copy, A)
+
+Base.strides(A::OffsetArray) = strides(parent(A))
+Base.elsize(::Type{OffsetArray{T,N,A}}) where {T,N,A} = Base.elsize(A)
+Base.cconvert(P::Type{Ptr{T}}, A::OffsetArray{T}) where {T} = Base.cconvert(P, parent(A))
+if VERSION < v"1.11-"
+    @inline Base.unsafe_convert(::Type{Ptr{T}}, A::OffsetArray{T}) where {T} = Base.unsafe_convert(Ptr{T}, parent(A))
+end
+
+# For fast broadcasting: ref https://discourse.julialang.org/t/why-is-there-a-performance-hit-on-broadcasting-with-OffsetArraysCore/32194
+Base.dataids(A::OffsetArray) = Base.dataids(parent(A))
+Broadcast.broadcast_unalias(dest::OffsetArray, src::OffsetArray) = parent(dest) === parent(src) ? src : Broadcast.unalias(dest, src)
+
+
+
+### Special handling for AbstractRange
+const OffsetRange{T} = OffsetVector{T,<:AbstractRange{T}}
+const OffsetUnitRange{T} = OffsetVector{T,<:AbstractUnitRange{T}}
+
+Base.step(a::OffsetRange) = step(parent(a))
+
+Base.checkindex(::Type{Bool}, inds::AbstractUnitRange, or::OffsetRange) = Base.checkindex(Bool, inds, parent(or))
+
+# Certain special methods for linear indexing with integer ranges (or OffsetRanges)
+# These may bypass the default getindex(A, I...) pathway if the parent types permit this
+# For example AbstractUnitRanges and Arrays have special linear indexing behavior defined
+
+@propagate_inbounds function _getindex_onebasedrange(A, r::AbstractRange{<:Integer})
+    B = if iszero(step(r))
+        A[StepRange(r)]
+    else
+        A[StepRangeLen(r)]
+    end
+    return B
+end
+
+@propagate_inbounds function _getindex_onebasedrange(A, r::AbstractUnitRange{<:Integer})
+    B = A[UnitRange(r)]
+    return B
+end
+
+@static if isdefined(Base, :AbstractOneTo)
+    @propagate_inbounds function _getindex_onebasedrange(A, r::Base.AbstractOneTo{<:Integer})
+        return A[r]
+    end
+end
+
+# If both the arguments are offset, we may unwrap the indices to call (::OffsetArray)[::AbstractRange{Int}]
+@propagate_inbounds function Base.getindex(A::OffsetArray, r::OffsetRange{Int})
+    B = _getindex_onebasedrange(A, parent(r))
+    _indexedby(B, axes(r))
+end
+# If the indices are offset, we may unwrap them and pass the parent to getindex
+@propagate_inbounds function Base.getindex(A::AbstractRange, r::OffsetRange{Int})
+    B = _getindex_onebasedrange(A, parent(r))
+    _indexedby(B, axes(r))
+end
+
+# An OffsetUnitRange might use the rapid getindex(::Array, ::AbstractUnitRange{Int}) for contiguous indexing
+@propagate_inbounds function Base.getindex(A::Array, r::OffsetUnitRange{Int})
+    B = _getindex_onebasedrange(A, parent(r))
+    OffsetArray(B, axes(r), checkoverflow = false)
+end
+
+# avoid hitting the slow method getindex(::Array, ::AbstractRange{Int})
+# instead use the faster getindex(::Array, ::UnitRange{Int})
+if VERSION <= v"1.7.0-DEV.1039"
+    @propagate_inbounds function Base.getindex(A::Array, r::IdOffsetRange)
+        B = _getindex_onebasedrange(A, parent(r))
+        _indexedby(B, axes(r))
+    end
+end
+
+# Linear Indexing of OffsetArraysCore with AbstractUnitRanges may use the faster contiguous indexing methods
+@inline function Base.getindex(A::OffsetArray, r::AbstractUnitRange{Int})
+    @boundscheck checkbounds(A, r)
+    # nD OffsetArraysCore do not have their linear indices shifted, so we may forward the indices provided to the parent
+    @inbounds B = _getindex_onebasedrange(parent(A), r)
+    _indexedby(B, axes(r))
+end
+@inline function Base.getindex(A::OffsetVector, r::AbstractUnitRange{Int})
+    @boundscheck checkbounds(A, r)
+    # OffsetVectors may have their linear indices shifted, so we subtract the offset from the indices provided
+    @inbounds B = parent(A)[_subtractoffset(r, A.offsets[1])]
+    _indexedby(B, axes(r))
+end
+
+# This method added mainly to index an OffsetRange with another range
+@inline function Base.getindex(A::OffsetVector, r::AbstractRange{Int})
+    @boundscheck checkbounds(A, r)
+    @inbounds B = parent(A)[_subtractoffset(r, A.offsets[1])]
+    _indexedby(B, axes(r))
+end
+
+# In general we would pass through getindex(A, I...) which calls to_indices(A, I) and finally to_index(I)
+# An OffsetUnitRange{Int} has an equivalent IdOffsetRange with the same values and axes,
+# something similar also holds for OffsetUnitRange{BigInt}
+# We may replace the former with the latter in an indexing operation to obtain a performance boost
+@inline function Base.to_index(r::OffsetUnitRange{<:Union{Int,BigInt}})
+    of = first(axes(r,1)) - 1
+    IdOffsetRange(_subtractoffset(parent(r), of), of)
+end
+
+@inline function _boundscheck_index_retaining_axes(r, s)
+    @boundscheck checkbounds(r, s)
+    @inbounds pr = r[UnitRange(s)]
+    _indexedby(pr, axes(s))
+end
+@inline _boundscheck_return(r, s) = (@boundscheck checkbounds(r, s); s)
+
+for R in [:StepRange, :StepRangeLen, :LinRange, :UnitRange]
+    @eval @inline Base.getindex(r::$R, s::IdOffsetRange) = _boundscheck_index_retaining_axes(r, s)
+end
+
+# this method is needed for ambiguity resolution
+@eval @inline function Base.getindex(r::StepRangeLen{T,<:Base.TwicePrecision,<:Base.TwicePrecision}, s::IdOffsetRange) where T
+    _boundscheck_index_retaining_axes(r, s)
+end
+
+Base.getindex(r::Base.OneTo, s::IdOffsetRange) = _boundscheck_index_retaining_axes(r, s)
+
+# These methods are added to avoid ambiguities with Base.
+# The ones involving Base types should be ported to Base and version-limited here
+@inline Base.getindex(r::IdentityUnitRange, s::IdOffsetRange) = _boundscheck_return(r, s)
+if IdentityUnitRange !== Base.Slice
+    @inline Base.getindex(r::Base.Slice, s::IdOffsetRange) = _boundscheck_return(r, s)
+end
+
+# eltype conversion
+# This may use specialized map methods for the parent
+Base.map(::Type{T}, O::OffsetArray) where {T} = parent_call(x -> map(T, x), O)
+Base.map(::Type{T}, r::IdOffsetRange) where {T<:Real} = _indexedby(map(T, UnitRange(r)), axes(r))
+
+
+if VERSION < v"1.7.2"
+    # mapreduce is faster with an IdOffsetRange than with an OffsetUnitRange on Julia 1.6
+    # We therefore convert OffsetUnitRanges to IdOffsetRanges with the same values and axes
+    function Base.mapreduce(f, op, A1::OffsetUnitRange{<:Integer}, As::OffsetUnitRange{<:Integer}...; kw...)
+        As = (A1, As...)
+        ofs = map(A -> first(axes(A,1)) - 1, As)
+        AIds = map((A, of) -> IdOffsetRange(_subtractoffset(parent(A), of), of), As, ofs)
+        mapreduce(f, op, AIds...; kw...)
+    end
+end
+
+
+# Optimize certain reductions that treat an OffsetVector as a list
+for f in [:minimum, :maximum, :extrema, :sum]
+    @eval Base.$f(r::OffsetRange) = $f(parent(r))
+end
+
+function Base.show(io::IO, r::OffsetRange)
+    show(io, r.parent)
+    print(io, " with indices ", UnitRange(axes(r, 1)))
+end
+Base.show(io::IO, ::MIME"text/plain", r::OffsetRange) = show(io, r)
+
+
+### Some mutating functions defined only for OffsetVector ###
+
+Base.resize!(A::OffsetVector, nl::Integer) = (resize!(A.parent, nl); A)
+Base.push!(A::OffsetVector, x...) = (push!(A.parent, x...); A)
+Base.pop!(A::OffsetVector) = pop!(A.parent)
+Base.append!(A::OffsetVector, items) = (append!(A.parent, items); A)
+Base.empty!(A::OffsetVector) = (empty!(A.parent); A)
+
+
+# These functions keep the summary compact
+const OffsetIndices = Union{IdOffsetRange, IdentityUnitRange{<:IdOffsetRange}}
+function Base.inds2string(inds::Tuple{OffsetIndices, Vararg{OffsetIndices}})
+    Base.inds2string(map(UnitRange, inds))
+end
+Base.showindices(io::IO, ind1::IdOffsetRange, inds::IdOffsetRange...) = Base.showindices(io, map(UnitRange, (ind1, inds...))...)
+
+function Base.showarg(io::IO, @nospecialize(a::OffsetArray), toplevel)
+    print(io, "OffsetArray(")
+    Base.showarg(io, parent(a), false)
+    Base.showindices(io, axes(a)...)
+    print(io, ')')
+    if toplevel
+        print(io, " with eltype ", eltype(a))
+    end
+end
+
+function Base.replace_in_print_matrix(A::OffsetArray{<:Any,2}, i::Integer, j::Integer, s::AbstractString)
+    J = map(parentindex, axes(A), (i,j))
+    Base.replace_in_print_matrix(parent(A), J..., s)
+end
+function Base.replace_in_print_matrix(A::OffsetArray{<:Any,1}, i::Integer, j::Integer, s::AbstractString)
+    ip = parentindex(axes(A,1), i)
+    Base.replace_in_print_matrix(parent(A), ip, j, s)
+end
+
+
+# Actual unsafe_wrap implementation
+@inline function _unsafe_wrap(pointer::Ptr{T}, inds::NTuple{N, IntegerOrAbsUnitRange}; own = false, kw...) where {T,N}
+    _checkindices(N, inds, "indices")
+    AA = Base.unsafe_wrap(Array, pointer, map(_indexlength, inds); own=own)
+    OffsetArray{T, N, typeof(AA)}(AA, map(_indexoffset, inds); kw...)
+end
+const OffsetArrayUnion{T,N} = Union{Type{OffsetArray}, Type{OffsetArray{T}}, Type{OffsetArray{T,N}}, Type{OffsetArray{T1, N} where T1}} where {T,N}
+
+"""
+    Base.unsafe_wrap(OffsetArray, pointer::Ptr{T}, inds...; own=false, kw...)
+    Base.unsafe_wrap(OffsetArray, pointer::Ptr{T}, inds::Tuple; own=false, kw...)
+
+Construct an `OffsetArray` around a pointer with axes defined by `inds` which may be Integers or AbstractUnitRanges.
+If the keyword `own` is true, then Julia will free the pointer when the array is garbage collected.
+Other keywords are forwarded to the `OffsetArray` constructor.
+"""
+@inline function Base.unsafe_wrap(::OffsetArrayUnion{T,N}, pointer::Ptr{T}, inds::NTuple{N, IntegerOrAbsUnitRange}; kw...) where {T,N}
+    _unsafe_wrap(pointer, inds; kw...)
+end
+# Avoid ambiguity
+@inline function Base.unsafe_wrap(::OffsetArrayUnion{T,N}, pointer::Ptr{T}, inds::NTuple{N, <:Integer}; kw...) where {T,N}
+    _unsafe_wrap(pointer, inds; kw...)
+end
+@inline function Base.unsafe_wrap(::OffsetArrayUnion{T,N}, pointer::Ptr{T}, inds::Vararg{IntegerOrAbsUnitRange,N}; kw...) where {T,N}
+    _unsafe_wrap(pointer, inds; kw...)
+end
+# Avoid ambiguity
+@inline function Base.unsafe_wrap(::OffsetArrayUnion{T,N}, pointer::Ptr{T}, inds::Vararg{Integer,N}; kw...) where {T,N}
+    _unsafe_wrap(pointer, inds; kw...)
+end
+
+
+"""
+    no_offset_view(A)
+
+Return an `AbstractArray` that shares structure and underlying data with the argument,
+but uses 1-based indexing. May just return the argument when applicable.
+Not exported.
+
+The default implementation uses `OffsetArraysCore`, but other types should use something more
+specific to remove a level of indirection when applicable.
+
+```jldoctest; setup=:(using OffsetArraysCore)
+julia> A = [1 3 5; 2 4 6];
+
+julia> O = OffsetArray(A, 0:1, -1:1)
+2×3 OffsetArray(::$(Matrix{Int}), 0:1, -1:1) with eltype $Int with indices 0:1×-1:1:
+ 1  3  5
+ 2  4  6
+
+julia> OffsetArraysCore.no_offset_view(O)[1,1] = -9
+-9
+
+julia> A
+2×3 $(Matrix{Int}):
+ -9  3  5
+  2  4  6
+```
+"""
+no_offset_view(A::OffsetArray) = no_offset_view(parent(A))
+if isdefined(Base, :IdentityUnitRange)
+    # valid only if Slice is distinguished from IdentityUnitRange
+    _onebasedslice(S::Base.Slice) = Base.Slice(Base.OneTo(length(S)))
+    _onebasedslice(S::Base.Slice{<:Base.OneTo}) = S
+    _onebasedslice(S) = S
+    _isoffsetslice(::Any) = false
+    _isoffsetslice(::Base.Slice) = true
+    _isoffsetslice(::Base.Slice{<:Base.OneTo}) = false
+    function no_offset_view(S::SubArray)
+        #= If a view contains an offset Slice axis,
+        i.e. it is a view of an offset array along the offset axis,
+        we shift the axis to a 1-based one.
+        E.g. Slice(2:3) -> Slice(Base.OneTo(2))
+        We transform the `parent` as well as the `parentindices`,
+        so that the view still points to the same elements, even though the indices have changed.
+        This way, we retain the axis of the view as a `Slice`
+        =#
+        P = parent(S)
+        pinds = parentindices(S)
+        #=
+        Check if all the axes are `Slice`s and the parent has `OneTo` axes,
+        in which case we may unwrap the `OffsetArray` and forward the view to the parent.
+        =#
+        may_pop_parent = all(_isoffsetslice, pinds) && P isa OffsetArray && all(x -> x isa Base.OneTo, axes(parent(P)))
+        if may_pop_parent
+            return no_offset_view(P)
+        end
+        #=
+        we convert offset `Slice`s to 1-based ones using `_onebasedslice`.
+        The next call, `no_offset_view`, is a no-op on a `Slice{<:OneTo}`,
+        while it converts the offset axes to 1-based ones.
+        Eventually, we end up with a `Tuple` comprising `Slice{<:OneTo}`s and other 1-based axes.
+
+        The difference between `_onebasedslice` and `no_offset_view` is that
+        the latter does not change the value of the range, while the former does.
+        =#
+        newviewinds = map(no_offset_view ∘ _onebasedslice, pinds)
+        needs_shifting = any(_isoffsetslice, pinds)
+        P_maybeshiftedinds = if needs_shifting
+            t = Origin(parent(S)).index
+            neworigin = ntuple(i -> _isoffsetslice(pinds[i]) ? 1 : t[i], length(t))
+            Origin(neworigin)(P)
+        else
+            P
+        end
+        view(P_maybeshiftedinds, newviewinds...)
+    end
+end
+no_offset_view(a::Array) = a
+no_offset_view(i::Number) = i
+no_offset_view(A::AbstractArray) = _no_offset_view(axes(A), A)
+_no_offset_view(::Tuple{}, A::AbstractArray{T,0}) where T = A
+_no_offset_view(::Tuple{Base.OneTo, Vararg{Base.OneTo}}, A::AbstractArray) = A
+_no_offset_view(::Any, A::AbstractArray) = _no_offset_view(A)
+_no_offset_view(A::AbstractArray) = OffsetArray(A, Origin(1))
+_no_offset_view(A::AbstractUnitRange) = UnitRange(A)
+
+
+#####
+# center/centered
+# These two helpers are deliberately not exported; their meaning can be very different in
+# other scenarios and will be very likely to cause name conflicts if exported.
+#####
+
+if VERSION < v"1.4"
+   _halfroundInt(v, r::RoundingMode) = round(Int, v/2, r)
+else
+   _halfroundInt(v, r::RoundingMode) = div(v, 2, r)
+end
+
+"""
+    center(A, [r::RoundingMode=RoundDown])::Dims
+
+Return the center coordinate of given array `A`. If `size(A, k)` is even,
+a rounding procedure will be applied with mode `r`.
+
+!!! compat "OffsetArraysCore 1.9"
+    This method requires at least OffsetArraysCore 1.9.
+
+# Examples
+
+```jldoctest; setup=:(using OffsetArraysCore)
+julia> A = reshape(collect(1:9), 3, 3)
+3×3 $(Matrix{Int}):
+ 1  4  7
+ 2  5  8
+ 3  6  9
+
+julia> c = OffsetArraysCore.center(A)
+(2, 2)
+
+julia> A[c...]
+5
+
+julia> Ao = OffsetArray(A, -2, -2); # axes (-1:1, -1:1)
+
+julia> c = OffsetArraysCore.center(Ao)
+(0, 0)
+
+julia> Ao[c...]
+5
+```
+
+To shift the center coordinate of the given array to `(0, 0, ...)`, you
+can use [`centered`](@ref OffsetArraysCore.centered).
+"""
+function center(A::AbstractArray, r::RoundingMode=RoundDown)
+    map(axes(A)) do inds
+        _halfroundInt(length(inds)-1, r) + first(inds)
+    end
+end
+
+"""
+    centered(A, cp=center(A)) -> Ao
+
+Shift the center coordinate/point `cp` of array `A` to `(0, 0, ..., 0)`. Internally, this is
+equivalent to `OffsetArray(A, .-cp)`.
+
+!!! compat "OffsetArraysCore 1.9"
+    This method requires at least OffsetArraysCore 1.9.
+
+# Examples
+
+```jldoctest; setup=:(using OffsetArraysCore)
+julia> A = reshape(collect(1:9), 3, 3)
+3×3 $(Matrix{Int}):
+ 1  4  7
+ 2  5  8
+ 3  6  9
+
+julia> Ao = OffsetArraysCore.centered(A); # axes (-1:1, -1:1)
+
+julia> Ao[0, 0]
+5
+
+julia> Ao = OffsetArray(A, OffsetArraysCore.Origin(0)); # axes (0:2, 0:2)
+
+julia> Aoo = OffsetArraysCore.centered(Ao); # axes (-1:1, -1:1)
+
+julia> Aoo[0, 0]
+5
+```
+
+Users are allowed to pass `cp` to change how "center point" is interpreted, but the meaning of the
+output array should be reinterpreted as well. For instance, if `cp = map(last, axes(A))` then this
+function no longer shifts the center point but instead the bottom-right point to `(0, 0, ..., 0)`.
+A commonly usage of `cp` is to change the rounding behavior when the array is of even size at some
+dimension:
+
+```jldoctest; setup=:(using OffsetArraysCore)
+julia> A = reshape(collect(1:4), 2, 2) # Ideally the center should be (1.5, 1.5) but OffsetArraysCore only support integer offsets
+2×2 $(Matrix{Int}):
+ 1  3
+ 2  4
+
+julia> OffsetArraysCore.centered(A, OffsetArraysCore.center(A, RoundUp)) # set (2, 2) as the center point
+2×2 OffsetArray(::$(Matrix{Int}), -1:0, -1:0) with eltype $(Int) with indices -1:0×-1:0:
+ 1  3
+ 2  4
+
+julia> OffsetArraysCore.centered(A, OffsetArraysCore.center(A, RoundDown)) # set (1, 1) as the center point
+2×2 OffsetArray(::$(Matrix{Int}), 0:1, 0:1) with eltype $(Int) with indices 0:1×0:1:
+ 1  3
+ 2  4
+```
+
+See also [`center`](@ref OffsetArraysCore.center).
+"""
+centered(A::AbstractArray, cp::Dims=center(A)) = OffsetArray(A, .-cp)
+
+centered(A::AbstractArray, i::CartesianIndex) = centered(A, Tuple(i))
+
+
+
+if VERSION < v"1.12.0-DEV.1713"
+    # The Base implementations are fixed in https://github.com/JuliaLang/julia/pull/56464 and https://github.com/JuliaLang/julia/pull/56474
+    # we therefore limit these specializations to older versions of julia
+
+    # we may pass the searchsorted* functions to the parent, and wrap the offset
+    for f in [:searchsortedfirst, :searchsortedlast, :searchsorted]
+        _safe_f = Symbol("_safe_" * String(f))
+        @eval function $_safe_f(v::OffsetVector, x, ilo, ihi, o::Base.Ordering)
+            offset = v.offsets[1]
+            $f(parent(v), x, ilo - offset, ihi - offset, o) .+ offset
+        end
+        @eval Base.$f(v::OffsetVector, x, ilo::T, ihi::T, o::Base.Ordering) where T<:Integer =
+            $_safe_f(v, x, ilo, ihi, o)
+    end
+
+    if VERSION <= v"1.2"
+        # ambiguity warnings in earlier versions
+        for f in [:searchsortedfirst, :searchsortedlast, :searchsorted]
+            _safe_f = Symbol("_safe_" * String(f))
+            @eval Base.$f(v::OffsetVector, x, ilo::Int, ihi::Int, o::Base.Ordering) =
+                $_safe_f(v, x, ilo, ihi, o)
+        end
+    end
+end
+
+
+if VERSION < v"1.1.0-DEV.783"
+    Base.copyfirst!(dest::OffsetArray, src::OffsetArray) = (maximum!(parent(dest), parent(src)); return dest)
+end
+
+if VERSION <= v"1.7.0-DEV.400"
+    # https://github.com/JuliaLang/julia/pull/39393
+    # index for zero-argument getindex should be first linear index instead of 1 (#194)
+    Base._to_linear_index(A::OffsetArray) = first(LinearIndices(A))
+end
+
+if !isdefined(Base, :get_extension)
+    include("../ext/OffsetArraysAdaptExt.jl")
+end
+
+
+##
+# Deprecations
+##
+
+# This is a bad API design as it introduces counter intuitive results (#250)
+@deprecate centered(A::AbstractArray, r::RoundingMode) OffsetArray(A, .-center(A, r)) false
+
+end # module OffsetArraysCore
