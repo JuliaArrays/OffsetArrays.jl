@@ -11,6 +11,12 @@ export OffsetArray, OffsetMatrix, OffsetVector
 
 const IIUR = IdentityUnitRange{<:AbstractUnitRange{<:Integer}}
 
+if VERSION >= v"1.13.0-DEV.876"
+    const OneTo{T<:Integer} = Base.AbstractOneTo{T}
+else
+    const OneTo{T<:Integer} = Base.OneTo{T}
+end
+
 include("axes.jl")
 include("utils.jl")
 include("origin.jl")
@@ -552,7 +558,7 @@ for OR in [:IIUR, :IdOffsetRange]
         _boundscheck_index_retaining_axes(r, s)
     end
 end
-Base.getindex(r::Base.OneTo, s::IdOffsetRange) = _boundscheck_index_retaining_axes(r, s)
+Base.getindex(r::OneTo, s::IdOffsetRange) = _boundscheck_index_retaining_axes(r, s)
 if VERSION < v"1.7.0-beta2"
     Base.getindex(r::Base.OneTo, s::IIUR) = _boundscheck_index_retaining_axes(r, s)
 end
@@ -694,11 +700,11 @@ no_offset_view(A::OffsetArray) = no_offset_view(parent(A))
 if isdefined(Base, :IdentityUnitRange)
     # valid only if Slice is distinguished from IdentityUnitRange
     _onebasedslice(S::Base.Slice) = Base.Slice(Base.OneTo(length(S)))
-    _onebasedslice(S::Base.Slice{<:Base.OneTo}) = S
+    _onebasedslice(S::Base.Slice{<:OneTo}) = S
     _onebasedslice(S) = S
     _isoffsetslice(::Any) = false
     _isoffsetslice(::Base.Slice) = true
-    _isoffsetslice(::Base.Slice{<:Base.OneTo}) = false
+    _isoffsetslice(::Base.Slice{<:OneTo}) = false
     function no_offset_view(S::SubArray)
         #= If a view contains an offset Slice axis,
         i.e. it is a view of an offset array along the offset axis,
@@ -743,7 +749,7 @@ no_offset_view(a::Array) = a
 no_offset_view(i::Number) = i
 no_offset_view(A::AbstractArray) = _no_offset_view(axes(A), A)
 _no_offset_view(::Tuple{}, A::AbstractArray{T,0}) where T = A
-_no_offset_view(::Tuple{Base.OneTo, Vararg{Base.OneTo}}, A::AbstractArray) = A
+_no_offset_view(::Tuple{OneTo, Vararg{OneTo}}, A::AbstractArray) = A
 _no_offset_view(::Any, A::AbstractArray) = _no_offset_view(A)
 _no_offset_view(A::AbstractArray) = OffsetArray(A, Origin(1))
 _no_offset_view(A::AbstractUnitRange) = UnitRange(A)
