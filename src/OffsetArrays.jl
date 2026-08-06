@@ -475,8 +475,6 @@ const OffsetUnitRange{T} = OffsetVector{T,<:AbstractUnitRange{T}}
 
 Base.step(a::OffsetRange) = step(parent(a))
 
-Base.checkindex(::Type{Bool}, inds::AbstractUnitRange, or::OffsetRange) = Base.checkindex(Bool, inds, parent(or))
-
 # Certain special methods for linear indexing with integer ranges (or OffsetRanges)
 # These may bypass the default getindex(A, I...) pathway if the parent types permit this
 # For example AbstractUnitRanges and Arrays have special linear indexing behavior defined
