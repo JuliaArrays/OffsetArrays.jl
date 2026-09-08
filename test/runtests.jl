@@ -13,9 +13,7 @@ using OffsetArrays: IdentityUnitRange, no_offset_view, IIUR, Origin, IdOffsetRan
 using StaticArrays
 using Test
 
-if !isdefined(Main, :SliceIntUR)
-    const SliceIntUR = Slice{<:AbstractUnitRange{<:Integer}}
-end
+const SliceIntUR = Slice{<:AbstractUnitRange{<:Integer}}
 
 DocMeta.setdocmeta!(OffsetArrays, :DocTestSetup, :(using OffsetArrays); recursive=true)
 
@@ -48,7 +46,7 @@ end
 @testset "Project meta quality checks" begin
     Aqua.test_all(OffsetArrays, piracies=false)
     if VERSION >= v"1.2"
-        doctest(OffsetArrays, manual=false)
+        doctest(OffsetArrays, manual = false)
     end
 end
 
@@ -435,10 +433,6 @@ Base.Int(a::WeirdInteger) = a
         @test a === OffsetArray(a, ())
         @test_throws ArgumentError OffsetArray(a, 0)
         @test_throws ArgumentError OffsetArray(a0, 0)
-        # Test 0-dimensional array with explicit type parameters (coverage for 0-dim constructors)
-        b = OffsetArray{Int, 0, typeof(a0)}(a0, ())
-        @test b[] == 3
-        @test axes(b) == ()
     end
 
     @testset "OffsetVector" begin
@@ -463,23 +457,15 @@ Base.Int(a::WeirdInteger) = a
         ]
 
         offsets = size.(one_based_axes[1], 1)
-        # Test with different integer offset types (Int8, Int16, Int32, Int64, Int128, BigInt)
-        offsets_all = [map(T, offsets) for T in (Int8, Int16, Int32, Int64, Int128, BigInt)]
+        offsets_big = map(big, offsets)
 
-        for inds in Any[offsets_all..., one_based_axes...]
+        for inds in Any[offsets, offsets_big, one_based_axes...]
             # test indices API
             a = OffsetVector{Float64}(undef, inds)
             @test eltype(a) === Float64
             @test axes(a) === axes(OffsetVector{Float64}(undef, inds...)) === axes(OffsetArray{Float64, 1}(undef, inds)) === axes(OffsetArray{Float64}(undef, inds))
             @test axes(a) === (IdOffsetRange(Base.OneTo(4), 0), )
-            
-            OffsetType = eltype(a.offsets)
-            
-            if OffsetType == BigInt # Note BigInt.((0, )) === BigInt.((0, )) is false
-                @test a.offsets == (0, )
-            else
-                @test a.offsets === map(OffsetType, (0, ))    
-            end
+            @test a.offsets === (0, )
             @test axes(a.parent) == (Base.OneTo(4), )
 
             a = OffsetVector{Nothing}(nothing, inds)
@@ -494,7 +480,7 @@ Base.Int(a::WeirdInteger) = a
         end
 
         # nested OffsetVectors
-        for inds in offsets_all
+        for inds in Any[offsets, offsets_big]
             a = OffsetVector{Float64}(undef, inds)
             b = OffsetVector(a, inds); b2 = OffsetVector(a, inds...);
             @test eltype(b) === eltype(b2) === Float64
@@ -506,12 +492,7 @@ Base.Int(a::WeirdInteger) = a
             # test offsets
             a = OffsetVector{Float64}(undef, inds)
             ax = (IdOffsetRange(Base.OneTo(4), -2), )
-            OffsetType = eltype(a.offsets)
-            if OffsetType == BigInt # Note BigInt.((-2, )) === BigInt.((-2, )) is false
-                @test a.offsets == (-2, )
-            else
-                @test a.offsets === map(OffsetType, (-2, ))
-            end
+            @test a.offsets === (-2, )
             @test axes(a.parent) == (Base.OneTo(4), )
             @test axes(a) === ax
             a = OffsetVector{Nothing}(nothing, inds)
@@ -538,15 +519,10 @@ Base.Int(a::WeirdInteger) = a
             oa2 = OffsetVector(a, inds)
             oa3 = OffsetArray(a, inds...)
             oa4 = OffsetArray(a, inds)
-            if eltype(oa1.offsets) == BigInt # Note: BigInt(1) === BigInt(1) is false
-                @test oa1 == oa2 == oa3 == oa4
-                @test oa1.offsets == (-2, )
-            else
-                @test oa1 === oa2 === oa3 === oa4
-                @test oa1.offsets === (-2, )
-            end
+            @test oa1 === oa2 === oa3 === oa4
             @test axes(oa1) === (IdOffsetRange(Base.OneTo(4), -2), )
             @test parent(oa1) === a
+            @test oa1.offsets === (-2, )
         end
 
         oa = OffsetArray(a, :)
@@ -561,11 +537,7 @@ Base.Int(a::WeirdInteger) = a
         for inds in Any[.-oa.offsets, one_based_axes...]
             ooa = OffsetArray(oa, inds)
             @test typeof(parent(ooa)) <: Vector
-            if eltype(ooa.offsets) == BigInt # Note: BigInt(1) === BigInt(1) is false
-                @test ooa == OffsetArray(oa, inds...) == OffsetVector(oa, inds) == OffsetVector(oa, inds...)
-            else
-                @test ooa === OffsetArray(oa, inds...) === OffsetVector(oa, inds) === OffsetVector(oa, inds...)
-            end
+            @test ooa === OffsetArray(oa, inds...) === OffsetVector(oa, inds) === OffsetVector(oa, inds...)
             @test ooa == a
             @test axes(ooa) == axes(a)
             @test axes(ooa) !== axes(a)
@@ -658,21 +630,16 @@ Base.Int(a::WeirdInteger) = a
         ]
 
         offsets = size.(one_based_axes[1], 1)
-        # Test with different integer offset types (Int8, Int16, Int32, Int64, Int128, BigInt)
-        offsets_all = [map(T, offsets) for T in (Int8, Int16, Int32, Int64, Int128, BigInt)]
+        offsets_big = map(big, offsets)
 
-        for inds in Any[offsets_all..., one_based_axes...]
+        for inds in Any[offsets, offsets_big, one_based_axes...]
             # test API
             a = OffsetMatrix{Float64}(undef, inds)
             ax = (IdOffsetRange(Base.OneTo(4), 0), IdOffsetRange(Base.OneTo(3), 0))
             @test eltype(a) === Float64
             @test axes(a) === axes(OffsetMatrix{Float64}(undef, inds...)) === axes(OffsetArray{Float64, 2}(undef, inds)) === axes(OffsetArray{Float64, 2}(undef, inds...)) === axes(OffsetArray{Float64}(undef, inds))
             @test axes(a) === ax
-            if eltype(a.offsets) == BigInt # Note BigInt.((0, 0)) === BigInt.((0, 0)) is false
-                @test a.offsets == (0, 0)
-            else
-                @test a.offsets === map(eltype(a.offsets), (0, 0))
-            end
+            @test a.offsets === (0, 0)
             @test axes(a.parent) == (Base.OneTo(4), Base.OneTo(3))
 
             a = OffsetMatrix{Nothing}(nothing, inds)
@@ -688,7 +655,7 @@ Base.Int(a::WeirdInteger) = a
         @test_throws Union{ArgumentError, ErrorException} OffsetMatrix{Float64}(undef, 2, -2) # only positive numbers works
 
         # nested OffsetMatrices
-        for inds in offsets_all
+        for inds in Any[offsets, offsets_big]
             a = OffsetMatrix{Float64}(undef, inds)
             b = OffsetMatrix(a, inds); b2 = OffsetMatrix(a, inds...);
             @test eltype(b) === eltype(b2) === Float64
@@ -700,11 +667,7 @@ Base.Int(a::WeirdInteger) = a
             # test offsets
             a = OffsetMatrix{Float64}(undef, inds)
             ax = (IdOffsetRange(Base.OneTo(4), -2), IdOffsetRange(Base.OneTo(3), -1))
-            if eltype(a.offsets) == BigInt # Note BigInt.((0, 0)) === BigInt.((0, 0)) is false
-                @test a.offsets == (-2, -1)
-            else
-                @test a.offsets === (-2, -1)
-            end
+            @test a.offsets === (-2, -1)
             @test axes(a.parent) == (Base.OneTo(4), Base.OneTo(3))
             @test axes(a) === ax
             a = OffsetMatrix{Nothing}(nothing, inds)
@@ -731,22 +694,13 @@ Base.Int(a::WeirdInteger) = a
             oa2 = OffsetMatrix(a, inds)
             oa3 = OffsetArray(a, inds...)
             oa4 = OffsetArray(a, inds)
-            if eltype(oa1.offsets) == BigInt # Note BigInt.((0, 0)) === BigInt.((0, 0)) is false
-                @test oa1 == oa2 == oa3 == oa4
-                @test oa1.offsets == (-2, -1)
-            else
-                @test oa1 === oa2 === oa3 === oa4
-                @test oa1.offsets === (-2, -1)
-            end
+            @test oa1 === oa2 === oa3 === oa4
             @test axes(oa1) === ax
             @test parent(oa1) === a
+            @test oa1.offsets === (-2, -1)
         end
         oa = OffsetArray(a, :, axes(a, 2))
-        if eltype(oa.offsets) == BigInt #
-            @test oa == OffsetArray(a, (:, axes(a, 2))) == OffsetArray(a, axes(a)) == OffsetMatrix(a, (IdOffsetRange(axes(a)[1], 0), axes(a, 2)))
-        else
-            @test oa === OffsetArray(a, (:, axes(a, 2))) === OffsetArray(a, axes(a)) === OffsetMatrix(a, (IdOffsetRange(axes(a)[1], 0), axes(a, 2)))
-        end
+        @test oa === OffsetArray(a, (axes(oa, 1), :)) === OffsetArray(a, axes(a)) === OffsetMatrix(a, (axes(oa, 1), :)) === OffsetMatrix(a, axes(a))
         @test oa == a
         @test axes(oa) == axes(a)
         @test axes(oa) !== axes(a)
@@ -759,11 +713,7 @@ Base.Int(a::WeirdInteger) = a
         oa = OffsetArray(a, -1, -2)
         for inds in Any[.-oa.offsets, one_based_axes...]
             ooa = OffsetArray(oa, inds)
-            if eltype(ooa.offsets) == BigInt # Note BigInt.((-1, -2)) === BigInt.((-1, -2)) is false
-                @test ooa == OffsetArray(oa, inds...) == OffsetMatrix(oa, inds) == OffsetMatrix(oa, inds...)
-            else
-                @test ooa === OffsetArray(oa, inds...) === OffsetMatrix(oa, inds) === OffsetMatrix(oa, inds...)
-            end
+            @test ooa === OffsetArray(oa, inds...) === OffsetMatrix(oa, inds) === OffsetMatrix(oa, inds...)
             @test typeof(parent(ooa)) <: Matrix
             @test ooa == a
             @test axes(ooa) == axes(a)
@@ -863,9 +813,8 @@ Base.Int(a::WeirdInteger) = a
         # ndim of an OffsetArray should match that of the parent
         @test_throws TypeError OffsetArray{Float64,3,Matrix{Float64}}
 
-        # should throw an error if the offset type doesn't support proper arithmetic operations
-        # (previously threw TypeError when converting to Int, now throws during overflow_check)
-        @test_throws Exception OffsetVector{Int,Vector{Int}}(zeros(Int,2), (WeirdInteger(1),))
+        # should throw a TypeError if the offsets can not be converted to Ints
+        @test_throws TypeError OffsetVector{Int,Vector{Int}}(zeros(Int,2), (WeirdInteger(1),))
     end
 
     @testset "custom range types" begin
@@ -2827,6 +2776,133 @@ end
     @test axes(convert(AbstractArray{T}, OA)) === axes(OA)
 end
 
+# Downstream packages may subtype AbstractOffsetArray to store the offsets differently.
+# The two types below cover the extremes: offsets held in a narrow integer type, and offsets
+# held in a type parameter so that the wrapper carries no offset data at all.
+
+struct NarrowOffsetArray{T,N,AA<:AbstractArray{T,N},I<:Integer} <: OffsetArrays.AbstractOffsetArray{T,N}
+    parent::AA
+    offsets::NTuple{N,I}
+end
+Base.IndexStyle(::Type{<:NarrowOffsetArray{T,N,AA}}) where {T,N,AA} = IndexStyle(AA)
+
+struct StaticOffsetArray{T,N,AA<:AbstractArray{T,N},O} <: OffsetArrays.AbstractOffsetArray{T,N}
+    parent::AA
+end
+StaticOffsetArray(A::AbstractArray{T,N}, offsets::NTuple{N,Integer}) where {T,N} = StaticOffsetArray{T,N,typeof(A),offsets}(A)
+OffsetArrays.offsets(::StaticOffsetArray{<:Any,<:Any,<:Any,O}) where {O} = O
+Base.IndexStyle(::Type{<:StaticOffsetArray{T,N,AA}}) where {T,N,AA} = IndexStyle(AA)
+
+@testset "AbstractOffsetArray" begin
+    @testset "interface" begin
+        A = [1 3 5; 2 4 6]
+        O = OffsetArray(A, -1, -2)
+
+        for B in (NarrowOffsetArray(A, (Int8(-1), Int8(-2))), StaticOffsetArray(A, (-1, -2)))
+            @test B isa OffsetArrays.AbstractOffsetArray{Int,2}
+            @test !(B isa OffsetArray)
+            @test parent(B) === A
+            @test OffsetArrays.offsets(B) == (-1, -2)
+            @test size(B) == (2, 3)
+            @test length(B) == 6
+            @test eltype(B) === Int
+            @test IndexStyle(B) === IndexLinear()
+            @test axes(B) === axes(O)
+            @test axes(B, 1) === axes(O, 1)
+            @test axes(B, 3) === axes(O, 3)
+
+            @test B[0, -1] == 1
+            @test B[1, 1] == 6
+            @test B[CartesianIndex(0, 0)] == 3
+            @test_throws BoundsError B[2, 0]
+            @test_throws BoundsError B[0, 2]
+            @test B == O
+            @test sum(B) == sum(A)
+            @test 4 in B
+            @test !(7 in B)
+            @test no_offset_view(B) === A
+        end
+
+        # the offsets of a StaticOffsetArray live entirely in the type
+        @test sizeof(StaticOffsetArray(A, (-1, -2))) == sizeof(Ptr{Cvoid})
+
+        B = NarrowOffsetArray(copy(A), (Int8(-1), Int8(-2)))
+        B[0, -1] = 10
+        B[1, 1] = 20
+        @test parent(B) == [10 3 5; 2 4 20]
+        @test_throws BoundsError (B[2, 0] = 0)
+    end
+
+    @testset "wrapper-preserving operations" begin
+        A = [1 3 5; 2 4 6]
+        N = NarrowOffsetArray(A, (Int8(-1), Int8(-2)))
+
+        # operations that rewrap the parent return an OffsetArray unless `unwrap` is extended
+        @test copy(N) isa OffsetArray
+        @test copy(N) == N
+        @test axes(copy(N)) === axes(N)
+        @test zero(N) == zeros(Int, axes(N))
+        @test map(Float64, N) == N
+        @test eltype(map(Float64, N)) === Float64
+
+        B = NarrowOffsetArray(copy(A), (Int8(-1), Int8(-2)))
+        @test fill!(B, 7) == fill(7, axes(B))
+        @test all(==(7), parent(B))
+
+        C = similar(N, Float64)
+        @test C isa OffsetArray{Float64,2}
+        @test axes(C) === axes(N)
+        @test similar(N, Float64, (2, 3)) isa Matrix{Float64}
+
+        D = N .+ 1
+        @test D isa OffsetArray
+        @test axes(D) === axes(N)
+        @test parent(D) == A .+ 1
+
+        @test reshape(N, 6) == vec(A)
+        @test reshape(N, (2, 3)) == A
+    end
+
+    @testset "vectors" begin
+        v = [1, 2, 3, 4]
+        N = NarrowOffsetArray(v, (Int8(-2),))
+        O = OffsetArray(v, -2)
+
+        @test axes(N) === axes(O)
+        @test N[-1] == 1
+        @test N[2] == 4
+        @test N[-1:0] == [1, 2]
+        @test no_offset_axes(N[-1:0], 1) == 1:2
+        @test N[0:2:2] == [2, 4]
+        @test permutedims(N) == permutedims(O)
+        @test axes(permutedims(N)) === axes(permutedims(O))
+
+        N[-1] = 10
+        @test v[1] == 10
+        @test pop!(N) == 4
+        @test length(v) == 3
+        push!(N, 5)
+        @test v[end] == 5
+    end
+
+    @testset "nesting and printing" begin
+        A = [1 3 5; 2 4 6]
+        N = NarrowOffsetArray(A, (Int8(-1), Int8(-2)))
+
+        # wrapping an AbstractOffsetArray collates the offsets and pops the inner wrapper
+        for B in (OffsetArray(N, 1, 2), OffsetArray(N, (1, 2)), OffsetArray{Int,2}(N, 1, 2))
+            @test B isa OffsetArray{Int,2,typeof(A)}
+            @test parent(B) === A
+            @test axes(B) == axes(A)
+            @test B == A
+        end
+
+        # the wrapper prints under its own name
+        @test summary(N) == replace(summary(OffsetArray(A, -1, -2)), "OffsetArray" => "NarrowOffsetArray")
+        # replace_in_print_matrix is forwarded to the parent
+        @test occursin("⋅", sprint(show, "text/plain", NarrowOffsetArray(Diagonal([1, 2]), (Int8(-1), Int8(-1)))))
+    end
+end
 
 include("origin.jl")
 
