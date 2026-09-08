@@ -136,3 +136,28 @@ julia> polynomial(2.0, coeffs)
 ```
 
 Notice our use of the `eachindex` function which does not assume that the given array starts at `1`.
+
+## Custom offset array types
+
+Packages that need to store the offsets differently (e.g. in a narrower integer type, or in the type parameters themselves), may subtype `OffsetArrays.AbstractOffsetArray{T,N}`. Such a type needs to provide `Base.parent` and `OffsetArrays.offsets`, both of which default to reading the fields `parent` and `offsets`, and it inherits the indexing, axes and printing machinery that is defined for `AbstractOffsetArray`.
+
+```jldoctest; setup = :(using OffsetArrays)
+julia> struct Int8OffsetArray{T,N,AA<:AbstractArray{T,N}} <: OffsetArrays.AbstractOffsetArray{T,N}
+           parent::AA
+           offsets::NTuple{N,Int8}
+       end
+
+julia> A = Int8OffsetArray([1 3 5; 2 4 6], (Int8(-1), Int8(-2)))
+2×3 Int8OffsetArray(::Matrix{Int64}, 0:1, -1:1) with eltype Int64 with indices 0:1×-1:1:
+ 1  3  5
+ 2  4  6
+
+julia> A[0, 1]
+5
+
+julia> sum(A)
+21
+```
+
+Operations that rebuild the wrapper around a new parent array, such as `copy`, `zero`, `fill!` and `map`, return
+an `OffsetArray` unless the type extends `OffsetArrays.unwrap`.

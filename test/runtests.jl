@@ -2776,6 +2776,133 @@ end
     @test axes(convert(AbstractArray{T}, OA)) === axes(OA)
 end
 
+# Downstream packages may subtype AbstractOffsetArray to store the offsets differently.
+# The two types below cover the extremes: offsets held in a narrow integer type, and offsets
+# held in a type parameter so that the wrapper carries no offset data at all.
+
+struct NarrowOffsetArray{T,N,AA<:AbstractArray{T,N},I<:Integer} <: OffsetArrays.AbstractOffsetArray{T,N}
+    parent::AA
+    offsets::NTuple{N,I}
+end
+Base.IndexStyle(::Type{<:NarrowOffsetArray{T,N,AA}}) where {T,N,AA} = IndexStyle(AA)
+
+struct StaticOffsetArray{T,N,AA<:AbstractArray{T,N},O} <: OffsetArrays.AbstractOffsetArray{T,N}
+    parent::AA
+end
+StaticOffsetArray(A::AbstractArray{T,N}, offsets::NTuple{N,Integer}) where {T,N} = StaticOffsetArray{T,N,typeof(A),offsets}(A)
+OffsetArrays.offsets(::StaticOffsetArray{<:Any,<:Any,<:Any,O}) where {O} = O
+Base.IndexStyle(::Type{<:StaticOffsetArray{T,N,AA}}) where {T,N,AA} = IndexStyle(AA)
+
+@testset "AbstractOffsetArray" begin
+    @testset "interface" begin
+        A = [1 3 5; 2 4 6]
+        O = OffsetArray(A, -1, -2)
+
+        for B in (NarrowOffsetArray(A, (Int8(-1), Int8(-2))), StaticOffsetArray(A, (-1, -2)))
+            @test B isa OffsetArrays.AbstractOffsetArray{Int,2}
+            @test !(B isa OffsetArray)
+            @test parent(B) === A
+            @test OffsetArrays.offsets(B) == (-1, -2)
+            @test size(B) == (2, 3)
+            @test length(B) == 6
+            @test eltype(B) === Int
+            @test IndexStyle(B) === IndexLinear()
+            @test axes(B) === axes(O)
+            @test axes(B, 1) === axes(O, 1)
+            @test axes(B, 3) === axes(O, 3)
+
+            @test B[0, -1] == 1
+            @test B[1, 1] == 6
+            @test B[CartesianIndex(0, 0)] == 3
+            @test_throws BoundsError B[2, 0]
+            @test_throws BoundsError B[0, 2]
+            @test B == O
+            @test sum(B) == sum(A)
+            @test 4 in B
+            @test !(7 in B)
+            @test no_offset_view(B) === A
+        end
+
+        # the offsets of a StaticOffsetArray live entirely in the type
+        @test sizeof(StaticOffsetArray(A, (-1, -2))) == sizeof(Ptr{Cvoid})
+
+        B = NarrowOffsetArray(copy(A), (Int8(-1), Int8(-2)))
+        B[0, -1] = 10
+        B[1, 1] = 20
+        @test parent(B) == [10 3 5; 2 4 20]
+        @test_throws BoundsError (B[2, 0] = 0)
+    end
+
+    @testset "wrapper-preserving operations" begin
+        A = [1 3 5; 2 4 6]
+        N = NarrowOffsetArray(A, (Int8(-1), Int8(-2)))
+
+        # operations that rewrap the parent return an OffsetArray unless `unwrap` is extended
+        @test copy(N) isa OffsetArray
+        @test copy(N) == N
+        @test axes(copy(N)) === axes(N)
+        @test zero(N) == zeros(Int, axes(N))
+        @test map(Float64, N) == N
+        @test eltype(map(Float64, N)) === Float64
+
+        B = NarrowOffsetArray(copy(A), (Int8(-1), Int8(-2)))
+        @test fill!(B, 7) == fill(7, axes(B))
+        @test all(==(7), parent(B))
+
+        C = similar(N, Float64)
+        @test C isa OffsetArray{Float64,2}
+        @test axes(C) === axes(N)
+        @test similar(N, Float64, (2, 3)) isa Matrix{Float64}
+
+        D = N .+ 1
+        @test D isa OffsetArray
+        @test axes(D) === axes(N)
+        @test parent(D) == A .+ 1
+
+        @test reshape(N, 6) == vec(A)
+        @test reshape(N, (2, 3)) == A
+    end
+
+    @testset "vectors" begin
+        v = [1, 2, 3, 4]
+        N = NarrowOffsetArray(v, (Int8(-2),))
+        O = OffsetArray(v, -2)
+
+        @test axes(N) === axes(O)
+        @test N[-1] == 1
+        @test N[2] == 4
+        @test N[-1:0] == [1, 2]
+        @test no_offset_axes(N[-1:0], 1) == 1:2
+        @test N[0:2:2] == [2, 4]
+        @test permutedims(N) == permutedims(O)
+        @test axes(permutedims(N)) === axes(permutedims(O))
+
+        N[-1] = 10
+        @test v[1] == 10
+        @test pop!(N) == 4
+        @test length(v) == 3
+        push!(N, 5)
+        @test v[end] == 5
+    end
+
+    @testset "nesting and printing" begin
+        A = [1 3 5; 2 4 6]
+        N = NarrowOffsetArray(A, (Int8(-1), Int8(-2)))
+
+        # wrapping an AbstractOffsetArray collates the offsets and pops the inner wrapper
+        for B in (OffsetArray(N, 1, 2), OffsetArray(N, (1, 2)), OffsetArray{Int,2}(N, 1, 2))
+            @test B isa OffsetArray{Int,2,typeof(A)}
+            @test parent(B) === A
+            @test axes(B) == axes(A)
+            @test B == A
+        end
+
+        # the wrapper prints under its own name
+        @test summary(N) == replace(summary(OffsetArray(A, -1, -2)), "OffsetArray" => "NarrowOffsetArray")
+        # replace_in_print_matrix is forwarded to the parent
+        @test occursin("⋅", sprint(show, "text/plain", NarrowOffsetArray(Diagonal([1, 2]), (Int8(-1), Int8(-1)))))
+    end
+end
 
 include("origin.jl")
 
