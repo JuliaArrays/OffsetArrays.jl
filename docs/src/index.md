@@ -169,5 +169,4 @@ julia> sum(A)
 21
 ```
 
-Operations that rebuild the wrapper around a new parent array, such as `copy`, `zero` and `map`, return
-an `OffsetArray` unless the type extends `OffsetArrays.unwrap`.
+Operations that rebuild the wrapper around a new parent array (`copy`, `zero`, `map(T, A)`, indexing with a `Colon` along every dimension, and `Adapt.adapt`) return an `OffsetArray` unless the type extends `OffsetArrays.unwrap`. Every other operation that produces a new array with offset axes (`similar(A)`, broadcasting, indexing with an offset range, `AbstractArray{T}(A)`, `convert`, `reshape` to offset axes) returns an `OffsetArray`, while results with 1-based axes (`similar(A, T, dims)`, indexing with a 1-based range, `A[:]`, `vec`, `collect`, `reshape` to dimensions) have the type of the parent's result. Wrapping a custom type in an `OffsetArray` discards the custom wrapper and collates the offsets. The specialisations for `OffsetVector`s that wrap ranges (indexing with an offset range, `step`, list-style reductions, compact printing) do not apply to custom types wrapping a range, which fall back to the generic `AbstractArray` methods.

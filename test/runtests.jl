@@ -2854,6 +2854,11 @@ Base.parent(A::NoOffsetsOffsetArray) = A.parent
 
         # the offsets of a StaticOffsetArray live entirely in the type
         @test sizeof(StaticOffsetArray(A, (-1, -2))) == sizeof(Ptr{Cvoid})
+        # narrow offsets take less space than the Ints of an OffsetArray (issue 370)
+        narrow = NarrowOffsetArray(A, (Int8(-1), Int8(-2)))
+        @test sizeof(narrow) < sizeof(O)
+        # the Matrix parent is a reference: a pointer plus an NTuple{2,Int8}, padded to pointer alignment
+        @test sizeof(narrow) == 2 * sizeof(Ptr{Cvoid})
 
         B = NarrowOffsetArray(copy(A), (Int8(-1), Int8(-2)))
         B[0, -1] = 10
@@ -2952,6 +2957,19 @@ Base.parent(A::NoOffsetsOffsetArray) = A.parent
         @test length(v) == 3
         push!(N, 5)
         @test v[end] == 5
+
+        # a subtype wrapping a range is not an OffsetRange, so it uses the generic AbstractArray
+        # fallbacks instead of the range specialisations; the values agree
+        R = NarrowOffsetArray(1:5, (Int8(-2),))
+        RO = OffsetVector(1:5, -2)
+        @test !(R isa OffsetArrays.OffsetRange)
+        @test axes(R) === axes(RO)
+        @test R[-1] == 1
+        @test R[-1:0] == 1:2
+        @test sum(R) == 15
+        w = collect(10:20)
+        @test collect(w[R]) == collect(w[RO])
+        @test collect((10:20)[R]) == collect((10:20)[RO])
     end
 
     @testset "nesting and printing" begin
@@ -2968,6 +2986,8 @@ Base.parent(A::NoOffsetsOffsetArray) = A.parent
 
         # the wrapper prints under its own name
         @test summary(N) == replace(summary(OffsetArray(A, -1, -2)), "OffsetArray" => "NarrowOffsetArray")
+        # showarg prints the struct name, so the OffsetVector alias prints as OffsetArray
+        @test occursin("OffsetArray(::$(Vector{Int}), 0:2)", summary(OffsetVector([1, 2, 3], -1)))
         # replace_in_print_matrix is forwarded to the parent
         @test occursin("⋅", sprint(show, "text/plain", NarrowOffsetArray(Diagonal([1, 2]), (Int8(-1), Int8(-1)))))
     end

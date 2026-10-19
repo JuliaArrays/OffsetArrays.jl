@@ -55,6 +55,10 @@ same guarantee as `OffsetArray`. (Wrapping a subtype in an `OffsetArray`, as bel
 
 Wrapping an `AbstractOffsetArray` in an `OffsetArray` collates the offsets and discards the inner wrapper:
 `OffsetArray(A::S, offsets)` is an `OffsetArray` around `parent(A)`.
+
+The specialisations for ranges (indexing with an offset range, `step`, list-style reductions and compact
+printing) are defined for an `OffsetVector` wrapping an `AbstractRange`; a subtype wrapping a range falls
+back to the generic `AbstractArray` methods, which produce the same values.
 """
 abstract type AbstractOffsetArray{T,N} <: AbstractArray{T,N} end
 
@@ -86,7 +90,8 @@ function offsets end
     OffsetArrays.parenttype(::Type{<:AbstractOffsetArray})
     OffsetArrays.parenttype(A::AbstractOffsetArray)
 
-Return the type of `parent(A)`. It is used to derive `IndexStyle` and `Base.elsize` without an instance.
+Return the type of `parent(A)`. It is used to derive `IndexStyle`, `Base.elsize` and `Adapt.parent_type`
+without an instance.
 
 Subtypes of [`AbstractOffsetArray`](@ref OffsetArrays.AbstractOffsetArray) must define the `Type` method;
 the method taking an instance forwards to it.
@@ -403,8 +408,15 @@ unwrap(x) = x, identity
     OffsetArrays.unwrap(A)
 
 Return `(parent(A), rewrap)`, where `rewrap` restores the wrapper around an array that shares the axes
-of `parent(A)`. Subtypes of [`AbstractOffsetArray`](@ref OffsetArrays.AbstractOffsetArray) may extend
-this to retain their own type through `copy`, `zero` and `map`.
+of `parent(A)`. The default `rewrap` builds an `OffsetArray`. Subtypes of
+[`AbstractOffsetArray`](@ref OffsetArrays.AbstractOffsetArray) may extend this to retain their own type
+through the operations that go through it: `copy`, `zero`, `map(T, A)`, indexing with a `Colon` along every
+dimension, and `Adapt.adapt`.
+
+Every other operation that produces a new array with offset axes, such as `similar(A)`, broadcasting,
+indexing with an offset range, `AbstractArray{T}(A)`, `convert`, and `reshape` to offset axes, returns an
+`OffsetArray`. Results with 1-based axes, such as `similar(A, T, dims)`, indexing with a 1-based range,
+`A[:]`, `vec`, `collect`, and `reshape` to dimensions, have the type of the parent's result.
 """
 unwrap(x::AbstractOffsetArray) = parent(x), data -> OffsetArray(data, offsets(x), checkoverflow = false)
 function parent_call(f, x)
@@ -713,6 +725,8 @@ end
 Base.showindices(io::IO, ind1::IdOffsetRange, inds::IdOffsetRange...) = Base.showindices(io, map(UnitRange, (ind1, inds...))...)
 
 function Base.showarg(io::IO, @nospecialize(a::AbstractOffsetArray), toplevel)
+    # nameof(typeof(a)) is the name of the struct, not of an alias: OffsetVector and OffsetMatrix
+    # print as OffsetArray, and aliases of subtypes print as the subtype
     print(io, nameof(typeof(a)), '(')
     Base.showarg(io, parent(a), false)
     Base.showindices(io, axes(a)...)
