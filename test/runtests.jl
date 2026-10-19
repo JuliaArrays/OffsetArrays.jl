@@ -2784,14 +2784,29 @@ struct NarrowOffsetArray{T,N,AA<:AbstractArray{T,N},I<:Integer} <: OffsetArrays.
     parent::AA
     offsets::NTuple{N,I}
 end
+Base.parent(A::NarrowOffsetArray) = A.parent
+OffsetArrays.offsets(A::NarrowOffsetArray) = A.offsets
+OffsetArrays.parenttype(::Type{<:NarrowOffsetArray{T,N,AA}}) where {T,N,AA} = AA
 Base.IndexStyle(::Type{<:NarrowOffsetArray{T,N,AA}}) where {T,N,AA} = IndexStyle(AA)
 
 struct StaticOffsetArray{T,N,AA<:AbstractArray{T,N},O} <: OffsetArrays.AbstractOffsetArray{T,N}
     parent::AA
 end
 StaticOffsetArray(A::AbstractArray{T,N}, offsets::NTuple{N,Integer}) where {T,N} = StaticOffsetArray{T,N,typeof(A),offsets}(A)
+Base.parent(A::StaticOffsetArray) = A.parent
 OffsetArrays.offsets(::StaticOffsetArray{<:Any,<:Any,<:Any,O}) where {O} = O
+OffsetArrays.parenttype(::Type{<:StaticOffsetArray{T,N,AA}}) where {T,N,AA} = AA
 Base.IndexStyle(::Type{<:StaticOffsetArray{T,N,AA}}) where {T,N,AA} = IndexStyle(AA)
+
+# subtypes that leave out one of the required methods must fail with a clear error
+struct NoParentOffsetArray{T,N} <: OffsetArrays.AbstractOffsetArray{T,N}
+    data::Array{T,N}
+end
+OffsetArrays.offsets(::NoParentOffsetArray{<:Any,N}) where {N} = ntuple(_ -> 0, N)
+struct NoOffsetsOffsetArray{T,N} <: OffsetArrays.AbstractOffsetArray{T,N}
+    parent::Array{T,N}
+end
+Base.parent(A::NoOffsetsOffsetArray) = A.parent
 
 @testset "AbstractOffsetArray" begin
     @testset "interface" begin
@@ -2800,9 +2815,12 @@ Base.IndexStyle(::Type{<:StaticOffsetArray{T,N,AA}}) where {T,N,AA} = IndexStyle
 
         for B in (NarrowOffsetArray(A, (Int8(-1), Int8(-2))), StaticOffsetArray(A, (-1, -2)))
             @test B isa OffsetArrays.AbstractOffsetArray{Int,2}
+            @test B isa OffsetArrays.AbstractOffsetMatrix{Int}
             @test !(B isa OffsetArray)
             @test parent(B) === A
             @test OffsetArrays.offsets(B) == (-1, -2)
+            @test OffsetArrays.parenttype(B) === typeof(A)
+            @test OffsetArrays.parenttype(typeof(B)) === typeof(A)
             @test size(B) == (2, 3)
             @test length(B) == 6
             @test eltype(B) === Int
@@ -2831,6 +2849,20 @@ Base.IndexStyle(::Type{<:StaticOffsetArray{T,N,AA}}) where {T,N,AA} = IndexStyle
         B[1, 1] = 20
         @test parent(B) == [10 3 5; 2 4 20]
         @test_throws BoundsError (B[2, 0] = 0)
+
+        # the concrete type implements the same interface
+        @test OffsetMatrix(A, -1, -2) isa OffsetArrays.AbstractOffsetMatrix{Int}
+        @test OffsetVector(A[:, 1], -1) isa OffsetArrays.AbstractOffsetVector{Int}
+        @test OffsetArrays.parenttype(O) === typeof(A)
+
+        # a subtype without `parent` would otherwise hit Base's identity fallback and recurse
+        X = NoParentOffsetArray(A)
+        @test_throws ArgumentError parent(X)
+        @test_throws ArgumentError axes(X)
+        Y = NoOffsetsOffsetArray(A)
+        @test_throws MethodError OffsetArrays.offsets(Y)
+        @test_throws MethodError axes(Y)
+        @test_throws MethodError OffsetArrays.parenttype(typeof(Y))
     end
 
     @testset "wrapper-preserving operations" begin
@@ -2868,6 +2900,7 @@ Base.IndexStyle(::Type{<:StaticOffsetArray{T,N,AA}}) where {T,N,AA} = IndexStyle
         N = NarrowOffsetArray(v, (Int8(-2),))
         O = OffsetArray(v, -2)
 
+        @test N isa OffsetArrays.AbstractOffsetVector{Int}
         @test axes(N) === axes(O)
         @test N[-1] == 1
         @test N[2] == 4

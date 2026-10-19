@@ -26,23 +26,68 @@ const ArrayInitializer = Union{UndefInitializer, Missing, Nothing}
     AbstractOffsetArray{T,N} <: AbstractArray{T,N}
 
 Supertype for arrays that shift the axes of a parent array. Packages may subtype it to store the offsets differently,
-for instance in a narrower integer type or in the type parameters themselves. A subtype must provide `Base.parent`
-and [`OffsetArrays.offsets`](@ref), which default to reading the fields `parent` and `offsets`, and may extend
-[`OffsetArrays.unwrap`](@ref) to retain its own type through `copy`, `zero`, `fill!` and `map`.
+for instance in a narrower integer type or in the type parameters themselves, and inherit the indexing, axes and
+printing machinery defined for `AbstractOffsetArray`.
+
+A subtype `S` must define three methods:
+
+- `Base.parent(A::S)`: the wrapped array;
+- [`OffsetArrays.offsets(A::S)`](@ref OffsetArrays.offsets): the offsets as an `NTuple{N,<:Integer}`;
+- [`OffsetArrays.parenttype(::Type{S})`](@ref OffsetArrays.parenttype): the type of the wrapped array.
+
+`Base.parent` deliberately throws for a subtype that does not define it, overriding the identity fallback
+`parent(a::AbstractArray) = a` in `Base`, so that an incomplete subtype fails loudly instead of recursing or
+silently indexing itself.
+
+A subtype may additionally extend [`OffsetArrays.unwrap`](@ref) to retain its own type through the operations
+that rebuild the wrapper around a new parent.
+
+Wrapping an `AbstractOffsetArray` in an `OffsetArray` collates the offsets and discards the inner wrapper:
+`OffsetArray(A::S, offsets)` is an `OffsetArray` around `parent(A)`.
 """
 abstract type AbstractOffsetArray{T,N} <: AbstractArray{T,N} end
 
+"""
+    AbstractOffsetVector{T}
+
+Type alias for one-dimensional [`AbstractOffsetArray`](@ref OffsetArrays.AbstractOffsetArray)s.
+"""
 const AbstractOffsetVector{T} = AbstractOffsetArray{T,1}
+
+"""
+    AbstractOffsetMatrix{T}
+
+Type alias for two-dimensional [`AbstractOffsetArray`](@ref OffsetArrays.AbstractOffsetArray)s.
+"""
+const AbstractOffsetMatrix{T} = AbstractOffsetArray{T,2}
 
 """
     OffsetArrays.offsets(A::AbstractOffsetArray)
 
-Return the offsets that relate the axes of `A` to those of `parent(A)`, so that
+Return the offsets that relate the axes of `A` to those of `parent(A)`, as an `NTuple{N,<:Integer}`, so that
 `first(axes(A, d)) == first(axes(parent(A), d)) + offsets(A)[d]`.
-"""
-offsets(A::AbstractOffsetArray) = A.offsets
 
-Base.parent(A::AbstractOffsetArray) = A.parent
+Subtypes of [`AbstractOffsetArray`](@ref OffsetArrays.AbstractOffsetArray) must define this method.
+"""
+function offsets end
+
+"""
+    OffsetArrays.parenttype(::Type{<:AbstractOffsetArray})
+    OffsetArrays.parenttype(A::AbstractOffsetArray)
+
+Return the type of `parent(A)`. It is used to derive `IndexStyle` and `Base.elsize` without an instance.
+
+Subtypes of [`AbstractOffsetArray`](@ref OffsetArrays.AbstractOffsetArray) must define the `Type` method;
+the method taking an instance forwards to it.
+"""
+function parenttype end
+parenttype(A::AbstractOffsetArray) = parenttype(typeof(A))
+
+# Base defines parent(a::AbstractArray) = a, which would make a subtype that forgets to define
+# parent recurse through axes(parent(A)); override it to fail with a clear message instead
+@noinline _throw_no_parent(@nospecialize(A)) =
+    throw(ArgumentError("$(typeof(A)) must define Base.parent; see the AbstractOffsetArray docstring"))
+Base.parent(A::AbstractOffsetArray) = _throw_no_parent(A)
 
 ## OffsetArray
 """
@@ -141,6 +186,11 @@ struct OffsetArray{T,N,AA<:AbstractArray{T,N}} <: AbstractOffsetArray{T,N}
         new{T, N, AA}(parent, offsets)
     end
 end
+
+# the AbstractOffsetArray interface for OffsetArray
+Base.parent(A::OffsetArray) = A.parent
+offsets(A::OffsetArray) = A.offsets
+parenttype(::Type{OffsetArray{T,N,AA}}) where {T,N,AA} = AA
 
 """
     OffsetVector(v, index)
@@ -298,8 +348,6 @@ end
 @inline OffsetArray{T}(init::ArrayInitializer, inds...; kw...) where {T} = OffsetArray{T}(init, inds; kw...)
 
 Base.IndexStyle(::Type{OA}) where {OA<:OffsetArray} = IndexStyle(parenttype(OA))
-parenttype(::Type{OffsetArray{T,N,AA}}) where {T,N,AA} = AA
-parenttype(A::OffsetArray) = parenttype(typeof(A))
 
 # TODO: Ideally we would delegate to the parent's broadcasting implementation, but that
 #       is currently broken in sufficiently many implementation, namely RecursiveArrayTools, DistributedArrays

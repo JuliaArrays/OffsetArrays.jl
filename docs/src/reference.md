@@ -6,7 +6,10 @@ OffsetVector
 OffsetMatrix
 OffsetArrays.Origin
 OffsetArrays.AbstractOffsetArray
+OffsetArrays.AbstractOffsetVector
+OffsetArrays.AbstractOffsetMatrix
 OffsetArrays.offsets
+OffsetArrays.parenttype
 OffsetArrays.unwrap
 OffsetArrays.IdOffsetRange
 OffsetArrays.no_offset_view
