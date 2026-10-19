@@ -9,6 +9,12 @@ end
 
 export OffsetArray, OffsetMatrix, OffsetVector
 
+# the subtype interface is public API but not exported; `public` is parsed from a string
+# because the keyword is a syntax error on older Julia versions
+if VERSION >= v"1.11.0-DEV.469"
+    eval(Meta.parse("public AbstractOffsetArray, AbstractOffsetVector, AbstractOffsetMatrix, offsets, parenttype, unwrap, overflow_check"))
+end
+
 const IIUR = IdentityUnitRange{<:AbstractUnitRange{<:Integer}}
 
 include("axes.jl")
