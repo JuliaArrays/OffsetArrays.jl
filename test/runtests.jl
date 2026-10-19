@@ -2787,7 +2787,6 @@ end
 Base.parent(A::NarrowOffsetArray) = A.parent
 OffsetArrays.offsets(A::NarrowOffsetArray) = A.offsets
 OffsetArrays.parenttype(::Type{<:NarrowOffsetArray{T,N,AA}}) where {T,N,AA} = AA
-Base.IndexStyle(::Type{<:NarrowOffsetArray{T,N,AA}}) where {T,N,AA} = IndexStyle(AA)
 
 struct StaticOffsetArray{T,N,AA<:AbstractArray{T,N},O} <: OffsetArrays.AbstractOffsetArray{T,N}
     parent::AA
@@ -2796,7 +2795,6 @@ StaticOffsetArray(A::AbstractArray{T,N}, offsets::NTuple{N,Integer}) where {T,N}
 Base.parent(A::StaticOffsetArray) = A.parent
 OffsetArrays.offsets(::StaticOffsetArray{<:Any,<:Any,<:Any,O}) where {O} = O
 OffsetArrays.parenttype(::Type{<:StaticOffsetArray{T,N,AA}}) where {T,N,AA} = AA
-Base.IndexStyle(::Type{<:StaticOffsetArray{T,N,AA}}) where {T,N,AA} = IndexStyle(AA)
 
 # subtypes that leave out one of the required methods must fail with a clear error
 struct NoParentOffsetArray{T,N} <: OffsetArrays.AbstractOffsetArray{T,N}
@@ -2825,6 +2823,14 @@ Base.parent(A::NoOffsetsOffsetArray) = A.parent
             @test length(B) == 6
             @test eltype(B) === Int
             @test IndexStyle(B) === IndexLinear()
+            # IndexStyle and elsize are derived from parenttype, which makes pointer(B, i) work
+            @test IndexStyle(typeof(B)) === IndexStyle(typeof(A))
+            @test Base.elsize(typeof(B)) == Base.elsize(typeof(A))
+            @test pointer(B) == pointer(A)
+            @test pointer(B, 2) == pointer(A, 2)
+            # with offsets (-1, -2) column 0 of B is column 2 of A
+            @test pointer(view(B, :, 0)) == pointer(view(A, :, 2))
+            @test no_offset_view(view(B, :, 0)) == view(A, :, 2)
             @test axes(B) === axes(O)
             @test axes(B, 1) === axes(O, 1)
             @test axes(B, 3) === axes(O, 3)
@@ -2893,6 +2899,16 @@ Base.parent(A::NoOffsetsOffsetArray) = A.parent
 
         @test reshape(N, 6) == vec(A)
         @test reshape(N, (2, 3)) == A
+
+        # Adapt rebuilds the wrapper through parent_call and reads the parent type through parenttype
+        NA = adapt(Array{Float64}, N)
+        @test NA isa OffsetArray{Float64,2}
+        @test axes(NA) === axes(N)
+        @test parent(NA) == A
+        if isdefined(Adapt, :parent_type)
+            @test Adapt.parent_type(typeof(N)) === typeof(A)
+            @test Adapt.unwrap_type(typeof(N)) === typeof(A)
+        end
     end
 
     @testset "vectors" begin

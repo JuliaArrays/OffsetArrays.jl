@@ -347,7 +347,7 @@ end
 end
 @inline OffsetArray{T}(init::ArrayInitializer, inds...; kw...) where {T} = OffsetArray{T}(init, inds; kw...)
 
-Base.IndexStyle(::Type{OA}) where {OA<:OffsetArray} = IndexStyle(parenttype(OA))
+Base.IndexStyle(::Type{OA}) where {OA<:AbstractOffsetArray} = IndexStyle(parenttype(OA))
 
 # TODO: Ideally we would delegate to the parent's broadcasting implementation, but that
 #       is currently broken in sufficiently many implementation, namely RecursiveArrayTools, DistributedArrays
@@ -535,7 +535,7 @@ Base.in(x, A::AbstractOffsetArray) = in(x, parent(A))
 Base.copy(A::AbstractOffsetArray) = parent_call(copy, A)
 
 Base.strides(A::AbstractOffsetArray) = strides(parent(A))
-Base.elsize(::Type{OffsetArray{T,N,A}}) where {T,N,A} = Base.elsize(A)
+Base.elsize(::Type{OA}) where {OA<:AbstractOffsetArray} = Base.elsize(parenttype(OA))
 Base.cconvert(P::Type{Ptr{T}}, A::AbstractOffsetArray{T}) where {T} = Base.cconvert(P, parent(A))
 if VERSION < v"1.11-"
     @inline Base.unsafe_convert(::Type{Ptr{T}}, A::AbstractOffsetArray{T}) where {T} = Base.unsafe_convert(Ptr{T}, parent(A))

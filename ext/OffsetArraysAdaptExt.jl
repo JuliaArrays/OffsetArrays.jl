@@ -10,8 +10,8 @@ Adapt.adapt_structure(to, O::OffsetArrays.AbstractOffsetArray) = OffsetArrays.pa
 
 @static if isdefined(Adapt, :parent_type)
     # To support Adapt 3.0 which doesn't have parent_type defined
-    Adapt.parent_type(::Type{OffsetArray{T,N,AA}}) where {T,N,AA} = AA
-    Adapt.unwrap_type(W::Type{<:OffsetArray}) = unwrap_type(parent_type(W))
+    Adapt.parent_type(W::Type{<:OffsetArrays.AbstractOffsetArray}) = OffsetArrays.parenttype(W)
+    Adapt.unwrap_type(W::Type{<:OffsetArrays.AbstractOffsetArray}) = unwrap_type(parent_type(W))
 end
 
 end
