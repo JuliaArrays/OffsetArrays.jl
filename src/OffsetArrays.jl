@@ -42,6 +42,11 @@ silently indexing itself.
 A subtype may additionally extend [`OffsetArrays.unwrap`](@ref) to retain its own type through the operations
 that rebuild the wrapper around a new parent.
 
+`OffsetArrays` does not validate the offsets a subtype stores: `axes(A)` adds them to the axes of the parent
+without checking for integer overflow. A subtype's constructor is responsible for calling
+[`OffsetArrays.overflow_check`](@ref) on each axis of the parent and the corresponding offset if it wants the
+same guarantee as `OffsetArray`. (Wrapping a subtype in an `OffsetArray`, as below, does check the collated offsets.)
+
 Wrapping an `AbstractOffsetArray` in an `OffsetArray` collates the offsets and discards the inner wrapper:
 `OffsetArray(A::S, offsets)` is an `OffsetArray` around `parent(A)`.
 """
@@ -206,7 +211,17 @@ Type alias and convenience constructor for two-dimensional [`OffsetArray`](@ref)
 """
 const OffsetMatrix{T,AA<:AbstractMatrix{T}} = OffsetArray{T,2,AA}
 
-# checks if the offset may be added to the range without overflowing
+"""
+    OffsetArrays.overflow_check(r::AbstractUnitRange, offset::Integer)
+
+Throw an `OverflowError` if adding `offset` to the endpoints of the axis `r` would overflow an `Int`,
+and return `nothing` otherwise. The check is specified for axes with `Int` endpoints, which is what
+`OffsetArray` itself works with; any `Integer` offset is accepted.
+
+`OffsetArray` calls this on every axis of the parent when it is constructed. `OffsetArrays` does not
+validate the offsets stored by other subtypes of [`AbstractOffsetArray`](@ref OffsetArrays.AbstractOffsetArray),
+so their constructors should call it themselves if they want the same guarantee.
+"""
 function overflow_check(r::AbstractUnitRange, offset::Integer)
     Base.hastypemax(eltype(r)) || return nothing
     # This gives some performance boost https://github.com/JuliaLang/julia/issues/33273

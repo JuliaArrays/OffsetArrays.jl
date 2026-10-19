@@ -2783,6 +2783,11 @@ end
 struct NarrowOffsetArray{T,N,AA<:AbstractArray{T,N},I<:Integer} <: OffsetArrays.AbstractOffsetArray{T,N}
     parent::AA
     offsets::NTuple{N,I}
+    function NarrowOffsetArray(parent::AA, offsets::NTuple{N,I}) where {T,N,AA<:AbstractArray{T,N},I<:Integer}
+        # OffsetArrays does not validate stored offsets, so the subtype's constructor checks for overflow
+        map(OffsetArrays.overflow_check, axes(parent), offsets)
+        new{T,N,AA,I}(parent, offsets)
+    end
 end
 Base.parent(A::NarrowOffsetArray) = A.parent
 OffsetArrays.offsets(A::NarrowOffsetArray) = A.offsets
@@ -2869,6 +2874,12 @@ Base.parent(A::NoOffsetsOffsetArray) = A.parent
         @test_throws MethodError OffsetArrays.offsets(Y)
         @test_throws MethodError axes(Y)
         @test_throws MethodError OffsetArrays.parenttype(typeof(Y))
+
+        # the subtype's constructor is responsible for the overflow check that OffsetArray performs
+        P = OffsetArray(A, typemax(Int) - 2, 0)      # axis 1 is typemax-1:typemax; must not throw
+        @test last(axes(P, 1)) == typemax(Int)
+        @test_throws OverflowError NarrowOffsetArray(P, (Int8(2), Int8(0)))
+        @test NarrowOffsetArray(P, (Int8(0), Int8(0))) isa NarrowOffsetArray
     end
 
     @testset "wrapper-preserving operations" begin
