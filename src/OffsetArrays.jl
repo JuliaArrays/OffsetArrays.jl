@@ -383,7 +383,7 @@ unwrap(x) = x, identity
 
 Return `(parent(A), rewrap)`, where `rewrap` restores the wrapper around an array that shares the axes
 of `parent(A)`. Subtypes of [`AbstractOffsetArray`](@ref OffsetArrays.AbstractOffsetArray) may extend
-this to retain their own type through `copy`, `zero`, `fill!` and `map`.
+this to retain their own type through `copy`, `zero` and `map`.
 """
 unwrap(x::AbstractOffsetArray) = parent(x), data -> OffsetArray(data, offsets(x), checkoverflow = false)
 function parent_call(f, x)
@@ -478,7 +478,9 @@ if VERSION < v"1.12.0-DEV.343" # available in Base beyond this version
 end
 
 Base.zero(A::AbstractOffsetArray) = parent_call(zero, A)
-Base.fill!(A::AbstractOffsetArray, x) = parent_call(Ap -> fill!(Ap, x), A)
+# fill! mutates in place and must return its argument, so it does not go through parent_call,
+# which would rebuild the wrapper as an OffsetArray for other subtypes
+Base.fill!(A::AbstractOffsetArray, x) = (fill!(parent(A), x); A)
 
 ## Indexing
 

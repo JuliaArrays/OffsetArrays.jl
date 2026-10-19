@@ -165,5 +165,5 @@ julia> sum(A)
 21
 ```
 
-Operations that rebuild the wrapper around a new parent array, such as `copy`, `zero`, `fill!` and `map`, return
+Operations that rebuild the wrapper around a new parent array, such as `copy`, `zero` and `map`, return
 an `OffsetArray` unless the type extends `OffsetArrays.unwrap`.

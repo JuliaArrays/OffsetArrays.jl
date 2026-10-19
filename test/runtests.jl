@@ -2884,6 +2884,7 @@ Base.parent(A::NoOffsetsOffsetArray) = A.parent
         @test eltype(map(Float64, N)) === Float64
 
         B = NarrowOffsetArray(copy(A), (Int8(-1), Int8(-2)))
+        @test fill!(B, 7) === B
         @test fill!(B, 7) == fill(7, axes(B))
         @test all(==(7), parent(B))
 
