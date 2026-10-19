@@ -2917,6 +2917,13 @@ Base.parent(A::NoOffsetsOffsetArray) = A.parent
         @test axes(C) === axes(N)
         @test similar(N, Float64, (2, 3)) isa Matrix{Float64}
 
+        # type-level similar allocates an Array parent, as for OffsetArray, and works for
+        # partially specified types as well
+        @test similar(typeof(N), (2, 3)) isa Matrix{Int}
+        @test similar(typeof(N), (0:1, 0:2)) isa OffsetMatrix{Int, Matrix{Int}}
+        @test axes(similar(typeof(N), (0:1, 0:2))) == (0:1, 0:2)
+        @test similar(NarrowOffsetArray{Float64}, (0:1,)) isa OffsetVector{Float64, Vector{Float64}}
+
         D = N .+ 1
         @test D isa OffsetArray
         @test axes(D) === axes(N)

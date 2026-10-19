@@ -417,6 +417,7 @@ Every other operation that produces a new array with offset axes, such as `simil
 indexing with an offset range, `AbstractArray{T}(A)`, `convert`, and `reshape` to offset axes, returns an
 `OffsetArray`. Results with 1-based axes, such as `similar(A, T, dims)`, indexing with a 1-based range,
 `A[:]`, `vec`, `collect`, and `reshape` to dimensions, have the type of the parent's result.
+`similar(::Type{S}, dims)` on the type of a subtype allocates an `Array`, as it does for `OffsetArray`.
 """
 unwrap(x::AbstractOffsetArray) = parent(x), data -> OffsetArray(data, offsets(x), checkoverflow = false)
 function parent_call(f, x)
@@ -436,7 +437,7 @@ function Base.similar(A::AbstractArray, ::Type{T}, shape::Tuple{OffsetAxisKnownL
     P = _similar_axes_or_length(A, T, new_shape, shape)
     return OffsetArray(P, map(_offset, axes(P), shape))
 end
-Base.similar(::Type{A}, sz::Tuple{Vararg{Int}}) where {A<:OffsetArray} = similar(Array{eltype(A)}, sz)
+Base.similar(::Type{A}, sz::Tuple{Vararg{Int}}) where {A<:AbstractOffsetArray} = similar(Array{eltype(A)}, sz)
 function Base.similar(::Type{T}, shape::Tuple{OffsetAxisKnownLength,Vararg{OffsetAxisKnownLength}}) where {T<:AbstractArray}
     new_shape = map(_strip_IdOffsetRange, shape)
     P = _similar_axes_or_length(T, new_shape, shape)
