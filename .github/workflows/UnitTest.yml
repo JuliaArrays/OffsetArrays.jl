@@ -15,8 +15,6 @@ on:
       - 'LICENSE.md'
       - 'README.md'
       - '.github/workflows/TagBot.yml'
-  schedule:
-    - cron: '20 00 1 * *'
 
 concurrency:
   group: build-${{ github.event.pull_request.number || github.ref }}-${{ github.workflow }}
@@ -30,18 +28,30 @@ jobs:
       # https://github.com/actions/toolkit/issues/399
       fail-fast: false
       matrix:
-        julia-version: ['1.0', 'lts', '1', 'pre']
-        os: [ubuntu-latest, windows-latest, macOS-latest]
-        julia-arch: [x64]
+        julia-version:
+          - '1.0'
+          - 'lts'
+          - '1'
+          - 'nightly'
+        os:
+          - ubuntu-latest
+          - macOS-latest
+          - windows-latest
+        julia-arch:
+          - 'default'
         # only test one 32-bit job
         include:
           - os: ubuntu-latest
             julia-version: '1'
             julia-arch: x86
+        exclude:
+          # Until 'min' is Julia v1.0 we can't install julia for aarch64-darwin.
+          - os: macos-latest
+            julia-version: '1.0'
 
     steps:
       - uses: actions/checkout@v7
-      - uses: julia-actions/setup-julia@v2
+      - uses: julia-actions/setup-julia@v3
         with:
           version: ${{ matrix.julia-version }}
           arch: ${{ matrix.julia-arch }}
