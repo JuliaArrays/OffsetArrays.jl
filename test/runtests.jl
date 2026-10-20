@@ -2958,12 +2958,16 @@ Base.parent(A::NoOffsetsOffsetArray) = A.parent
         @test permutedims(N) == permutedims(O)
         @test axes(permutedims(N)) === axes(permutedims(O))
 
-        N[-1] = 10
-        @test v[1] == 10
-        @test pop!(N) == 4
-        @test length(v) == 3
-        push!(N, 5)
-        @test v[end] == 5
+        # resizing goes through the parent; use a vector that has not been reshaped,
+        # since on Julia < 1.11 `reshape` marks an Array as shared and forbids resizing it
+        w = [1, 2, 3, 4]
+        M = NarrowOffsetArray(w, (Int8(-2),))
+        M[-1] = 10
+        @test w[1] == 10
+        @test pop!(M) == 4
+        @test length(w) == 3
+        push!(M, 5)
+        @test w[end] == 5
 
         # a subtype wrapping a range is not an OffsetRange, so it uses the generic AbstractArray
         # fallbacks instead of the range specialisations; the values agree
