@@ -2776,6 +2776,235 @@ end
     @test axes(convert(AbstractArray{T}, OA)) === axes(OA)
 end
 
+# Downstream packages may subtype AbstractOffsetArray to store the offsets differently.
+# The two types below cover the extremes: offsets held in a narrow integer type, and offsets
+# held in a type parameter so that the wrapper carries no offset data at all.
+
+struct NarrowOffsetArray{T,N,AA<:AbstractArray{T,N},I<:Integer} <: OffsetArrays.AbstractOffsetArray{T,N}
+    parent::AA
+    offsets::NTuple{N,I}
+    function NarrowOffsetArray(parent::AA, offsets::NTuple{N,I}) where {T,N,AA<:AbstractArray{T,N},I<:Integer}
+        # OffsetArrays does not validate stored offsets, so the subtype's constructor checks for overflow
+        map(OffsetArrays.overflow_check, axes(parent), offsets)
+        new{T,N,AA,I}(parent, offsets)
+    end
+end
+Base.parent(A::NarrowOffsetArray) = A.parent
+OffsetArrays.offsets(A::NarrowOffsetArray) = A.offsets
+OffsetArrays.parenttype(::Type{<:NarrowOffsetArray{T,N,AA}}) where {T,N,AA} = AA
+
+struct StaticOffsetArray{T,N,AA<:AbstractArray{T,N},O} <: OffsetArrays.AbstractOffsetArray{T,N}
+    parent::AA
+end
+StaticOffsetArray(A::AbstractArray{T,N}, offsets::NTuple{N,Integer}) where {T,N} = StaticOffsetArray{T,N,typeof(A),offsets}(A)
+Base.parent(A::StaticOffsetArray) = A.parent
+OffsetArrays.offsets(::StaticOffsetArray{<:Any,<:Any,<:Any,O}) where {O} = O
+OffsetArrays.parenttype(::Type{<:StaticOffsetArray{T,N,AA}}) where {T,N,AA} = AA
+
+# subtypes that leave out one of the required methods must fail with a clear error
+struct NoParentOffsetArray{T,N} <: OffsetArrays.AbstractOffsetArray{T,N}
+    data::Array{T,N}
+end
+OffsetArrays.offsets(::NoParentOffsetArray{<:Any,N}) where {N} = ntuple(_ -> 0, N)
+struct NoOffsetsOffsetArray{T,N} <: OffsetArrays.AbstractOffsetArray{T,N}
+    parent::Array{T,N}
+end
+Base.parent(A::NoOffsetsOffsetArray) = A.parent
+
+@testset "AbstractOffsetArray" begin
+    @testset "interface" begin
+        A = [1 3 5; 2 4 6]
+        O = OffsetArray(A, -1, -2)
+
+        for B in (NarrowOffsetArray(A, (Int8(-1), Int8(-2))), StaticOffsetArray(A, (-1, -2)))
+            @test B isa OffsetArrays.AbstractOffsetArray{Int,2}
+            @test B isa OffsetArrays.AbstractOffsetMatrix{Int}
+            @test !(B isa OffsetArray)
+            @test parent(B) === A
+            @test OffsetArrays.offsets(B) == (-1, -2)
+            @test OffsetArrays.parenttype(B) === typeof(A)
+            @test OffsetArrays.parenttype(typeof(B)) === typeof(A)
+            @test size(B) == (2, 3)
+            @test length(B) == 6
+            @test eltype(B) === Int
+            @test IndexStyle(B) === IndexLinear()
+            # IndexStyle and elsize are derived from parenttype, which makes pointer(B, i) work
+            @test IndexStyle(typeof(B)) === IndexStyle(typeof(A))
+            @test Base.elsize(typeof(B)) == Base.elsize(typeof(A))
+            @test pointer(B) == pointer(A)
+            @test pointer(B, 2) == pointer(A, 2)
+            # with offsets (-1, -2) column 0 of B is column 2 of A; the pointer is compared with
+            # the OffsetArray reference, as on old Julia versions Base computes the pointer of a
+            # view with offset axes differently from the parent's
+            @test pointer(view(B, :, 0)) == pointer(view(O, :, 0))
+            @test no_offset_view(view(B, :, 0)) == view(A, :, 2)
+            @test axes(B) === axes(O)
+            @test axes(B, 1) === axes(O, 1)
+            @test axes(B, 3) === axes(O, 3)
+
+            @test B[0, -1] == 1
+            @test B[1, 1] == 6
+            @test B[CartesianIndex(0, 0)] == 3
+            @test_throws BoundsError B[2, 0]
+            @test_throws BoundsError B[0, 2]
+            @test B == O
+            @test sum(B) == sum(A)
+            @test 4 in B
+            @test !(7 in B)
+            @test no_offset_view(B) === A
+        end
+
+        # the offsets of a StaticOffsetArray live entirely in the type
+        @test sizeof(StaticOffsetArray(A, (-1, -2))) == sizeof(Ptr{Cvoid})
+        # narrow offsets take less space than the Ints of an OffsetArray (issue 370)
+        narrow = NarrowOffsetArray(A, (Int8(-1), Int8(-2)))
+        @test sizeof(narrow) < sizeof(O)
+        # the Matrix parent is a reference: a pointer plus an NTuple{2,Int8}, padded to pointer alignment
+        @test sizeof(narrow) == 2 * sizeof(Ptr{Cvoid})
+
+        B = NarrowOffsetArray(copy(A), (Int8(-1), Int8(-2)))
+        B[0, -1] = 10
+        B[1, 1] = 20
+        @test parent(B) == [10 3 5; 2 4 20]
+        @test_throws BoundsError (B[2, 0] = 0)
+
+        # the concrete type implements the same interface
+        @test OffsetMatrix(A, -1, -2) isa OffsetArrays.AbstractOffsetMatrix{Int}
+        @test OffsetVector(A[:, 1], -1) isa OffsetArrays.AbstractOffsetVector{Int}
+        @test OffsetArrays.parenttype(O) === typeof(A)
+
+        # a subtype without `parent` would otherwise hit Base's identity fallback and recurse
+        X = NoParentOffsetArray(A)
+        @test_throws ArgumentError parent(X)
+        @test_throws ArgumentError axes(X)
+        Y = NoOffsetsOffsetArray(A)
+        @test_throws MethodError OffsetArrays.offsets(Y)
+        @test_throws MethodError axes(Y)
+        @test_throws MethodError OffsetArrays.parenttype(typeof(Y))
+
+        # the subtype's constructor is responsible for the overflow check that OffsetArray performs
+        P = OffsetArray(A, typemax(Int) - 2, 0)      # axis 1 is typemax-1:typemax; must not throw
+        @test last(axes(P, 1)) == typemax(Int)
+        @test_throws OverflowError NarrowOffsetArray(P, (Int8(2), Int8(0)))
+        @test NarrowOffsetArray(P, (Int8(0), Int8(0))) isa NarrowOffsetArray
+
+        # the subtype interface is declared public (same version bound as the declaration in src)
+        if VERSION >= v"1.11.0-DEV.469"
+            for s in (:AbstractOffsetArray, :AbstractOffsetVector, :AbstractOffsetMatrix,
+                      :offsets, :parenttype, :unwrap, :overflow_check)
+                @test Base.ispublic(OffsetArrays, s)
+            end
+        end
+    end
+
+    @testset "wrapper-preserving operations" begin
+        A = [1 3 5; 2 4 6]
+        N = NarrowOffsetArray(A, (Int8(-1), Int8(-2)))
+
+        # operations that rewrap the parent return an OffsetArray unless `unwrap` is extended
+        @test copy(N) isa OffsetArray
+        @test copy(N) == N
+        @test axes(copy(N)) === axes(N)
+        @test zero(N) == zeros(Int, axes(N))
+        @test map(Float64, N) == N
+        @test eltype(map(Float64, N)) === Float64
+
+        B = NarrowOffsetArray(copy(A), (Int8(-1), Int8(-2)))
+        @test fill!(B, 7) === B
+        @test fill!(B, 7) == fill(7, axes(B))
+        @test all(==(7), parent(B))
+
+        C = similar(N, Float64)
+        @test C isa OffsetArray{Float64,2}
+        @test axes(C) === axes(N)
+        @test similar(N, Float64, (2, 3)) isa Matrix{Float64}
+
+        # type-level similar allocates an Array parent, as for OffsetArray, and works for
+        # partially specified types as well
+        @test similar(typeof(N), (2, 3)) isa Matrix{Int}
+        @test similar(typeof(N), (0:1, 0:2)) isa OffsetMatrix{Int, Matrix{Int}}
+        @test axes(similar(typeof(N), (0:1, 0:2))) == (0:1, 0:2)
+        @test similar(NarrowOffsetArray{Float64}, (0:1,)) isa OffsetVector{Float64, Vector{Float64}}
+
+        D = N .+ 1
+        @test D isa OffsetArray
+        @test axes(D) === axes(N)
+        @test parent(D) == A .+ 1
+
+        @test reshape(N, 6) == vec(A)
+        @test reshape(N, (2, 3)) == A
+
+        # Adapt rebuilds the wrapper through parent_call and reads the parent type through parenttype
+        NA = adapt(Array, N)
+        @test NA isa OffsetArray{Int,2}
+        @test axes(NA) === axes(N)
+        @test parent(NA) == A
+        if isdefined(Adapt, :parent_type)
+            @test Adapt.parent_type(typeof(N)) === typeof(A)
+            @test Adapt.unwrap_type(typeof(N)) === typeof(A)
+        end
+    end
+
+    @testset "vectors" begin
+        v = [1, 2, 3, 4]
+        N = NarrowOffsetArray(v, (Int8(-2),))
+        O = OffsetArray(v, -2)
+
+        @test N isa OffsetArrays.AbstractOffsetVector{Int}
+        @test axes(N) === axes(O)
+        @test N[-1] == 1
+        @test N[2] == 4
+        @test N[-1:0] == [1, 2]
+        @test no_offset_axes(N[-1:0], 1) == 1:2
+        @test N[0:2:2] == [2, 4]
+        @test permutedims(N) == permutedims(O)
+        @test axes(permutedims(N)) === axes(permutedims(O))
+
+        # resizing goes through the parent; use a vector that has not been reshaped,
+        # since on Julia < 1.11 `reshape` marks an Array as shared and forbids resizing it
+        w = [1, 2, 3, 4]
+        M = NarrowOffsetArray(w, (Int8(-2),))
+        M[-1] = 10
+        @test w[1] == 10
+        @test pop!(M) == 4
+        @test length(w) == 3
+        push!(M, 5)
+        @test w[end] == 5
+
+        # a subtype wrapping a range is not an OffsetRange, so it uses the generic AbstractArray
+        # fallbacks instead of the range specialisations; the values agree
+        R = NarrowOffsetArray(1:5, (Int8(-2),))
+        RO = OffsetVector(1:5, -2)
+        @test !(R isa OffsetArrays.OffsetRange)
+        @test axes(R) === axes(RO)
+        @test R[-1] == 1
+        @test R[-1:0] == 1:2
+        @test sum(R) == 15
+        w = collect(10:20)
+        @test collect(w[R]) == collect(w[RO])
+        @test collect((10:20)[R]) == collect((10:20)[RO])
+    end
+
+    @testset "nesting and printing" begin
+        A = [1 3 5; 2 4 6]
+        N = NarrowOffsetArray(A, (Int8(-1), Int8(-2)))
+
+        # wrapping an AbstractOffsetArray collates the offsets and pops the inner wrapper
+        for B in (OffsetArray(N, 1, 2), OffsetArray(N, (1, 2)), OffsetArray{Int,2}(N, 1, 2))
+            @test B isa OffsetArray{Int,2,typeof(A)}
+            @test parent(B) === A
+            @test axes(B) == axes(A)
+            @test B == A
+        end
+
+        # the wrapper prints under its own name
+        @test summary(N) == replace(summary(OffsetArray(A, -1, -2)), "OffsetArray" => "NarrowOffsetArray")
+        # showarg prints the struct name, so the OffsetVector alias prints as OffsetArray
+        @test occursin("OffsetArray(::$(Vector{Int}), 0:2)", summary(OffsetVector([1, 2, 3], -1)))
+        # replace_in_print_matrix is forwarded to the parent
+        @test occursin("⋅", sprint(show, "text/plain", NarrowOffsetArray(Diagonal([1, 2]), (Int8(-1), Int8(-1)))))
+    end
+end
 
 include("origin.jl")
 
