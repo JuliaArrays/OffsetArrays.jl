@@ -280,12 +280,6 @@ parenttype(A::OffsetArray) = parenttype(typeof(A))
 
 Base.parent(A::OffsetArray) = A.parent
 
-# TODO: Ideally we would delegate to the parent's broadcasting implementation, but that
-#       is currently broken in sufficiently many implementation, namely RecursiveArrayTools, DistributedArrays
-#       and StaticArrays, that it will take concentrated effort to get this working across the ecosystem.
-#       The goal would be to have `OffsetArray(CuArray) .+ 1 == OffsetArray{CuArray}`.
-# Base.Broadcast.BroadcastStyle(::Type{<:OffsetArray{<:Any, <:Any, AA}}) where AA = Base.Broadcast.BroadcastStyle(AA)
-
 @inline Base.size(A::OffsetArray) = size(parent(A))
 # specializing length isn't necessary, as length(A) = prod(size(A)),
 # but specializing length enables constant-propagation for statically sized arrays
