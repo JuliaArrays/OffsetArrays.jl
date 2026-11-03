@@ -31,8 +31,8 @@ or to a `Tuple{Vararg{AbstractUnitRange{Int}}}` while flattening custom types in
 This method is called after `to_indices(A::Array, axes(A), indices)` to provide
 further information in case `to_indices` does not return a `Tuple` of `AbstractUnitRange{Int}`.
 
-Custom index types should extend `AxisConversionStyle` and return either `OffsetArray.SingleRange()`,
-which is the default, or `OffsetArray.TupleOfRanges()`. In the former case, the type `T` should
+Custom index types should extend `AxisConversionStyle` and return either `OffsetArrays.SingleRange()`,
+which is the default, or `OffsetArrays.TupleOfRanges()`. In the former case, the type `T` should
 define `Base.convert(::Type{AbstractUnitRange{Int}}, ::T)`, whereas in the latter it should define
 `Base.convert(::Type{Tuple{Vararg{AbstractUnitRange{Int}}}}, ::T)`.
 
