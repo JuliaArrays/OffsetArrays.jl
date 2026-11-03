@@ -139,14 +139,14 @@ Notice our use of the `eachindex` function which does not assume that the given 
 
 ## Custom offset array types
 
-Packages that need to store the offsets differently (e.g. in a narrower integer type, or in the type parameters themselves), may subtype `OffsetArrays.AbstractOffsetArray{T,N}`. Such a type needs to define `Base.parent`, `OffsetArrays.offsets` and `OffsetArrays.parenttype`, and it inherits the indexing, axes and printing machinery that is defined for `AbstractOffsetArray`. The offsets it stores are not validated by `OffsetArrays`: its constructor is responsible for checking that they can be added to the axes of the parent without overflow, which constructing `OffsetArray(parent, offsets)` does, as in the example below.
+Packages that need to store the offsets differently (e.g. in a narrower integer type, or in the type parameters themselves), may subtype `OffsetArrays.AbstractOffsetArray{T,N}`. Such a type needs to define `Base.parent`, `OffsetArrays.offsets` and `OffsetArrays.parenttype`, and it inherits the indexing, axes and printing machinery that is defined for `AbstractOffsetArray`. The offsets it stores are not validated by `OffsetArrays`: its constructor is responsible for checking that they can be added to the axes of the parent without overflow, for which `OffsetArrays.overflow_check` may be used.
 
 ```jldoctest; setup = :(using OffsetArrays)
 julia> struct Int8OffsetArray{T,N,AA<:AbstractArray{T,N}} <: OffsetArrays.AbstractOffsetArray{T,N}
            parent::AA
            offsets::NTuple{N,Int8}
            function Int8OffsetArray(parent::AA, offsets::NTuple{N,Int8}) where {T,N,AA<:AbstractArray{T,N}}
-               OffsetArray(parent, offsets)
+               map(OffsetArrays.overflow_check, axes(parent), offsets)
                new{T,N,AA}(parent, offsets)
            end
        end

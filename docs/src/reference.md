@@ -10,6 +10,7 @@ OffsetArrays.AbstractOffsetVector
 OffsetArrays.AbstractOffsetMatrix
 OffsetArrays.offsets
 OffsetArrays.parenttype
+OffsetArrays.overflow_check
 OffsetArrays.IdOffsetRange
 OffsetArrays.no_offset_view
 OffsetArrays.AxisConversionStyle

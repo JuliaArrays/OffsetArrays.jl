@@ -13,7 +13,7 @@ export OffsetArray, OffsetMatrix, OffsetVector
 # because the keyword is a syntax error on older Julia versions
 if VERSION >= v"1.11.0-DEV.469"
     eval(Meta.parse("public Origin, IdOffsetRange, no_offset_view, AxisConversionStyle, SingleRange, TupleOfRanges, center, centered"))
-    eval(Meta.parse("public AbstractOffsetArray, AbstractOffsetVector, AbstractOffsetMatrix, offsets, parenttype"))
+    eval(Meta.parse("public AbstractOffsetArray, AbstractOffsetVector, AbstractOffsetMatrix, offsets, parenttype, overflow_check"))
 end
 
 const IIUR = IdentityUnitRange{<:AbstractUnitRange{<:Integer}}
@@ -55,9 +55,9 @@ dimensions, have the type of the parent's result. `similar(::Type{S}, dims)` on 
 `Array`, as it does for `OffsetArray`.
 
 `OffsetArrays` does not validate the offsets a subtype stores: `axes(A)` adds them to the axes of the parent
-without checking for integer overflow. A subtype's constructor is responsible for that check if it wants the same
-guarantee as `OffsetArray`; constructing `OffsetArray(parent, offsets)` performs it and throws an `OverflowError`.
-(Wrapping a subtype in an `OffsetArray`, as below, does check the collated offsets.)
+without checking for integer overflow. A subtype's constructor is responsible for calling
+[`OffsetArrays.overflow_check`](@ref) on each axis of the parent and the corresponding offset if it wants the
+same guarantee as `OffsetArray`. (Wrapping a subtype in an `OffsetArray`, as below, does check the collated offsets.)
 
 Wrapping an `AbstractOffsetArray` in an `OffsetArray` collates the offsets and discards the inner wrapper:
 `OffsetArray(A::S, offsets)` is an `OffsetArray` around `parent(A)`.
@@ -228,7 +228,17 @@ Type alias and convenience constructor for two-dimensional [`OffsetArray`](@ref)
 """
 const OffsetMatrix{T,AA<:AbstractMatrix{T}} = OffsetArray{T,2,AA}
 
-# checks if the offset may be added to the range without overflowing
+"""
+    OffsetArrays.overflow_check(r::AbstractUnitRange, offset::Integer)
+
+Throw an `OverflowError` if adding `offset` to the endpoints of the axis `r` would overflow an `Int`,
+and return `nothing` otherwise. The check is specified for axes with `Int` endpoints, which is what
+`OffsetArray` itself works with; any `Integer` offset is accepted.
+
+`OffsetArray` calls this on every axis of the parent when it is constructed. `OffsetArrays` does not
+validate the offsets stored by other subtypes of [`AbstractOffsetArray`](@ref OffsetArrays.AbstractOffsetArray),
+so their constructors should call it themselves if they want the same guarantee.
+"""
 function overflow_check(r::AbstractUnitRange, offset::Integer)
     Base.hastypemax(eltype(r)) || return nothing
     # This gives some performance boost https://github.com/JuliaLang/julia/issues/33273

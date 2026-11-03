@@ -52,7 +52,7 @@ end
     if VERSION >= v"1.11.0-DEV.469"
         for s in (:Origin, :IdOffsetRange, :no_offset_view, :AxisConversionStyle, :SingleRange, :TupleOfRanges,
                   :center, :centered, :AbstractOffsetArray, :AbstractOffsetVector, :AbstractOffsetMatrix,
-                  :offsets, :parenttype)
+                  :offsets, :parenttype, :overflow_check)
             @test Base.ispublic(OffsetArrays, s)
         end
     end
@@ -2792,8 +2792,8 @@ struct NarrowOffsetArray{T,N,AA<:AbstractArray{T,N},I<:Integer} <: OffsetArrays.
     parent::AA
     offsets::NTuple{N,I}
     function NarrowOffsetArray(parent::AA, offsets::NTuple{N,I}) where {T,N,AA<:AbstractArray{T,N},I<:Integer}
-        # OffsetArrays does not validate stored offsets, so the subtype's constructor checks them through OffsetArray
-        OffsetArray(parent, offsets)
+        # OffsetArrays does not validate stored offsets, so the subtype's constructor checks for overflow
+        map(OffsetArrays.overflow_check, axes(parent), offsets)
         new{T,N,AA,I}(parent, offsets)
     end
 end
